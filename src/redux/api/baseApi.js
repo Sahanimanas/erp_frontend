@@ -15,11 +15,24 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { tokenRefreshed, logout } from "../slices/authSlice";
 
 // ─── Base query with auto-refresh ─────────────────────────────────────────
+// Use the same API origin as the axios client (services/axios.js). Falls back to
+// the local backend (port 3000, /api/v1) when VITE_API_URL is unset.
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api/v1";
+
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: "http://localhost:5000/api",
+  baseUrl: API_BASE_URL,
 
   prepareHeaders(headers, { getState }) {
-    const token = getState().auth.token;
+    // Prefer the in-memory Redux token; fall back to the persisted localStorage
+    // token so RTK Query works on a hard refresh before the slice rehydrates.
+    let token = getState().auth?.token;
+    if (!token) {
+      try {
+        token = JSON.parse(localStorage.getItem("erp_auth"))?.token;
+      } catch {
+        /* ignore */
+      }
+    }
     if (token) headers.set("Authorization", `Bearer ${token}`);
     headers.set("Content-Type", "application/json");
     return headers;
@@ -44,9 +57,30 @@ async function baseQueryWithReauth(args, api, extraOptions) {
         extraOptions
       );
 
-      if (refreshResult.data) {
-        // Store the new tokens
-        api.dispatch(tokenRefreshed(refreshResult.data));
+      // Backend envelope: { success, data: { accessToken, refreshToken } }
+      const newAccess = refreshResult.data?.data?.accessToken;
+      if (newAccess) {
+        api.dispatch(
+          tokenRefreshed({
+            token: newAccess,
+            tokenExpiry: Date.now() + 15 * 60 * 1000,
+          })
+        );
+        // Keep localStorage in sync for the axios client.
+        try {
+          const persisted = JSON.parse(localStorage.getItem("erp_auth")) ?? {};
+          localStorage.setItem(
+            "erp_auth",
+            JSON.stringify({
+              ...persisted,
+              token: newAccess,
+              refreshToken: refreshResult.data?.data?.refreshToken ?? persisted.refreshToken,
+              tokenExpiry: Date.now() + 15 * 60 * 1000,
+            })
+          );
+        } catch {
+          /* ignore */
+        }
         // Retry original query with new token
         result = await rawBaseQuery(args, api, extraOptions);
       } else {
@@ -73,6 +107,15 @@ export const baseApi = createApi({
     "Transport", "Hostel", "HR", "Accounting",
     "Settings", "Notifications", "Inventory",
     "Communication", "Reports",
+    // Super Admin (platform) tags
+    "SaAnalytics", "SaSchools", "SaSchool", "SaPlans",
+    "SaDomains", "SaAudit", "SaSubscription", "SaUsers",
+    // Admission
+    "Admission", "AdmissionStats",
+    // Fee management
+    "FeeType", "FeeStructure", "TransportRoute",
+    // Payments
+    "Ledger", "PaymentHistory", "LateFeeRule",
   ],
 
   // No endpoints here — all injected via injectEndpoints() in individual service files

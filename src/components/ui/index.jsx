@@ -7,7 +7,7 @@
  */
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search, X, Download } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BUTTON
@@ -556,5 +556,62 @@ export function TableToolbar({ children }) {
     <div className="p-4 border-b border-slate-100 flex flex-wrap gap-3 items-end">
       {children}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DATE RANGE FILTER (From / To with a clear button) — reusable across pages
+// ─────────────────────────────────────────────────────────────────────────────
+export function DateRangeFilter({ from, to, onChange, label = "Date" }) {
+  return (
+    <div className="flex items-end gap-2">
+      <div>
+        <label className="block text-[11px] font-semibold text-slate-600 mb-1">{label} From</label>
+        <input
+          type="date"
+          value={from || ""}
+          onChange={(e) => onChange({ from: e.target.value, to })}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400"
+        />
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold text-slate-600 mb-1">{label} To</label>
+        <input
+          type="date"
+          value={to || ""}
+          onChange={(e) => onChange({ from, to: e.target.value })}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400"
+        />
+      </div>
+      {(from || to) && (
+        <button
+          onClick={() => onChange({ from: "", to: "" })}
+          className="px-3 py-2 text-[12px] text-slate-500 hover:text-indigo-600 font-semibold"
+        >
+          Clear
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT BUTTON — exports the given rows/columns to an Excel-friendly CSV.
+//   columns: [{ label, get(row) }]  (or omit to auto-derive from row keys)
+// ─────────────────────────────────────────────────────────────────────────────
+export function ExportButton({ filename = "export.csv", rows = [], columns, label = "Export Excel", size = "sm" }) {
+  const onClick = async () => {
+    const { exportRows, autoColumns } = await import("../../utils/exportExcel");
+    const cols = columns && columns.length ? columns : autoColumns(rows);
+    const ok = exportRows(filename, rows, cols);
+    if (!ok) {
+      const t = await import("react-hot-toast");
+      t.default.error("Nothing to export");
+    }
+  };
+  return (
+    <Button variant="secondary" size={size} icon={<Download size={13} />} disabled={!rows || rows.length === 0} onClick={onClick}>
+      {label}
+    </Button>
   );
 }

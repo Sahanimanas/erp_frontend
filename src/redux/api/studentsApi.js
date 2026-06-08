@@ -76,6 +76,26 @@ export const studentsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: "Students", id: "LIST" }],
     }),
+
+    // ── Bulk operations backing the Student management screens ─────────────
+    // Import a JSON batch of student rows (Upload Student page).
+    importStudents: build.mutation({
+      query: (students) => ({ url: "/students/import", method: "POST", body: { students } }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: [{ type: "Students", id: "LIST" }],
+    }),
+    // Promote selected students to a target class (Promote Student page).
+    promoteStudents: build.mutation({
+      query: (body) => ({ url: "/students/promote", method: "POST", body }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: [{ type: "Students", id: "LIST" }],
+    }),
+    // Bulk-edit student fields (Student Bulk Update page).
+    bulkUpdateStudents: build.mutation({
+      query: (updates) => ({ url: "/students/bulk", method: "PATCH", body: { updates } }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: [{ type: "Students", id: "LIST" }],
+    }),
   }),
   overrideExisting: false,
 });
@@ -90,4 +110,7 @@ export const {
   useGetStudentFeeSummaryQuery,
   useUploadStudentPhotoMutation,
   useBulkImportStudentsMutation,
+  useImportStudentsMutation,
+  usePromoteStudentsMutation,
+  useBulkUpdateStudentsMutation,
 } = studentsApi;

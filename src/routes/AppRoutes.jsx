@@ -55,8 +55,10 @@ function buildRoutes(items) {
 }
 
 function RootRoute() {
-  const { token } = useSelector(state => state.auth);
-  return token ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+  const { token, user } = useSelector(state => state.auth);
+  if (!token) return <Navigate to="/login" replace />;
+  const home = user?.role === "SUPER_ADMIN" ? "/super-admin/dashboard" : "/dashboard";
+  return <Navigate to={home} replace />;
 }
 
 export default function AppRoutes() {

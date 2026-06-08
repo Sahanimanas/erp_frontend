@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Avatar, Select, SearchInput } from "../../components/ui";
-import { IdCard, Printer } from "lucide-react";
+import { CreditCard as IdCard, Printer } from "lucide-react";
 import apiClient from "../../services/axios";
 
 export default function IDCardPage() {

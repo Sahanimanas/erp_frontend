@@ -1,28 +1,19 @@
 /**
- * EnquiryPage.jsx
- * Module : admission
- * Page   : Enquiries
+ * Admission → Enquiry
+ * Top-of-funnel enquiries with stats, search, add, and stage transitions.
  */
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button } from "../../components/ui";
+import { MessageSquare } from "lucide-react";
+import { EnquiryBoard } from "./_admShared";
 
 export default function EnquiryPage() {
-  usePageTitle("Enquiries");
-
+  usePageTitle("Admission Enquiries");
   return (
-    <div>
-      <PageHeader
-        title="Enquiries"
-        subtitle="Admission enquiries"
-      >
-        <Button size="sm">+ Add New</Button>
-      </PageHeader>
-
-      
-
-      <Card title="Enquiries List">
-        <div className="p-8 text-center text-slate-400 text-sm">No data available.</div>
-      </Card>
-    </div>
+    <EnquiryBoard
+      title="Admission Enquiries"
+      subtitle="Capture and track prospective-student enquiries"
+      icon={<MessageSquare size={18} />}
+      showStats
+    />
   );
 }

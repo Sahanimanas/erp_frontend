@@ -12,14 +12,15 @@
  *   ✓ Mobile: slides in/out as a drawer
  */
 import { useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   selectSidebarCollapsed, selectExpandedSections,
   toggleSidebar, toggleSection, openSection,
 } from "../../redux/slices/uiSlice";
-import { selectUserRole } from "../../redux/slices/authSlice";
+import { selectUserRole, logout } from "../../redux/slices/authSlice";
 import { routeConfig } from "../../routes/routeConfig";
+import apiClient from "../../services/axios";
 import * as Icons from "lucide-react";
 
 // ─── Icon resolver ─────────────────────────────────────────────────────────
@@ -133,8 +134,23 @@ function NavParent({ item, collapsed }) {
 // ─── Sidebar root ─────────────────────────────────────────────────────────
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const dispatch         = useDispatch();
+  const navigate         = useNavigate();
   const collapsed        = useSelector(selectSidebarCollapsed);
   const userRole         = useSelector(selectUserRole);
+
+  // Logout: best-effort revoke the refresh token server-side, then clear all
+  // client auth state (Redux + localStorage via the logout reducer) and bounce
+  // to the login screen.
+  const handleLogout = async () => {
+    try {
+      const { refreshToken } = JSON.parse(localStorage.getItem("erp_auth") || "{}");
+      await apiClient.post("/auth/logout", { refreshToken }).catch(() => {});
+    } catch {
+      /* ignore network/parse errors — we log out locally regardless */
+    }
+    dispatch(logout());
+    navigate("/login", { replace: true });
+  };
 
   // Filter nav items the user can see
   const filteredNav = routeConfig.filter((item) => {
@@ -226,7 +242,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {/* ── Logout ───────────────────────────────────────────────────── */}
       <div className="p-2 border-t border-slate-800/50 shrink-0">
         <button
-          onClick={() => {/* dispatch logout action */}}
+          onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
           title={collapsed ? "Logout" : undefined}
         >

@@ -82,6 +82,58 @@ export const attendanceApi = baseApi.injectEndpoints({
       }),
       providesTags: [{ type: "Attendance", id: "STATS" }],
     }),
+
+    // ── Roster + bulk endpoints (educationdesk-style screens) ──────────────
+    // Employees with their attendance status for a single date (marking grid)
+    getEmployeesDaily: build.query({
+      query: (date) => ({ url: "/attendance/employees", params: { date } }),
+      transformResponse: (r) => r?.data ?? [],
+      providesTags: [{ type: "Attendance", id: "EMP_DAILY" }],
+    }),
+    // Bulk save employee attendance
+    markEmployeesBulk: build.mutation({
+      query: ({ date, records }) => ({ url: "/attendance/employees/bulk", method: "POST", body: { date, records } }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: [{ type: "Attendance", id: "EMP_DAILY" }, { type: "Attendance", id: "LIST" }],
+    }),
+    // Employee attendance across a date range (optionally one employee)
+    getEmployeeAttendanceRange: build.query({
+      query: ({ startDate, endDate, employeeId }) => ({
+        url: "/attendance/employees-range",
+        params: { startDate, endDate, ...(employeeId ? { employeeId } : {}) },
+      }),
+      transformResponse: (r) => r?.data ?? [],
+      providesTags: [{ type: "Attendance", id: "EMP_RANGE" }],
+    }),
+    // Students with their status for a date (optionally one section)
+    getStudentsDaily: build.query({
+      query: ({ date, sectionId } = {}) => ({
+        url: "/attendance/students/daily",
+        params: { date, ...(sectionId ? { sectionId } : {}) },
+      }),
+      transformResponse: (r) => r?.data ?? [],
+      providesTags: [{ type: "Attendance", id: "STU_DAILY" }],
+    }),
+    // Bulk save student attendance
+    markStudentsBulk: build.mutation({
+      query: ({ date, records }) => ({ url: "/attendance/students/bulk", method: "POST", body: { date, records } }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: [{ type: "Attendance", id: "STU_DAILY" }, { type: "Attendance", id: "LIST" }],
+    }),
+
+    // ── Academic selectors (Session → Class → Section) ─────────────────────
+    getAcademicYears: build.query({
+      query: () => ({ url: "/academic/years", params: { limit: 100 } }),
+      transformResponse: (r) => r?.data ?? [],
+    }),
+    getClasses: build.query({
+      query: () => ({ url: "/academic/classes", params: { limit: 200 } }),
+      transformResponse: (r) => r?.data ?? [],
+    }),
+    getSections: build.query({
+      query: (classId) => ({ url: "/academic/sections", params: { limit: 500, ...(classId ? { classId } : {}) } }),
+      transformResponse: (r) => r?.data ?? [],
+    }),
   }),
   overrideExisting: false,
 });
@@ -94,4 +146,13 @@ export const {
   useGetSectionAttendanceSummaryQuery,
   useGetMonthlyAttendanceReportQuery,
   useGetAttendanceStatisticsQuery,
+  // new
+  useGetEmployeesDailyQuery,
+  useMarkEmployeesBulkMutation,
+  useGetEmployeeAttendanceRangeQuery,
+  useGetStudentsDailyQuery,
+  useMarkStudentsBulkMutation,
+  useGetAcademicYearsQuery,
+  useGetClassesQuery,
+  useGetSectionsQuery,
 } = attendanceApi;

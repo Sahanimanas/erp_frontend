@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
 import { selectUser } from "../../redux/slices/authSlice";
 import { usePageTitle } from "../../hooks";
 import { WelcomeBanner, StatCard, Card, ProgressBar } from "../../components/ui";
@@ -10,6 +11,19 @@ import apiClient from "../../services/axios";
 function Tip({active,payload,label}){if(!active||!payload?.length)return null;return <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs"><p className="font-semibold text-slate-700 mb-1">{label}</p>{payload.map((p,i)=><p key={i} style={{color:p.color}}>{p.name}: {p.value}M</p>)}</div>;}
 
 export default function DashboardPage() {
+  // A Super Admin belongs to the platform tenant (no students/staff of its own),
+  // so the tenant-scoped school dashboard is always empty for them. Redirect to
+  // the cross-tenant platform control plane. Done before any other hook so the
+  // hook order stays stable for this component instance (role can't change
+  // without a re-mount via login/logout).
+  const role = useSelector(selectUser)?.role;
+  if (role === "SUPER_ADMIN") {
+    return <Navigate to="/super-admin/dashboard" replace />;
+  }
+  return <SchoolDashboard />;
+}
+
+function SchoolDashboard() {
   usePageTitle("Dashboard");
   const user=useSelector(selectUser);
   const [stats,setStats]=useState(null);

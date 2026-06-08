@@ -57,6 +57,27 @@ const ALL_ROLES = Object.values(ROLES);
 
 // ─── Route Config ──────────────────────────────────────────────────────────
 export const routeConfig = [
+  // ── Platform (SUPER ADMIN only) ───────────────────────────────────────────
+  // Enterprise SaaS control plane: manage tenants, domains, plans, billing and
+  // platform health. Visible only to SUPER_ADMIN, so it is hidden for every
+  // school-scoped role and never exposes cross-tenant tooling.
+  {
+    key: "platform",
+    label: "Platform",
+    path: "/super-admin",
+    icon: "ShieldCheck",
+    roles: [ROLES.SUPER_ADMIN],
+    children: [
+      { key: "sa-dashboard", label: "Dashboard",      path: "/super-admin/dashboard",      icon: "LayoutDashboard", lazy: lazy("super-admin/DashboardPage"),     roles: [ROLES.SUPER_ADMIN] },
+      { key: "sa-schools",   label: "Schools",        path: "/super-admin/schools",        icon: "Building2",       lazy: lazy("super-admin/SchoolsListPage"),   roles: [ROLES.SUPER_ADMIN] },
+      { key: "sa-create",    label: "Create School",  path: "/super-admin/schools/create", icon: "Plus",            lazy: lazy("super-admin/CreateSchoolPage"),  roles: [ROLES.SUPER_ADMIN] },
+      { key: "sa-detail",    label: "School Details", path: "/super-admin/schools/:id",    icon: "Building2",       lazy: lazy("super-admin/SchoolDetailsPage"), roles: [ROLES.SUPER_ADMIN], hidden: true },
+      { key: "sa-domains",   label: "Domains",        path: "/super-admin/domains",        icon: "Globe",           lazy: lazy("super-admin/DomainsPage"),       roles: [ROLES.SUPER_ADMIN] },
+      { key: "sa-plans",     label: "Plans",          path: "/super-admin/plans",          icon: "CreditCard",      lazy: lazy("super-admin/PlansPage"),         roles: [ROLES.SUPER_ADMIN] },
+      { key: "sa-audit",     label: "Audit Logs",     path: "/super-admin/audit",          icon: "ScrollText",      lazy: lazy("super-admin/AuditLogsPage"),     roles: [ROLES.SUPER_ADMIN] },
+    ],
+  },
+
   // ── Dashboard ─────────────────────────────────────────────────────────────
   {
     key: "dashboard",
@@ -168,7 +189,13 @@ export const routeConfig = [
     icon: "Users",
     roles: ALL_STAFF,
     children: [
+      { key: "students-add",      label: "Add Student",           path: "/students/add",       icon: "UserPlus",  lazy: lazy("students/AddStudentPage"),       roles: ADMIN_ONLY },
+      { key: "students-search",   label: "Search Student",        path: "/students/search",    icon: "Search",    lazy: lazy("students/SearchStudentPage"),    roles: ALL_STAFF },
       { key: "students-list",     label: "Student List",          path: "/students/list",      icon: "List",      lazy: lazy("students/StudentListPage"),      roles: ALL_STAFF },
+      { key: "students-upload",   label: "Upload Student",        path: "/students/upload",    icon: "Upload",    lazy: lazy("students/UploadStudentPage"),    roles: ADMIN_ONLY },
+      { key: "students-promote",  label: "Promote Student",       path: "/students/promote",   icon: "ArrowUpCircle", lazy: lazy("students/PromoteStudentPage"), roles: ADMIN_ONLY },
+      { key: "students-bulk",     label: "Student Bulk Update",   path: "/students/bulk-update",icon: "PencilLine",lazy: lazy("students/StudentBulkUpdatePage"),roles: ADMIN_ONLY },
+      { key: "students-idprint",  label: "Student ID Print",      path: "/students/id-print",  icon: "IdCard",    lazy: lazy("students/StudentIdPrintPage"),   roles: ADMIN_ONLY },
       { key: "students-profile",  label: "Student Profile",       path: "/students/profile",   icon: "User",      lazy: lazy("students/StudentProfilePage"),   roles: ALL_STAFF, hidden: true },
       { key: "students-idcard",   label: "ID Card",               path: "/students/id-card",   icon: "IdCard",    lazy: lazy("students/IDCardPage"),           roles: ADMIN_ONLY },
       { key: "students-transfer", label: "Transfer Certificate",  path: "/students/transfer",  icon: "FileText",  lazy: lazy("students/TransferCertPage"),     roles: ADMIN_ONLY },
@@ -197,10 +224,12 @@ export const routeConfig = [
     icon: "Briefcase",
     roles: ADMIN_ONLY,
     children: [
-      { key: "emp-list",        label: "Employee List",    path: "/employee/list",           icon: "Users",        lazy: lazy("hr/EmployeeListPage"),        roles: ADMIN_ONLY },
-      { key: "emp-dept",        label: "Add Department",   path: "/employee/departments",    icon: "Building",     lazy: lazy("hr/DepartmentsPage"),        roles: ADMIN_ONLY },
-      { key: "emp-designation", label: "Add Designation",  path: "/employee/designation",    icon: "Tag",          lazy: lazy("hr/DepartmentsPage"),        roles: ADMIN_ONLY },
       { key: "emp-add",         label: "Add Employee",     path: "/employee/add",            icon: "UserPlus",     lazy: lazy("hr/AddEmployeePage"),        roles: ADMIN_ONLY },
+      { key: "emp-list",        label: "Employee Search",  path: "/employee/list",           icon: "Search",       lazy: lazy("hr/EmployeeListPage"),       roles: ADMIN_ONLY },
+      { key: "emp-designation", label: "Designation",      path: "/employee/designation",    icon: "BadgeCheck",   lazy: lazy("hr/DesignationPage"),        roles: ADMIN_ONLY },
+      { key: "emp-dept",        label: "Department",       path: "/employee/departments",    icon: "Building",     lazy: lazy("hr/DepartmentPage"),         roles: ADMIN_ONLY },
+      { key: "emp-upload",      label: "Upload Employee",  path: "/employee/upload",         icon: "Upload",       lazy: lazy("hr/UploadEmployeePage"),     roles: ADMIN_ONLY },
+      { key: "emp-idprint",     label: "Employee ID Print",path: "/employee/id-print",       icon: "IdCard",       lazy: lazy("hr/EmployeeIdPrintPage"),    roles: ADMIN_ONLY },
       { key: "emp-deactivate",  label: "Login Deactivate", path: "/employee/deactivate",     icon: "Lock",         lazy: lazy("hr/LoginDeactivatePage"),    roles: ADMIN_ONLY },
       { key: "emp-leaves",      label: "Leave Mgmt",       path: "/employee/leaves",         icon: "Calendar",     lazy: lazy("hr/LeavePage"),              roles: ADMIN_ONLY },
       { key: "emp-payroll",     label: "Payroll",          path: "/employee/payroll",        icon: "DollarSign",   lazy: lazy("hr/PayrollPage"),            roles: ADMIN_ONLY },
@@ -325,9 +354,15 @@ export const routeConfig = [
     icon: "UserCheck",
     roles: ALL_STAFF,
     children: [
-      { key: "attend-student",  label: "Student Attendance",  path: "/attendance/student",  icon: "Users",    lazy: lazy("attendance/StudentAttendancePage"),  roles: ALL_STAFF },
-      { key: "attend-teacher",  label: "Teacher Attendance",  path: "/attendance/teacher",  icon: "Briefcase",lazy: lazy("attendance/TeacherAttendancePage"),  roles: ADMIN_ONLY },
-      { key: "attend-monthly",  label: "Monthly Report",      path: "/attendance/report",   icon: "Calendar", lazy: lazy("attendance/MonthlyReportPage"),      roles: ALL_STAFF },
+      { key: "attend-employee",     label: "Employee Attendance",        path: "/attendance/employee",          icon: "UserCheck",    lazy: lazy("attendance/EmployeeAttendancePage"),          roles: ADMIN_ONLY },
+      { key: "attend-emp-view",     label: "View Employee Attendance",   path: "/attendance/employee/view",     icon: "Search",       lazy: lazy("attendance/ViewEmployeeAttendancePage"),      roles: ADMIN_ONLY },
+      { key: "attend-emp-view-all", label: "View All Employee Attendance",path: "/attendance/employee/view-all", icon: "Users",        lazy: lazy("attendance/ViewAllEmployeeAttendancePage"),   roles: ADMIN_ONLY },
+      { key: "attend-student",      label: "Student Attendance",         path: "/attendance/student",           icon: "Users",        lazy: lazy("attendance/StudentAttendancePage"),           roles: ALL_STAFF },
+      { key: "attend-student-dl",   label: "Download Student Attendance",path: "/attendance/student/download",  icon: "Download",     lazy: lazy("attendance/DownloadStudentAttendancePage"),   roles: ALL_STAFF },
+      { key: "attend-student-all",  label: "All Student Daily Attendance",path: "/attendance/student/daily",    icon: "CalendarCheck",lazy: lazy("attendance/AllStudentDailyAttendancePage"),   roles: ALL_STAFF },
+      { key: "attend-smartcard",    label: "Smart Card Attendance",      path: "/attendance/smart-card",        icon: "CreditCard",   lazy: lazy("attendance/SmartCardAttendancePage"),         roles: ADMIN_ONLY },
+      { key: "attend-monthly",      label: "Attendance Monthly Report",  path: "/attendance/report",            icon: "Calendar",     lazy: lazy("attendance/MonthlyReportPage"),               roles: ALL_STAFF },
+      { key: "attend-teacher",      label: "Teacher Attendance",         path: "/attendance/teacher",           icon: "Briefcase",    lazy: lazy("attendance/TeacherAttendancePage"),           roles: ADMIN_ONLY, hidden: true },
     ],
   },
 
@@ -394,6 +429,40 @@ export const routeConfig = [
       { key: "comm-sms",      label: "Send SMS",   path: "/communication/sms",       icon: "Phone",   lazy: lazy("communication/SendSMSPage"),    roles: ADMIN_ONLY },
       { key: "comm-email",    label: "Send Email", path: "/communication/email",     icon: "Mail",    lazy: lazy("communication/SendEmailPage"),   roles: ADMIN_ONLY },
       { key: "comm-templates",label: "Templates",  path: "/communication/templates", icon: "FileText",lazy: lazy("communication/TemplatesPage"),   roles: ADMIN_ONLY },
+    ],
+  },
+
+  // ── Fee Management ──────────────────────────────────────────────────────────
+  {
+    key: "fee-management",
+    label: "Fee Management",
+    path: "/fee-management",
+    icon: "Receipt",
+    roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT],
+    children: [
+      { key: "fm-class-type",     label: "Class Fee Type",      path: "/fee-management/class-fee-type",     icon: "Receipt",   lazy: lazy("fee-management/ClassFeeTypePage"),      roles: ADMIN_ONLY },
+      { key: "fm-transport-type", label: "Transport Fee Type",  path: "/fee-management/transport-fee-type", icon: "Bus",       lazy: lazy("fee-management/TransportFeeTypePage"),  roles: ADMIN_ONLY },
+      { key: "fm-manage",         label: "Manage Class Fee",    path: "/fee-management/manage-class-fee",   icon: "Wallet",    lazy: lazy("fee-management/ManageClassFeePage"),    roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
+      { key: "fm-structure",      label: "Class Fee Structure", path: "/fee-management/class-fee-structure",icon: "FileText",  lazy: lazy("fee-management/ClassFeeStructurePage"), roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
+      { key: "fm-route-fee",      label: "Transport Fee Manage",path: "/fee-management/transport-route-fee",icon: "Bus",       lazy: lazy("fee-management/TransportRouteFeePage"), roles: ADMIN_ONLY },
+    ],
+  },
+
+  // ── Payments ────────────────────────────────────────────────────────────────
+  {
+    key: "payments",
+    label: "Payments",
+    path: "/payments",
+    icon: "CreditCard",
+    roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT],
+    children: [
+      { key: "pay-student",   label: "Student Fee Payment", path: "/payments/student-fee",   icon: "CreditCard",   lazy: lazy("payments/StudentFeePaymentPage"), roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
+      { key: "pay-monthly",   label: "Monthly Fee Payment", path: "/payments/monthly",       icon: "CalendarClock",lazy: lazy("payments/MonthlyFeePaymentPage"), roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
+      { key: "pay-create",    label: "Add Fee Payment",     path: "/payments/create",        icon: "ReceiptText",  lazy: lazy("payments/CreateFeePaymentPage"),  roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
+      { key: "pay-demand",    label: "Demand Receipt",      path: "/payments/demand-receipt",icon: "FileText",     lazy: lazy("payments/DemandReceiptPage"),     roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
+      { key: "pay-discount",  label: "Bulk Discount",       path: "/payments/bulk-discount", icon: "Percent",      lazy: lazy("payments/BulkDiscountPage"),      roles: ADMIN_ONLY },
+      { key: "pay-extra",     label: "Bulk Add Extra Fee",  path: "/payments/bulk-extra",    icon: "PlusCircle",   lazy: lazy("payments/BulkExtraFeePage"),      roles: ADMIN_ONLY },
+      { key: "pay-late-rule", label: "Late Fee Fine Rule",  path: "/payments/late-fee-rule", icon: "AlarmClock",   lazy: lazy("payments/LateFeeRulePage"),       roles: ADMIN_ONLY },
     ],
   },
 

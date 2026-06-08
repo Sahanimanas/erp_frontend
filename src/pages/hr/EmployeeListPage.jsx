@@ -6,10 +6,11 @@ import { usePageTitle } from "../../hooks";
 import {
   PageHeader, Card, DataTable, Badge, Button,
   SearchInput, Select, Pagination, Modal,
-  Input, Avatar,
+  Input, Avatar, DateRangeFilter, ExportButton,
 } from "../../components/ui";
-import { Users, Download, Plus, Eye, Edit2, Trash2, Filter, Upload } from "lucide-react";
+import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload } from "lucide-react";
 import apiClient from "../../services/axios";
+import { filterByDateRange } from "../../utils/exportExcel";
 
 const STATUS_BADGE = { ACTIVE: "success", INACTIVE: "default", ON_LEAVE: "warning" };
 const ROLE_OPTIONS = [
@@ -30,6 +31,7 @@ export default function EmployeeListPage() {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [department, setDepartment] = useState("");
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [addOpen, setAddOpen] = useState(false);
@@ -53,7 +55,7 @@ export default function EmployeeListPage() {
           ...(department && { departmentId: department }),
         });
 
-        const response = await apiClient.get(`/api/v1/employees?${params}`);
+        const response = await apiClient.get(`/employees?${params}`);
         if (response.data.success) {
           setEmployees(response.data.data || []);
           setTotal(response.data.pagination?.total || 0);
@@ -74,8 +76,8 @@ export default function EmployeeListPage() {
     const fetchMetadata = async () => {
       try {
         const [deptsRes, desigRes] = await Promise.all([
-          apiClient.get("/api/v1/employees/departments"),
-          apiClient.get("/api/v1/employees/designations"),
+          apiClient.get("/employees/departments"),
+          apiClient.get("/employees/designations"),
         ]);
 
         if (deptsRes.data.success) {
@@ -103,12 +105,12 @@ export default function EmployeeListPage() {
 
   const handleAddEmployee = async (formData) => {
     try {
-      await apiClient.post("/api/v1/employees", formData);
+      await apiClient.post("/employees", formData);
       setAddOpen(false);
       setPage(1);
       // Refresh list
       const params = new URLSearchParams({ page: "1", limit: String(PAGE_SIZE) });
-      const response = await apiClient.get(`/api/v1/employees?${params}`);
+      const response = await apiClient.get(`/employees?${params}`);
       if (response.data.success) {
         setEmployees(response.data.data || []);
         setTotal(response.data.pagination?.total || 0);
@@ -120,7 +122,7 @@ export default function EmployeeListPage() {
 
   const handleEditEmployee = async (formData) => {
     try {
-      await apiClient.put(`/api/v1/employees/${editRow.id}`, formData);
+      await apiClient.put(`/employees/${editRow.id}`, formData);
       setEditRow(null);
       // Refresh list
       const params = new URLSearchParams({
@@ -128,7 +130,7 @@ export default function EmployeeListPage() {
         limit: String(PAGE_SIZE),
         ...(search && { search }),
       });
-      const response = await apiClient.get(`/api/v1/employees?${params}`);
+      const response = await apiClient.get(`/employees?${params}`);
       if (response.data.success) {
         setEmployees(response.data.data || []);
         setTotal(response.data.pagination?.total || 0);
@@ -141,7 +143,7 @@ export default function EmployeeListPage() {
   const handleDelete = async (employeeId) => {
     if (confirm("Are you sure you want to delete this employee?")) {
       try {
-        await apiClient.patch(`/api/v1/employees/${employeeId}/deactivate`);
+        await apiClient.patch(`/employees/${employeeId}/deactivate`);
         setEmployees(employees.filter(e => e.id !== employeeId));
       } catch (err) {
         setError(err.response?.data?.error || "Failed to delete employee");
@@ -160,8 +162,25 @@ export default function EmployeeListPage() {
     department: e.department?.name || '-',
     dateOfJoining: e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '-',
     status: e.isActive ? (e.onLeave ? 'ON_LEAVE' : 'ACTIVE') : 'INACTIVE',
+    createdAt: e.createdAt,
     original: e,
   }));
+
+  // Date-wise filter (by joining/created date) over the current page.
+  const filteredEmployees = filterByDateRange(
+    displayEmployees,
+    (r) => r.original.dateOfJoining || r.createdAt,
+    dateRange.from, dateRange.to
+  );
+  const EXPORT_COLS = [
+    { label: "Name", get: (r) => r.name },
+    { label: "Email", get: (r) => r.email },
+    { label: "Phone", get: (r) => r.phone },
+    { label: "Designation", get: (r) => r.designation },
+    { label: "Department", get: (r) => r.department },
+    { label: "Date of Joining", get: (r) => r.dateOfJoining },
+    { label: "Status", get: (r) => r.status },
+  ];
 
   const COLUMNS = [
     { key: "sl", label: "SL", render: v => <span className="text-[11px] text-slate-500">{v}</span> },
@@ -347,13 +366,13 @@ export default function EmployeeListPage() {
         icon={<Users size={18} />}
       >
         <Button variant="secondary" size="sm" icon={<Upload size={13} />}>Import</Button>
-        <Button variant="secondary" size="sm" icon={<Download size={13} />}>Export</Button>
+        <ExportButton filename="employees.csv" rows={filteredEmployees} columns={EXPORT_COLS} />
         <Button size="sm" icon={<Plus size={13} />} onClick={() => setAddOpen(true)}>Add Employee</Button>
       </PageHeader>
 
       <Card noPadding>
         {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 m-4 rounded-lg text-sm">{error}</div>}
-        <div className="flex gap-2 flex-wrap p-4 border-b border-slate-100">
+        <div className="flex gap-2 flex-wrap p-4 border-b border-slate-100 items-end">
           <SearchInput
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
@@ -372,6 +391,7 @@ export default function EmployeeListPage() {
             options={deptOptions}
             className="w-36"
           />
+          <DateRangeFilter from={dateRange.from} to={dateRange.to} onChange={setDateRange} label="Joining" />
           <Button
             variant="secondary"
             size="sm"
@@ -380,16 +400,17 @@ export default function EmployeeListPage() {
               setSearch("");
               setRole("");
               setDepartment("");
+              setDateRange({ from: "", to: "" });
               setPage(1);
             }}
           >
             Clear
           </Button>
           <span className="ml-auto text-[11px] text-slate-500">
-            {loading ? "Loading..." : `${total} employees`}
+            {loading ? "Loading..." : `${filteredEmployees.length} of ${total} employees`}
           </span>
         </div>
-        <DataTable columns={COLUMNS} data={displayEmployees} loading={loading} />
+        <DataTable columns={COLUMNS} data={filteredEmployees} loading={loading} />
         <Pagination page={page} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </Card>
 

@@ -52,7 +52,9 @@ export default function LoginPage() {
             avatar: null
           }
         }));
-        navigate("/dashboard");
+        // Super Admins land in the platform control plane; everyone else in the
+        // school dashboard.
+        navigate(user.role === "SUPER_ADMIN" ? "/super-admin/dashboard" : "/dashboard");
       } else {
         setError(response.data.error || "Login failed");
       }

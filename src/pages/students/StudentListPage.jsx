@@ -6,10 +6,11 @@ import { usePageTitle } from "../../hooks";
 import {
   PageHeader, Card, DataTable, Badge, Button,
   SearchInput, Select, Pagination, Modal,
-  Input, Textarea, Avatar,
+  Input, Textarea, Avatar, DateRangeFilter, ExportButton,
 } from "../../components/ui";
-import { Users, Download, Plus, Eye, Edit2, Trash2, Filter, Upload } from "lucide-react";
+import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload } from "lucide-react";
 import apiClient from "../../services/axios";
+import { filterByDateRange } from "../../utils/exportExcel";
 
 const FEE_BADGE = { PAID:"success", PENDING:"danger", PARTIAL:"warning" };
 const CLASS_OPT = [{ value:"", label:"All Classes" }, ...Array.from({length:12},(_,i)=>({ value:String(i+1), label:`Class ${i+1}` }))];
@@ -22,6 +23,7 @@ export default function StudentListPage() {
   const [search,setSearch]=useState(""); const [cls,setCls]=useState(""); const [section,setSection]=useState(""); const [feeStatus,setFee]=useState("");
   const [page,setPage]=useState(1); const [total,setTotal]=useState(0); const [addOpen,setAddOpen]=useState(false); const [viewRow,setViewRow]=useState(null);
   const [classes,setClasses]=useState([]);
+  const [dateRange,setDateRange]=useState({from:"",to:""});
   const PAGE_SIZE=10;
 
   // Fetch classes on mount (drives the Class dropdown in the add form)
@@ -108,8 +110,28 @@ export default function StudentListPage() {
     blood: s.bloodGroup || '-',
     phone: s.user?.phone || '-',
     fees: 'PENDING', // TODO: Integrate with fee module
+    createdAt: s.createdAt,
+    admissionDate: s.admissionDate,
     original: s
   }));
+
+  // Client-side date-wise filter (by admission/created date) on the current page.
+  const filteredStudents = filterByDateRange(
+    displayStudents,
+    (r) => r.admissionDate || r.createdAt,
+    dateRange.from, dateRange.to
+  );
+
+  // Columns used both for the table and the Excel export.
+  const EXPORT_COLS = [
+    { label: "Roll No", get: (r) => r.roll },
+    { label: "Name", get: (r) => r.name },
+    { label: "Class", get: (r) => `${r.class}/${r.section}` },
+    { label: "Date of Birth", get: (r) => r.dob },
+    { label: "Gender", get: (r) => r.gender },
+    { label: "Blood Group", get: (r) => r.blood },
+    { label: "Phone", get: (r) => r.phone },
+  ];
 
   const COLUMNS=[
     {key:"roll",label:"Roll No",render:v=><span className="font-mono text-[11px] text-indigo-600 font-semibold">{v}</span>},
@@ -185,21 +207,21 @@ export default function StudentListPage() {
     <div>
       <PageHeader title="Student Details" subtitle="Manage all enrolled students" icon={<Users size={18}/>}>
         <Button variant="secondary" size="sm" icon={<Upload size={13}/>}>Import</Button>
-        <Button variant="secondary" size="sm" icon={<Download size={13}/>}>Export</Button>
+        <ExportButton filename="students.csv" rows={filteredStudents} columns={EXPORT_COLS} />
         <Button size="sm" icon={<Plus size={13}/>} onClick={()=>setAddOpen(true)}>Add Student</Button>
       </PageHeader>
       
       <Card noPadding>
         {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 m-4 rounded-lg text-sm">{error}</div>}
-        <div className="flex gap-2 flex-wrap p-4 border-b border-slate-100">
+        <div className="flex gap-2 flex-wrap p-4 border-b border-slate-100 items-end">
           <SearchInput value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search by name or roll..." className="w-52"/>
           <Select value={cls} onChange={e=>{setCls(e.target.value);setPage(1);}} options={CLASS_OPT} className="w-36"/>
           <Select value={section} onChange={e=>{setSection(e.target.value);setPage(1);}} options={SEC_OPT} className="w-36"/>
-          <Select value={feeStatus} onChange={e=>{setFee(e.target.value);setPage(1);}} options={FEE_OPT} className="w-36"/>
-          <Button variant="secondary" size="sm" icon={<Filter size={12}/>} onClick={()=>{setSearch("");setCls("");setSection("");setFee("");setPage(1);}}>Clear</Button>
-          <span className="ml-auto text-[11px] text-slate-500">{loading ? "Loading..." : `${total} students`}</span>
+          <DateRangeFilter from={dateRange.from} to={dateRange.to} onChange={setDateRange} label="Admission" />
+          <Button variant="secondary" size="sm" icon={<Filter size={12}/>} onClick={()=>{setSearch("");setCls("");setSection("");setFee("");setDateRange({from:"",to:""});setPage(1);}}>Clear</Button>
+          <span className="ml-auto text-[11px] text-slate-500">{loading ? "Loading..." : `${filteredStudents.length} of ${total} students`}</span>
         </div>
-        <DataTable columns={COLUMNS} data={displayStudents} loading={loading}/>
+        <DataTable columns={COLUMNS} data={filteredStudents} loading={loading}/>
         <Pagination page={page} total={total} pageSize={PAGE_SIZE} onPageChange={setPage}/>
       </Card>
       <Modal open={!!viewRow} onClose={()=>setViewRow(null)} title="Student Details" size="md">
