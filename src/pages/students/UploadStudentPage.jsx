@@ -73,7 +73,7 @@ export default function UploadStudentPage() {
   };
 
   return (
-    <div className="space-y-4 max-w-4xl">
+    <div className="space-y-4 max-w-4xl mx-auto">
       <PageHeader title="Upload Student" subtitle="Bulk-import students from a CSV file" icon={<Upload size={18} />} />
 
       <Card title="Select Session and Class">

@@ -25,7 +25,7 @@ function CreateBook({ onSave, onCancel }) {
   );
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-6 max-w-2xl mx-auto">
       <F label="Book Title" req><input className={inp} value={form.title} onChange={set("title")}/></F>
       <F label="Book ISBN No"><input className={inp} value={form.isbn} onChange={set("isbn")}/></F>
       <F label="Author"><input className={inp} value={form.author} onChange={set("author")}/></F>

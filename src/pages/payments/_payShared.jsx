@@ -29,7 +29,7 @@ export function BulkFeeApply({ title, subtitle, icon, amountLabel, mutation, act
   };
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 max-w-3xl mx-auto">
       <PageHeader title={title} subtitle={subtitle} icon={icon} />
       <Card title="Select Student (class-wise)">
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">

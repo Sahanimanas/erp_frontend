@@ -33,7 +33,7 @@ function CreateForm({ onSave, onCancel }) {
   );
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-6 max-w-2xl mx-auto">
       <F label="Subject Name" req><input className={inp} value={form.name} onChange={set("name")}/></F>
       <F label="Subject Code" req><input className={inp} value={form.code} onChange={set("code")}/></F>
       <F label="Subject Author"><input className={inp} value={form.author} onChange={set("author")}/></F>

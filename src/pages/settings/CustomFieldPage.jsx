@@ -29,7 +29,7 @@ function AddCustomField({ onSave, onCancel }) {
   const set = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <F label="Custom Field For" req>
         <select className={sel} value={form.fieldFor} onChange={set("fieldFor")}>
           <option value="">Select</option>

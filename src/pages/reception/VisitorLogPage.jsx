@@ -58,7 +58,7 @@ function AddVisitorForm({ onSave, onCancel }) {
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <Field label="Visiting Purpose" req>
         <select className={sel} value={form.visitingPurpose} onChange={set("visitingPurpose")}>
           <option value="">Select</option>

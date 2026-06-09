@@ -108,6 +108,7 @@ export default function AddEmployeePage() {
 
       <form onSubmit={submit} className="space-y-5">
         <Card title="Basic Details">
+          <div className="p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Input label="Name *" value={form.name} onChange={set("name")} placeholder="Full name" />
             <Input label="Email *" type="email" value={form.email} onChange={set("email")} placeholder="Login email" />
@@ -129,10 +130,11 @@ export default function AddEmployeePage() {
             <Textarea label="Address" value={form.address} onChange={set("address")} />
             <Textarea label="Permanent Address" value={form.permanentAddress} onChange={set("permanentAddress")} />
           </div>
+          </div>
         </Card>
 
         <Card title="Work Experience" action={<Button type="button" size="xs" icon={<Plus size={12} />} onClick={addExp}>Add Row</Button>}>
-          <div className="space-y-3">
+          <div className="p-5 space-y-3">
             {experiences.map((row, i) => (
               <div key={i} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
                 <div className="sm:col-span-5"><Input label={i === 0 ? "Employer" : ""} value={row.employer} onChange={setExp(i, "employer")} placeholder="Previous employer" /></div>
@@ -150,11 +152,13 @@ export default function AddEmployeePage() {
         </Card>
 
         <Card title="Login Details">
+          <div className="p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Login Email *" type="email" value={form.email} onChange={set("email")} placeholder="Used to sign in" />
             <Input label="Password *" type="password" value={form.password} onChange={set("password")} placeholder="Set a password" />
           </div>
           <p className="text-[11px] text-slate-400 mt-2">The employee signs in with this email and password.</p>
+          </div>
         </Card>
 
         <div className="flex justify-end gap-3">

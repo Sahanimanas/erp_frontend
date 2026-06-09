@@ -71,7 +71,7 @@ export default function AddStudentPage() {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4 max-w-5xl">
+    <form onSubmit={submit} className="space-y-4 max-w-5xl mx-auto">
       <PageHeader title="Add Student" subtitle="Admit a new student" icon={<UserPlus size={18} />}>
         <Button type="submit" loading={isLoading} icon={<Save size={14} />}>Save Student</Button>
       </PageHeader>

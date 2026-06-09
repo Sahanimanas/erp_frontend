@@ -47,7 +47,7 @@ function AddComplaintForm({ onSave, onCancel }) {
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <Field label="Type" req>
         <select className={sel} value={form.type} onChange={set("type")}>
           <option value="">Select</option>

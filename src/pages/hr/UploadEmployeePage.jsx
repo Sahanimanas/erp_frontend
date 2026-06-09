@@ -55,7 +55,7 @@ export default function UploadEmployeePage() {
   };
 
   return (
-    <div className="space-y-4 max-w-4xl">
+    <div className="space-y-4 max-w-4xl mx-auto">
       <PageHeader title="Upload Employee" subtitle="Bulk-import staff from a CSV file" icon={<Upload size={18} />} />
       <Card title="Upload Employee">
         <div className="p-5 space-y-3">

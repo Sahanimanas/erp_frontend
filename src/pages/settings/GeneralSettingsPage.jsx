@@ -61,7 +61,7 @@ function GeneralTab() {
   const set = k => e => setForm(p => ({...p, [k]: e.target.value}));
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <F label="Institute Name"><input className={inp} value={form.instituteName} onChange={set("instituteName")}/></F>
       <F label="Institution Code">
         <div>
@@ -150,7 +150,7 @@ function GeneralTab() {
 function ThemeTab() {
   const [theme, setTheme] = useState("dark"); const [border, setBorder] = useState("bordered");
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       <F label="UI Theme Version">
         <select className={sel} defaultValue="v3">
           <option value="v3">v3 — Premium Indigo (modern)</option>

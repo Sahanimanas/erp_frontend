@@ -70,7 +70,7 @@ function AddCreditCardForm({ onSave, onCancel }) {
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-3 items-center gap-4 mb-4">
         <label className="text-sm text-slate-600 font-medium text-right">Id Card Name <span className="text-red-500">*</span></label>
         <div className="col-span-2"><input className={inp} value={form.name} onChange={set("name")} /></div>

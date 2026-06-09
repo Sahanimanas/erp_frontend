@@ -109,34 +109,6 @@ export default function Topbar({ onMenuClick }) {
           <span>{today}</span>
         </div>
 
-        <button className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
-          <Settings size={15} />
-        </button>
-
-        <button
-          onClick={() => dispatch(toggleDarkMode())}
-          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-        >
-          <Moon size={15} />
-        </button>
-
-        {/* Bell */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotif((v) => !v)}
-            className="relative p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell size={15} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </button>
-          {showNotif && <NotifPanel onClose={() => setShowNotif(false)} />}
-        </div>
-
         {/* Avatar */}
         <button className="flex items-center gap-2 ml-1 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold">

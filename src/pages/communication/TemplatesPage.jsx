@@ -63,7 +63,7 @@ function SmsTemplateList({ templates, setTemplates }) {
           </div>
         </div>
       ) : (
-        <div className="p-6 max-w-2xl">
+        <div className="p-6 max-w-2xl mx-auto">
           <div className="grid grid-cols-3 items-center gap-4 mb-4">
             <label className="text-sm text-slate-600 font-medium text-right">Name <span className="text-red-500">*</span></label>
             <div className="col-span-2"><input className={inp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
@@ -138,7 +138,7 @@ function EmailTemplateList({ templates, setTemplates }) {
           <div className="mt-3 text-xs text-slate-500">Showing 0 to {templates.length} of {templates.length} entries</div>
         </div>
       ) : (
-        <div className="p-6 max-w-2xl">
+        <div className="p-6 max-w-2xl mx-auto">
           <div className="grid grid-cols-3 items-center gap-4 mb-4">
             <label className="text-sm text-slate-600 font-medium text-right">Name <span className="text-red-500">*</span></label>
             <div className="col-span-2"><input className={inp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>

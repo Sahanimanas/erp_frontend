@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import { selectUser } from "../../redux/slices/authSlice";
 import { usePageTitle } from "../../hooks";
-import { WelcomeBanner, StatCard, Card, ProgressBar } from "../../components/ui";
+import { WelcomeBanner, StatCard, Card, ProgressBar, DateRangeFilter, Button } from "../../components/ui";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Users, GraduationCap, UserCheck, BookOpen, AlertCircle, Clock } from "lucide-react";
 import apiClient from "../../services/axios";
@@ -29,12 +29,16 @@ function SchoolDashboard() {
   const [stats,setStats]=useState(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
+  const [dateRange,setDateRange]=useState({from:"",to:""});
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
         setLoading(true);
-        const response = await apiClient.get("/dashboard/stats");
+        const params = {};
+        if (dateRange.from) params.startDate = dateRange.from;
+        if (dateRange.to) params.endDate = dateRange.to;
+        const response = await apiClient.get("/dashboard/stats", { params });
         if (response.data.success) {
           setStats(response.data.data);
         }
@@ -47,7 +51,7 @@ function SchoolDashboard() {
       }
     };
     fetchDashboardStats();
-  }, []);
+  }, [dateRange]);
 
   const getDefaultStats = () => ({
     students: 0,
@@ -63,7 +67,7 @@ function SchoolDashboard() {
     activities: [],
   });
 
-  if (loading) {
+  if (loading && !stats) {
     return <div className="p-8 text-center">Loading dashboard...</div>;
   }
 
@@ -71,6 +75,18 @@ function SchoolDashboard() {
   return (
     <div>
       <WelcomeBanner name={user?.name??"Demo"}/>
+      {/* Date-wise filter — scopes fee collection + attendance metrics */}
+      <Card className="mb-4">
+        <div className="p-4 flex flex-wrap items-end gap-3">
+          <DateRangeFilter from={dateRange.from} to={dateRange.to} onChange={setDateRange} />
+          <span className="text-[11px] text-slate-500 mb-2">
+            {dateRange.from || dateRange.to
+              ? "Fee collection & attendance scoped to the selected range"
+              : "Showing current month / today"}
+          </span>
+          {loading && <span className="text-[11px] text-indigo-500 mb-2">Updating…</span>}
+        </div>
+      </Card>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Employees" value={dashboardData.employees} gradient="bg-gradient-to-br from-indigo-500 to-indigo-600" icon={Users} change={0} sparkData={[1,2,1,3,2,1,1]}/>
         <StatCard label="Students" value={dashboardData.students} gradient="bg-gradient-to-br from-cyan-500 to-teal-500" icon={GraduationCap} change={0} sparkData={[5,6,5,7,8,7,6]}/>

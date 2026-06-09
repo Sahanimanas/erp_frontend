@@ -41,7 +41,7 @@ export default function CreateFeePaymentPage() {
   };
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 max-w-3xl mx-auto">
       <PageHeader title="Create Fee Payment" subtitle="Record a payment for a student" icon={<ReceiptText size={18} />} />
       {last && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-lg px-4 py-2">Last receipt: <b>{last}</b></div>}
       <Card title="Select Student">

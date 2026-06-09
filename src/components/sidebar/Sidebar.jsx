@@ -35,6 +35,7 @@ function NavLeaf({ item, collapsed }) {
   return (
     <NavLink
       to={item.path}
+      end
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group
          ${isActive
@@ -112,6 +113,7 @@ function NavParent({ item, collapsed }) {
                 <NavLink
                   key={child.key}
                   to={child.path}
+                  end
                   className={({ isActive }) =>
                     `flex items-center gap-2.5 px-3 py-2 rounded-md text-[11.5px] transition-all duration-150
                      ${isActive
@@ -162,7 +164,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   // Explicit sidebar ordering: core school modules pinned right under Dashboard,
   // and the generic/utility modules pushed to the bottom. Anything not listed
   // keeps its original routeConfig order, placed in between.
-  const HEAD_ORDER = ["dashboard", "students", "employee", "admission", "attendance", "exams"];
+  const HEAD_ORDER = ["dashboard", "students", "employee", "admission", "attendance", "fee-management", "payments", "exams"];
   const TAIL_ORDER = ["tasks", "house", "inventory", "license"];
   const weightFor = (item, idx) => {
     const head = HEAD_ORDER.indexOf(item.key);

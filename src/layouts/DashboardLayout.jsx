@@ -54,12 +54,13 @@ export default function DashboardLayout() {
       >
         <Topbar onMenuClick={openMobile} />
 
-        {/* Page content */}
+        {/* Page content fills the whole area beside the sidebar. Individual
+            form pages center themselves with their own max-w + mx-auto. */}
         <main
           className="flex-1 overflow-y-auto p-4 lg:p-6"
           id="main-content"
         >
-          <div className="animate-[fadeSlideIn_0.2s_ease-out]">
+          <div className="animate-[fadeSlideIn_0.2s_ease-out] w-full">
             <Outlet />
           </div>
         </main>

@@ -24,16 +24,16 @@ const uiSlice = createSlice({
     toggleDarkMode(state) {
       state.darkMode = !state.darkMode;
     },
+    // Accordion behaviour: only one section open at a time. Opening a section
+    // closes any other; clicking the open one collapses it.
     toggleSection(state, { payload: key }) {
-      if (state.expandedSections.includes(key)) {
-        state.expandedSections = state.expandedSections.filter((k) => k !== key);
-      } else {
-        state.expandedSections = [...state.expandedSections, key];
-      }
+      state.expandedSections = state.expandedSections.includes(key) ? [] : [key];
     },
     openSection(state, { payload: key }) {
+      // Auto-expand (e.g. on the active route) — collapse others to keep the
+      // accordion to a single open section.
       if (!state.expandedSections.includes(key)) {
-        state.expandedSections.push(key);
+        state.expandedSections = [key];
       }
     },
     closeAllSections(state) {
