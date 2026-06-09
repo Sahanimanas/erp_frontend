@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Select, DataTable, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Input, Select, DataTable, Badge, ExportButton } from "../../components/ui";
 import { BadgeCheck, Save, Trash2, Pencil } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -69,6 +69,12 @@ export default function DesignationPage() {
       ) },
   ];
 
+  const exportColumns = [
+    { label: "Name", get: (r) => r.name },
+    { label: "Level", get: (r) => r.level },
+    { label: "Privileges", get: (r) => (r.permissions || []).join("; ") },
+  ];
+
   return (
     <div className="space-y-4">
       <PageHeader title="Employee Designation" subtitle="Designations & their access privileges" icon={<BadgeCheck size={18} />} />
@@ -96,7 +102,7 @@ export default function DesignationPage() {
           <Button icon={<Save size={14} />} loading={saving} onClick={submit}>{editingId ? "Update" : "Submit"}</Button>
         </div>
       </Card>
-      <Card noPadding title="All Designations">
+      <Card noPadding title="All Designations" action={<ExportButton filename="designations.csv" rows={rows} columns={exportColumns} />}>
         <DataTable columns={columns} data={rows} loading={loading} emptyText="No designations yet." />
       </Card>
     </div>

@@ -70,18 +70,19 @@ export default function LoginPage() {
         <div className="hidden md:flex flex-col justify-between w-2/5 bg-gradient-to-br from-indigo-600 via-violet-600 to-pink-600 p-8 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10"/><div className="absolute bottom-20 -left-10 w-32 h-32 rounded-full bg-white/5"/>
           <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-8"><div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center"><GraduationCap size={18} className="text-white"/></div><span className="text-white font-bold text-lg">EduServe</span></div>
-            <h1 className="text-3xl font-bold text-white leading-tight mb-2">WELCOME TO</h1>
+            <div className="flex items-center gap-2 mb-8"><div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center"><GraduationCap size={18} className="text-white"/></div><span className="text-white font-bold text-lg">GlobalSchoolMitra</span></div>
+            <h1 className="text-2xl font-semibold text-white/80 leading-tight">WELCOME TO</h1>
+            <h1 className="text-4xl font-extrabold text-white leading-tight mb-2">GlobalSchoolMitra</h1>
             <div className="w-12 h-0.5 bg-white/40 mb-4"/>
             <p className="text-white/70 text-sm leading-relaxed">Complete School Management System for modern institutions</p>
           </div>
-          <div className="relative z-10"><p className="text-white/60 text-xs mb-3">School ERP · 2026</p></div>
+          <div className="relative z-10"><p className="text-white/60 text-xs mb-3">GlobalSchoolMitra · 2026</p></div>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-10">
           <div className="w-full max-w-xs">
             <div className="flex flex-col items-center mb-8">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mb-3 shadow-lg shadow-indigo-500/30"><GraduationCap size={24} className="text-white"/></div>
-              <h2 className="text-xl font-bold text-white">EduServe</h2>
+              <h2 className="text-xl font-bold text-white">GlobalSchoolMitra</h2>
               <p className="text-slate-400 text-xs mt-1">School Management System</p>
             </div>
             <form onSubmit={handle} className="space-y-4">
@@ -93,7 +94,7 @@ export default function LoginPage() {
               </button>
             </form>
             <div className="mt-4 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2 text-center"><p className="text-xs text-indigo-400">Demo: <span className="font-mono font-bold">admin@school.com</span> / <span className="font-mono font-bold">test123</span></p></div>
-            <p className="text-center text-xs text-slate-600 mt-4">© 2026 EduServe School Management</p>
+            <p className="text-center text-xs text-slate-600 mt-4">© 2026 GlobalSchoolMitra School Management</p>
           </div>
         </div>
       </div>

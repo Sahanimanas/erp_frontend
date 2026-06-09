@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Select, Badge } from "../../components/ui";
+import { PageHeader, Card, Select, Badge, ExportButton } from "../../components/ui";
 import { AlertTriangle } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -54,7 +54,21 @@ export default function FineSetupPage() {
       <Card className="mb-5">
         <Select label="Section" value={sectionId} onChange={e => setSectionId(e.target.value)} options={sectionOptions} className="max-w-sm" />
       </Card>
-      <Card title="Configured Fines" noPadding>
+      <Card
+        title="Configured Fines"
+        noPadding
+        action={
+          <ExportButton
+            filename="fine-setup.csv"
+            rows={fees}
+            columns={[
+              { label: "Fee Group", get: (f) => f.group?.name || "—" },
+              { label: "Due Date", get: (f) => (f.dueDate ? new Date(f.dueDate).toLocaleDateString("en-IN") : "—") },
+              { label: "Fine (after due date)", get: (f) => Number(f.fine || 0) },
+            ]}
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

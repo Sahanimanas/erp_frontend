@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Avatar } from "../../components/ui";
+import { PageHeader, Card, Avatar, ExportButton } from "../../components/ui";
 import { DollarSign } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -32,7 +32,13 @@ export default function SalaryPage() {
 
   return (
     <div>
-      <PageHeader title="Salary" subtitle="Staff salary overview" icon={<DollarSign size={18} />} />
+      <PageHeader title="Salary" subtitle="Staff salary overview" icon={<DollarSign size={18} />}>
+        <ExportButton filename="salary.csv" rows={employees} columns={[
+          { label: "Employee", get: (e) => name(e) },
+          { label: "Code", get: (e) => e.employeeCode || "—" },
+          { label: "Base Salary", get: (e) => Number(e.baseSalary || 0) },
+        ]} />
+      </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <Card><p className="text-xs text-slate-400 font-semibold mb-1">Staff</p><p className="text-2xl font-bold text-slate-800">{employees.length}</p></Card>

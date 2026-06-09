@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Badge } from "../../components/ui";
+import { PageHeader, Card, Badge, ExportButton } from "../../components/ui";
 import { Users } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -31,6 +31,15 @@ export default function StudentReportsPage() {
   const byClass = {};
   students.forEach(s => { const c = s.section?.class?.name || "—"; byClass[c] = (byClass[c] || 0) + 1; });
 
+  const byClassRows = Object.entries(byClass)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cls, n]) => ({ cls, n, share: total ? Math.round((n / total) * 100) : 0 }));
+  const exportColumns = [
+    { label: "Class", get: (r) => r.cls },
+    { label: "Students", get: (r) => r.n },
+    { label: "Share", get: (r) => `${r.share}%` },
+  ];
+
   const cards = [
     { label: "Total Students", value: total, color: "bg-indigo-50 text-indigo-600" },
     { label: "Male", value: male, color: "bg-blue-50 text-blue-600" },
@@ -55,17 +64,20 @@ export default function StudentReportsPage() {
             ))}
           </div>
           <Card title="Students by Class">
+            <div className="flex justify-end mb-3">
+              <ExportButton filename="students-by-class.csv" rows={byClassRows} columns={exportColumns} />
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="bg-slate-50 border-b border-slate-100">
                   {["Class", "Students", "Share"].map(h => <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">{h}</th>)}
                 </tr></thead>
                 <tbody className="divide-y divide-slate-50">
-                  {Object.entries(byClass).sort((a,b)=>b[1]-a[1]).map(([cls, n]) => (
+                  {byClassRows.map(({ cls, n, share }) => (
                     <tr key={cls} className="hover:bg-slate-50/70">
                       <td className="px-4 py-3 font-medium text-slate-700">{cls}</td>
                       <td className="px-4 py-3 text-slate-700">{n}</td>
-                      <td className="px-4 py-3"><Badge variant="default">{total ? Math.round((n/total)*100) : 0}%</Badge></td>
+                      <td className="px-4 py-3"><Badge variant="default">{share}%</Badge></td>
                     </tr>
                   ))}
                   {total === 0 && <tr><td colSpan={3} className="px-4 py-10 text-center text-slate-400">No students yet.</td></tr>}

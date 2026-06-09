@@ -5,7 +5,12 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader } from "../../components/ui";
+import { PageHeader, ExportButton } from "../../components/ui";
+
+const EXPORT_COLS = [
+  { label: "Name", get: (r) => r.name },
+  { label: "Remarks", get: (r) => r.remarks || "" },
+];
 
 const initialGroups = [
   { id: 1, name: "Class 7", remarks: "Class 7 book set" },
@@ -154,6 +159,9 @@ export default function ProductGroupPage() {
             <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#333" }}>
               Product Group — List
             </h3>
+            <div style={{ marginLeft: "auto" }}>
+              <ExportButton filename="product-groups.csv" rows={groups} columns={EXPORT_COLS} />
+            </div>
           </div>
 
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>

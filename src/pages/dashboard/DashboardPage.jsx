@@ -7,6 +7,7 @@ import { WelcomeBanner, StatCard, Card, ProgressBar, DateRangeFilter, Button } f
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Users, GraduationCap, UserCheck, BookOpen, AlertCircle, Clock } from "lucide-react";
 import apiClient from "../../services/axios";
+import { Loader } from "../../components/loaders/PageLoader";
 
 function Tip({active,payload,label}){if(!active||!payload?.length)return null;return <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs"><p className="font-semibold text-slate-700 mb-1">{label}</p>{payload.map((p,i)=><p key={i} style={{color:p.color}}>{p.name}: {p.value}M</p>)}</div>;}
 
@@ -68,7 +69,7 @@ function SchoolDashboard() {
   });
 
   if (loading && !stats) {
-    return <div className="p-8 text-center">Loading dashboard...</div>;
+    return <Loader label="Loading dashboard..." />;
   }
 
   const dashboardData = stats || getDefaultStats();

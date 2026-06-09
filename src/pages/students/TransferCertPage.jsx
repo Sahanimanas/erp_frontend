@@ -46,7 +46,7 @@ export default function TransferCertPage() {
         <Card>
           <div className="max-w-2xl mx-auto py-6">
             <div className="text-center border-b border-slate-200 pb-4 mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">EduServe School</h2>
+              <h2 className="text-2xl font-bold text-slate-800">GlobalSchoolMitra School</h2>
               <p className="text-xs text-slate-500">123 Education Street, New York</p>
               <p className="mt-3 inline-block border border-slate-300 rounded-md px-4 py-1 font-semibold text-slate-700">TRANSFER CERTIFICATE</p>
             </div>

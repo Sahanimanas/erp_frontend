@@ -6,7 +6,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Badge } from "../../components/ui";
+import { PageHeader, Card, Badge, ExportButton } from "../../components/ui";
 import { Bell } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -39,7 +39,22 @@ export default function FeesReminderPage() {
       <div className="bg-blue-50 border border-blue-200 text-blue-700 p-3 mb-4 rounded-lg text-xs">
         {rows.length} student(s) currently have pending dues and would receive a reminder.
       </div>
-      <Card noPadding>
+      <Card
+        noPadding
+        action={
+          <ExportButton
+            filename="fees-reminders.csv"
+            rows={rows}
+            columns={[
+              { label: "Student", get: (r) => studentName(r) },
+              { label: "Roll", get: (r) => r.student?.rollNumber || "—" },
+              { label: "Fee Group", get: (r) => r.fee?.group?.name || "—" },
+              { label: "Due Date", get: (r) => (r.fee?.dueDate ? new Date(r.fee.dueDate).toLocaleDateString("en-IN") : "—") },
+              { label: "Amount", get: (r) => Number(r.amount || 0) },
+            ]}
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

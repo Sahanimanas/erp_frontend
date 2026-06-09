@@ -4,6 +4,17 @@
  */
 import { useEffect, useState } from "react";
 import { Filter, Plus, Tag, Copy, FileText, FileDown, Printer, Columns, ChevronLeft, ChevronRight, Edit2, Trash2, Eye, Search, X } from "lucide-react";
+import { ExportButton } from "../../components/ui";
+
+const TASK_COLUMNS = [
+  { label: "Title", get: (t) => t.title },
+  { label: "Category", get: (t) => t.category },
+  { label: "Priority", get: (t) => t.priority },
+  { label: "Due Date", get: (t) => t.dueDate },
+  { label: "Assignees", get: (t) => t.assignees },
+  { label: "Progress (%)", get: (t) => t.progress },
+  { label: "Status", get: (t) => t.status },
+];
 
 const INIT = [
   { id:1, title:"Update student profiles",  category:"Administration", priority:"High",   dueDate:"30 May 2026", assignees:"Ramesh K.",  progress:40,  status:"Pending" },
@@ -155,7 +166,10 @@ export default function AllTasksPage() {
         <div className="px-5 py-4 border-b border-slate-100"><h3 className="text-sm font-semibold text-slate-700">☰ All Tasks</h3></div>
         <div className="px-5 py-3 border-b border-slate-50 flex items-center justify-between">
           <div className="flex gap-1">{[<Copy size={13}/>,<FileText size={13}/>,<FileDown size={13}/>,<FileDown size={13}/>,<Printer size={13}/>,<Columns size={13}/>].map((ic,i)=><button key={i} className="p-1.5 rounded hover:bg-slate-100 text-slate-500">{ic}</button>)}</div>
-          <div className="relative"><Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." className="pl-8 pr-4 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 w-48"/></div>
+          <div className="flex items-center gap-2">
+            <ExportButton filename="all-tasks.csv" rows={filtered} columns={TASK_COLUMNS} />
+            <div className="relative"><Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." className="pl-8 pr-4 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 w-48"/></div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">

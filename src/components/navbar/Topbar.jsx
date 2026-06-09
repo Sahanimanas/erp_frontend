@@ -7,10 +7,7 @@ import { toggleDarkMode } from "../../redux/slices/uiSlice";
 import { markAllRead, selectNotifications } from "../../redux/slices/notificationsSlice";
 import { logout } from "../../redux/slices/authSlice";
 import { selectUser } from "../../redux/slices/authSlice";
-import {
-  Menu, Search, Bell, Moon, Sun, Calendar,
-  Settings, Grid3X3, X, LogOut, User,
-} from "lucide-react";
+import { Menu, Calendar, X } from "lucide-react";
 
 function NotifPanel({ onClose }) {
   const dispatch = useDispatch();
@@ -58,7 +55,6 @@ export default function Topbar({ onMenuClick }) {
   const { unreadCount } = useSelector(selectNotifications);
   const user         = useSelector(selectUser);
   const [showNotif, setShowNotif]   = useState(false);
-  const [searchFocus, setSearchFocus] = useState(false);
 
   const today = new Date().toLocaleDateString("en-GB", {
     day: "2-digit", month: "long", year: "numeric",
@@ -78,28 +74,6 @@ export default function Topbar({ onMenuClick }) {
       >
         <Menu size={18} />
       </button>
-
-      {/* Desktop icon buttons */}
-      <div className="hidden sm:flex items-center gap-1">
-        <button className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
-          <Menu size={15} />
-        </button>
-        <button className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
-          <Grid3X3 size={15} />
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className={`relative transition-all duration-200 ${searchFocus ? "flex-1 max-w-sm" : "w-52"}`}>
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search..."
-          onFocus={() => setSearchFocus(true)}
-          onBlur={() => setSearchFocus(false)}
-          className="w-full pl-8 pr-4 py-2 text-[12.5px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 focus:bg-white transition-all placeholder-slate-400"
-        />
-      </div>
 
       {/* Right actions */}
       <div className="ml-auto flex items-center gap-1">

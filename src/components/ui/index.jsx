@@ -245,9 +245,24 @@ export function DataTable({ columns = [], data = [], loading = false, emptyText 
     else { setSortKey(key); setSortDir("asc"); }
   };
 
+  // Resolve the value a column sorts on: a custom `sortValue(row)` accessor when
+  // provided (for nested/computed columns), else the raw `row[key]`.
+  const sortValueFor = (col, row) => (col?.sortValue ? col.sortValue(row) : row[col?.key]);
+
   const sorted = sortKey
     ? [...data].sort((a, b) => {
-        const av = a[sortKey], bv = b[sortKey];
+        const col = columns.find((c) => c.key === sortKey);
+        let av = sortValueFor(col, a);
+        let bv = sortValueFor(col, b);
+        // Push empty values to the bottom regardless of direction.
+        const aEmpty = av === null || av === undefined || av === "";
+        const bEmpty = bv === null || bv === undefined || bv === "";
+        if (aEmpty && bEmpty) return 0;
+        if (aEmpty) return 1;
+        if (bEmpty) return -1;
+        if (typeof av === "string" && typeof bv === "string") {
+          av = av.toLowerCase(); bv = bv.toLowerCase();
+        }
         if (av < bv) return sortDir === "asc" ? -1 : 1;
         if (av > bv) return sortDir === "asc" ? 1 : -1;
         return 0;
@@ -599,19 +614,76 @@ export function DateRangeFilter({ from, to, onChange, label = "Date" }) {
 // EXPORT BUTTON — exports the given rows/columns to an Excel-friendly CSV.
 //   columns: [{ label, get(row) }]  (or omit to auto-derive from row keys)
 // ─────────────────────────────────────────────────────────────────────────────
-export function ExportButton({ filename = "export.csv", rows = [], columns, label = "Export Excel", size = "sm" }) {
-  const onClick = async () => {
-    const { exportRows, autoColumns } = await import("../../utils/exportExcel");
-    const cols = columns && columns.length ? columns : autoColumns(rows);
-    const ok = exportRows(filename, rows, cols);
-    if (!ok) {
-      const t = await import("react-hot-toast");
-      t.default.error("Nothing to export");
+// ExportButton — on click opens a modal offering "current page" vs "all data".
+//   rows      : the rows currently shown (filtered current page)
+//   allRows   : (optional) the full dataset already in memory
+//   fetchAll  : (optional) async () => rows[] — fetch every matching record
+//               (used by server-paginated pages so "all data" is truly all)
+// When neither allRows nor fetchAll is supplied, "all data" falls back to rows.
+export function ExportButton({ filename = "export.csv", rows = [], columns, label = "Export Excel", size = "sm", allRows, fetchAll }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const hasAllSource = typeof fetchAll === "function" || Array.isArray(allRows);
+
+  const runExport = async (scope) => {
+    let data = rows;
+    if (scope === "all") {
+      if (typeof fetchAll === "function") {
+        setBusy(true);
+        try { data = await fetchAll(); }
+        catch {
+          const t = await import("react-hot-toast");
+          t.default.error("Could not load all data");
+          setBusy(false);
+          return;
+        }
+        setBusy(false);
+      } else if (Array.isArray(allRows)) {
+        data = allRows;
+      }
     }
+    const { exportRows, autoColumns } = await import("../../utils/exportExcel");
+    const cols = columns && columns.length ? columns : autoColumns(data);
+    const ok = exportRows(filename, data || [], cols);
+    const t = await import("react-hot-toast");
+    if (!ok) t.default.error("Nothing to export");
+    else t.default.success(`Exported ${data.length} row(s)`);
+    setOpen(false);
   };
+
+  const Option = ({ scope, title, desc, loading }) => (
+    <button
+      type="button"
+      onClick={() => runExport(scope)}
+      disabled={busy}
+      className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/40 transition-colors disabled:opacity-60 flex items-center gap-3"
+    >
+      <Download size={16} className="text-indigo-600 shrink-0" />
+      <span className="flex-1">
+        <span className="block text-[13px] font-semibold text-slate-800">{loading ? "Preparing…" : title}</span>
+        <span className="block text-[11px] text-slate-400">{desc}</span>
+      </span>
+    </button>
+  );
+
   return (
-    <Button variant="secondary" size={size} icon={<Download size={13} />} disabled={!rows || rows.length === 0} onClick={onClick}>
-      {label}
-    </Button>
+    <>
+      <Button variant="secondary" size={size} icon={<Download size={13} />} disabled={!rows || rows.length === 0} onClick={() => setOpen(true)}>
+        {label}
+      </Button>
+      <Modal open={open} onClose={() => { if (!busy) setOpen(false); }} title="Export to Excel" size="sm">
+        <div className="space-y-3">
+          <p className="text-[12.5px] text-slate-500">Choose what to export to <b>{filename}</b>.</p>
+          <Option scope="current" title="Export current page" desc={`Only the rows shown now (${rows.length})`} />
+          <Option
+            scope="all"
+            loading={busy}
+            title="Export all data"
+            desc={hasAllSource ? "Every matching record across all pages" : `All loaded rows (${rows.length})`}
+          />
+        </div>
+      </Modal>
+    </>
   );
 }

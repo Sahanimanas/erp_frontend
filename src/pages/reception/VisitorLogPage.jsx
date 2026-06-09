@@ -8,6 +8,7 @@ import {
   Copy, FileText, FileDown, Printer,
   Search, Eye, Edit2, Trash2, Plus, ChevronLeft, ChevronRight
 } from "lucide-react";
+import { ExportButton } from "../../components/ui";
 
 const inp = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
 const sel = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-indigo-400";
@@ -17,14 +18,26 @@ const NOW_TIME = "3:23 PM";
 
 const VISITING_PURPOSES = ["Admission Enquiry", "Meeting with Teacher", "Official Work", "Personal Visit", "Parent Meeting", "Other"];
 
-function ExportBar({ search, setSearch }) {
+const EXPORT_COLUMNS = [
+  { label: "Name", get: (r) => r.name },
+  { label: "Visiting Purpose", get: (r) => r.visitingPurpose },
+  { label: "Date", get: (r) => r.date },
+  { label: "Entry Time", get: (r) => r.entryTime },
+  { label: "Exit Time", get: (r) => r.exitTime },
+  { label: "Number Of Visitor", get: (r) => r.numVisitors },
+  { label: "Token/Pass", get: (r) => r.tokenPass || "" },
+  { label: "Note", get: (r) => r.note || "" },
+];
+
+function ExportBar({ search, setSearch, rows }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <div className="flex gap-1">
+      <div className="flex gap-1 items-center">
         {[Copy, FileText, FileDown, FileDown, Printer].map((Icon, i) => (
           <button key={i} className="p-1.5 rounded hover:bg-slate-100 text-slate-500"><Icon size={13} /></button>
         ))}
         <button className="p-1.5 rounded hover:bg-slate-100 text-slate-500 text-xs font-bold">⊞</button>
+        <ExportButton filename="visitor-log.csv" rows={rows} columns={EXPORT_COLUMNS} />
       </div>
       <div className="relative">
         <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -159,7 +172,7 @@ export default function VisitorLogPage() {
         <div className="p-5">
           {tab === "list" ? (
             <>
-              <ExportBar search={search} setSearch={setSearch} />
+              <ExportBar search={search} setSearch={setSearch} rows={filtered} />
               <div className="border border-slate-100 rounded-xl overflow-x-auto">
                 <table className="w-full text-sm min-w-[900px]">
                   <thead>

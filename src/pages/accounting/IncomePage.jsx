@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input } from "../../components/ui";
+import { PageHeader, Card, Button, Input, ExportButton } from "../../components/ui";
 import { TrendingUp } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -41,6 +41,7 @@ export default function IncomePage() {
     const key = d ? d.toLocaleString("en-US", { month: "short", year: "numeric" }) : "—";
     byMonth[key] = (byMonth[key] || 0) + Number(r.amount);
   });
+  const monthRows = Object.entries(byMonth).map(([month, income]) => ({ month, income }));
 
   return (
     <div>
@@ -51,6 +52,10 @@ export default function IncomePage() {
           <Input label="From" type="date" value={range.startDate} onChange={e => setRange(r => ({ ...r, startDate: e.target.value }))} />
           <Input label="To" type="date" value={range.endDate} onChange={e => setRange(r => ({ ...r, endDate: e.target.value }))} />
           <Button onClick={load} disabled={loading}>{loading ? "Loading…" : "Generate"}</Button>
+          <ExportButton filename="income-by-month.csv" rows={monthRows} columns={[
+            { label: "Month", get: (r) => r.month },
+            { label: "Income", get: (r) => r.income },
+          ]} />
           <span className="ml-auto text-sm text-slate-500">Total Income: <span className="font-bold text-emerald-600 text-lg">{fmt(total)}</span></span>
         </div>
       </Card>

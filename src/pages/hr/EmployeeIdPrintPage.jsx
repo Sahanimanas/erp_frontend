@@ -88,7 +88,7 @@ function EmpCard({ emp, tpl, horizontal }) {
   return (
     <div className={`bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm ${horizontal ? "flex" : ""}`}>
       <div className={`bg-gradient-to-r ${tpl.bar} text-white px-3 py-2 ${horizontal ? "flex flex-col justify-center items-center w-1/3" : "text-center"}`}>
-        <p className="text-[11px] font-bold leading-tight">EduServe School</p>
+        <p className="text-[11px] font-bold leading-tight">GlobalSchoolMitra School</p>
         <p className="text-[8px] opacity-80">STAFF IDENTITY CARD</p>
       </div>
       <div className={`p-3 ${horizontal ? "flex-1" : ""}`}>

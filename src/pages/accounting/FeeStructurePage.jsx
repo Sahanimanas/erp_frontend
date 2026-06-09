@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Modal, Input, Select, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Modal, Input, Select, Badge, ExportButton } from "../../components/ui";
 import { Layers, Plus } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -54,6 +54,11 @@ export default function FeeStructurePage() {
   return (
     <div>
       <PageHeader title="Fee Structure" subtitle="Fee groups & types" icon={<Layers size={18} />}>
+        <ExportButton filename="fee-types.csv" rows={types} columns={[
+          { label: "Name", get: (t) => t.name },
+          { label: "Group", get: (t) => groupName(t.groupId) },
+          { label: "Amount", get: (t) => Number(t.amount || 0) },
+        ]} />
         <Button size="sm" icon={<Plus size={13} />} onClick={() => setOpen(true)}>Add Fee Type</Button>
       </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}

@@ -6,6 +6,16 @@
 import { useState } from "react";
 import { Filter, Shuffle, Search, ChevronDown } from "lucide-react";
 import { usePageTitle } from "../../hooks";
+import { ExportButton } from "../../components/ui";
+
+const MEMBER_COLUMNS = [
+  { label: "Roll", get: (s) => s.roll },
+  { label: "Name", get: (s) => s.name },
+  { label: "Class / Section", get: (s) => s.classSection },
+  { label: "Reg No", get: (s) => s.regNo },
+  { label: "House", get: (s) => s.house || "" },
+  { label: "Role", get: (s) => s.role },
+];
 
 const mockStudents = [
   { roll: 0, name: "JAYSAL KUMARI", classSection: "3 / A", regNo: "H1341", house: "", role: "Member" },
@@ -130,8 +140,9 @@ export default function HouseMembers() {
 
       {/* Students Table Card */}
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100">
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-slate-700">👥 Students ({filtered.length})</h3>
+          <ExportButton filename="house-members.csv" rows={filtered} columns={MEMBER_COLUMNS} />
         </div>
 
         <div className="overflow-x-auto">

@@ -6,9 +6,11 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Avatar, Badge, Select } from "../../components/ui";
-import { User } from "lucide-react";
+import { PageHeader, Card, Avatar, Badge, Select, Button } from "../../components/ui";
+import { User, FileDown } from "lucide-react";
 import apiClient from "../../services/axios";
+import { printRecord } from "../../utils/printPdf";
+import { Loader } from "../../components/loaders/PageLoader";
 
 export default function StudentProfilePage() {
   usePageTitle("Student Profile");
@@ -46,27 +48,77 @@ export default function StudentProfilePage() {
   const name = (s) => s?.user ? `${s.user.firstName} ${s.user.lastName}` : "—";
   const options = [{ value: "", label: "Select student" }, ...students.map(s => ({ value: s.id, label: `${s.rollNumber} · ${name(s)}` }))];
 
+  const dob = (d) => (d ? new Date(d).toLocaleDateString("en-IN") : "—");
   const fields = student ? [
     ["Roll Number", student.rollNumber],
     ["Class / Section", `${student.section?.class?.name || "—"} / ${student.section?.name || "—"}`],
-    ["Date of Birth", student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString("en-IN") : "—"],
+    ["Date of Birth", dob(student.dateOfBirth)],
     ["Gender", student.gender],
     ["Blood Group", student.bloodGroup || "—"],
     ["Email", student.user?.email || "—"],
     ["Phone", student.user?.phone || "—"],
     ["Admission No.", student.admissionNumber || "—"],
+    ["Registration No.", student.registrationNo || "—"],
+    ["Category", student.category || "—"],
+    ["Caste", student.caste || "—"],
+    ["Religion", student.religion || "—"],
+    ["Aadhar", student.aadharNumber || "—"],
+    ["PEN", student.penNumber || "—"],
+    ["APAAR No.", student.apaarNo || "—"],
+    ["Smart Card", student.smartCardNo || "—"],
+    ["Height / Weight", `${student.height || "—"} / ${student.weight || "—"}`],
+    ["Father Name", student.fatherName || "—"],
+    ["Mother Name", student.motherName || "—"],
+    ["Guardian", student.guardianName || "—"],
+    ["Guardian Phone", student.guardianPhone || "—"],
+    ["City / Pincode", `${student.city || "—"} / ${student.pincode || "—"}`],
+    ["Hostel", student.hostelAllotted ? (student.hostelName || "Yes") : "No"],
+    ["Transport", student.transportAllotted ? (student.busNo || "Yes") : "No"],
   ] : [];
+
+  const savePdf = () => {
+    if (!student) return;
+    printRecord({
+      title: "Student Profile",
+      subtitle: [name(student), `Roll ${student.rollNumber}`, `${student.section?.class?.name || ""}/${student.section?.name || ""}`].filter(Boolean).join("  ·  "),
+      photo: student.photo,
+      sections: [
+        { heading: "Basic Information", rows: [
+          ["Name", name(student)], ["Date of Birth", dob(student.dateOfBirth)], ["Gender", student.gender], ["Blood Group", student.bloodGroup],
+          ["Email", student.user?.email], ["Phone", student.user?.phone], ["Smart Card", student.smartCardNo], ["Aadhar", student.aadharNumber],
+          ["Religion", student.religion], ["Category", student.category], ["Caste", student.caste], ["Height", student.height], ["Weight", student.weight],
+          ["PEN", student.penNumber], ["APAAR No", student.apaarNo], ["Remarks", student.remarks],
+        ] },
+        { heading: "Admission", rows: [
+          ["Class", student.section?.class?.name], ["Section", student.section?.name], ["Roll Number", student.rollNumber],
+          ["Admission No", student.admissionNumber], ["Registration No", student.registrationNo], ["Fee Plan", student.feePlan],
+          ["Admission Date", dob(student.admissionDate)],
+        ] },
+        { heading: "Parent & Communication", rows: [
+          ["Father Name", student.fatherName], ["Mother Name", student.motherName], ["Father Occupation", student.fatherOccupation], ["Mother Occupation", student.motherOccupation],
+          ["Guardian Name", student.guardianName], ["Guardian Phone", student.guardianPhone], ["Guardian Email", student.guardianEmail],
+          ["City", student.city], ["Pincode", student.pincode], ["Current Address", student.address], ["Permanent Address", student.permanentAddress],
+        ] },
+        { heading: "Hostel & Transport", rows: [
+          ["Hostel", student.hostelAllotted ? "Yes" : "No"], ["Hostel Name", student.hostelName], ["Hostel Room", student.hostelRoomNo],
+          ["Transport", student.transportAllotted ? "Yes" : "No"], ["Transport Route", student.transportRoute], ["Bus No", student.busNo],
+        ] },
+      ],
+    });
+  };
 
   return (
     <div>
-      <PageHeader title="Student Profile" subtitle="Complete student record" icon={<User size={18} />} />
+      <PageHeader title="Student Profile" subtitle="Complete student record" icon={<User size={18} />}>
+        {student && <Button variant="outline" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>}
+      </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
       <Card className="mb-5">
         <Select label="Student" value={studentId} onChange={e => onPick(e.target.value)} options={options} className="max-w-md" />
       </Card>
 
       {loading ? (
-        <Card><div className="p-10 text-center text-slate-400 text-sm">Loading…</div></Card>
+        <Card><Loader label="Loading profile…" /></Card>
       ) : !student ? (
         <Card><div className="p-10 text-center text-slate-400 text-sm">Select a student to view their profile.</div></Card>
       ) : (

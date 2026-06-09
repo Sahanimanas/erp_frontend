@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Avatar } from "../../components/ui";
+import { PageHeader, Card, Avatar, ExportButton } from "../../components/ui";
 import { DollarSign } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -42,12 +42,22 @@ export default function PayrollPage() {
   const name = (e) => e.user ? `${e.user.firstName} ${e.user.lastName}` : (e.employeeCode || "—");
   const totalNet = employees.reduce((s, e) => s + compute(e.baseSalary).net, 0);
 
+  const exportColumns = [
+    { label: "Employee", get: (e) => name(e) },
+    { label: "Basic", get: (e) => Math.round(compute(e.baseSalary).basic) },
+    { label: "HRA", get: (e) => Math.round(compute(e.baseSalary).hra) },
+    { label: "DA", get: (e) => Math.round(compute(e.baseSalary).da) },
+    { label: "Gross", get: (e) => Math.round(compute(e.baseSalary).gross) },
+    { label: "PF", get: (e) => Math.round(compute(e.baseSalary).pf) },
+    { label: "Net", get: (e) => Math.round(compute(e.baseSalary).net) },
+  ];
+
   return (
     <div>
       <PageHeader title="Payroll" subtitle="Salary register" icon={<DollarSign size={18} />} />
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
       <Card className="mb-5"><p className="text-xs text-slate-400 font-semibold mb-1">Total Net Payable (monthly)</p><p className="text-3xl font-bold text-indigo-600">{fmt(totalNet)}</p></Card>
-      <Card title="Salary Breakdown" noPadding>
+      <Card title="Salary Breakdown" noPadding action={<ExportButton filename="payroll.csv" rows={employees} columns={exportColumns} />}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

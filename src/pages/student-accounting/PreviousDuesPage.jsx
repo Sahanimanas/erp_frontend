@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Badge, Pagination } from "../../components/ui";
+import { PageHeader, Card, Badge, Pagination, ExportButton } from "../../components/ui";
 import { Clock } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -38,7 +38,22 @@ export default function PreviousDuesPage() {
       <PageHeader title="Previous Dues" subtitle="Outstanding balances" icon={<Clock size={18} />} />
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
       <Card className="mb-5"><p className="text-xs text-slate-400 font-semibold mb-1">Dues on this page</p><p className="text-2xl font-bold text-amber-600">{fmt(totalDue)}</p></Card>
-      <Card noPadding>
+      <Card
+        noPadding
+        action={
+          <ExportButton
+            filename="previous-dues.csv"
+            rows={rows}
+            columns={[
+              { label: "Student", get: (r) => studentName(r) },
+              { label: "Roll", get: (r) => r.student?.rollNumber || "—" },
+              { label: "Fee Group", get: (r) => r.fee?.group?.name || "—" },
+              { label: "Amount", get: (r) => Number(r.amount || 0) },
+              { label: "Status", get: (r) => r.status },
+            ]}
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

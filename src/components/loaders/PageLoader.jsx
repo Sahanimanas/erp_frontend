@@ -49,3 +49,21 @@ export function SpinnerLoader({ size = 16, className = "" }) {
     />
   );
 }
+
+/**
+ * Loader — triple-ring blue spinner (see `.loader` in index.css). Centered in a
+ * flex box with an optional label; use for full-section / full-page loading.
+ */
+export function Loader({ label = "", className = "", minH = "70vh" }) {
+  return (
+    <div
+      className={`flex flex-col items-center justify-center gap-4 ${className}`}
+      style={{ minHeight: minH }}
+      role="status"
+      aria-label={label || "Loading"}
+    >
+      <span className="loader" />
+      {label && <p className="text-sm text-slate-500">{label}</p>}
+    </div>
+  );
+}

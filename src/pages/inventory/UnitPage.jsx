@@ -5,11 +5,16 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input } from "../../components/ui";
+import { PageHeader, Card, Button, Input, ExportButton } from "../../components/ui";
 
 const INITIAL_UNITS = [
   { id: 1, branch: "GenEduServe", name: "Piece" },
   { id: 2, branch: "GenEduServe", name: "BANDAL" },
+];
+
+const EXPORT_COLS = [
+  { label: "Branch", get: (r) => r.branch },
+  { label: "Name", get: (r) => r.name },
 ];
 
 export default function UnitPage() {
@@ -67,6 +72,9 @@ export default function UnitPage() {
         {/* Unit List */}
         <div className="lg:col-span-2">
           <Card title="Unit List">
+            <div className="px-4 pt-4 flex justify-end">
+              <ExportButton filename="units.csv" rows={units} columns={EXPORT_COLS} />
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

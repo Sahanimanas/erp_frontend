@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Avatar, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Input, Avatar, Badge, ExportButton } from "../../components/ui";
 import { Briefcase, Save } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -57,6 +57,11 @@ export default function TeacherAttendancePage() {
   return (
     <div>
       <PageHeader title="Teacher Attendance" subtitle="Mark staff attendance" icon={<Briefcase size={18} />}>
+        <ExportButton filename="teacher-attendance.csv" rows={employees} columns={[
+          { label: "Employee", get: (e) => name(e) },
+          { label: "Code", get: (e) => e.employeeCode || "—" },
+          { label: "Status", get: (e) => marks[e.id] || "—" },
+        ]} />
         <Button size="sm" icon={<Save size={13} />} onClick={save} disabled={saving || loading || employees.length === 0}>{saving ? "Saving…" : "Save Attendance"}</Button>
       </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}

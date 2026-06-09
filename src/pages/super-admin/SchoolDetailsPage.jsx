@@ -5,7 +5,9 @@
  */
 import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
+import { loginSuccess } from "../../redux/slices/authSlice";
 import {
   Building2, ArrowLeft, LogIn, Users as UsersIcon, HardDrive, Layers,
   CreditCard, ScrollText, Settings as SettingsIcon, Mail, Phone, MapPin, Globe,
@@ -37,6 +39,7 @@ const TABS = [
 export default function SchoolDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [params, setParams] = useSearchParams();
   const active = params.get("tab") || "overview";
   const setTab = (key) => setParams({ tab: key }, { replace: true });
@@ -54,10 +57,23 @@ export default function SchoolDetailsPage() {
   const handleLoginAs = async () => {
     try {
       const res = await loginAs(id).unwrap();
-      try { await navigator.clipboard.writeText(res.accessToken); } catch { /* ignore */ }
-      toast.success("Impersonation token copied to clipboard");
+      dispatch(loginSuccess({
+        token: res.accessToken,
+        refreshToken: null,
+        tokenExpiry: Date.now() + 15 * 60 * 1000,
+        user: {
+          id: res.user.id,
+          name: `${res.user.firstName} ${res.user.lastName}`.trim(),
+          email: res.user.email,
+          role: res.user.role,
+          schoolId: res.user.schoolId,
+          avatar: null,
+        },
+      }));
+      toast.success(`Logged in as ${res.school?.name || "school"} admin`);
+      window.location.assign("/dashboard");
     } catch (e) {
-      toast.error(e?.data?.error || "Could not impersonate");
+      toast.error(e?.data?.error || "Could not log in as admin");
     }
   };
 

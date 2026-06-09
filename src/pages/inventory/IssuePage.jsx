@@ -5,10 +5,20 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Select, SearchInput } from "../../components/ui";
+import { PageHeader, Card, Button, Input, Select, SearchInput, ExportButton } from "../../components/ui";
 
 const ROLES = ["Student", "Employee", "Other"];
 const CATEGORIES = ["Books", "Stationery", "Sports", "Lab Equipment"];
+
+const EXPORT_COLS = [
+  { label: "Role", get: (r) => r.role || "" },
+  { label: "Issue To", get: (r) => r.issueTo || "" },
+  { label: "Mobile No", get: (r) => r.mobile || "" },
+  { label: "Date Of Issue", get: (r) => r.dateOfIssue || "" },
+  { label: "Due Date", get: (r) => r.dueDate || "" },
+  { label: "Return Date", get: (r) => r.returnDate || "" },
+  { label: "Issued By", get: (r) => r.issuedBy || "" },
+];
 
 function AddIssueForm({ onCancel }) {
   const today = new Date().toISOString().split("T")[0];
@@ -116,7 +126,8 @@ export default function IssuePage() {
         </div>
         {tab === "list" ? (
           <>
-            <div className="p-4 flex justify-end">
+            <div className="p-4 flex justify-between items-center gap-3">
+              <ExportButton filename="issues.csv" rows={data} columns={EXPORT_COLS} />
               <SearchInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." />
             </div>
             <div className="overflow-x-auto">

@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Edit2, Trash2, Plus, Upload } from "lucide-react";
 import { inp, sel, PageTitle, Card2, TabBar, ExportBar, Pagination } from "../_shared";
+import { ExportButton } from "../../components/ui";
 
 const CATEGORIES = ["Fiction","Non-Fiction","Science","Mathematics","History","Geography","Literature","Computer Science","Reference","Other"];
 
@@ -71,6 +72,18 @@ function CreateBook({ onSave, onCancel }) {
 
 const BOOK_COLS = ["SL","BOOK TITLE","COVER","EDITION","ISBN NO","CATEGORY","DESCRIPTION","PURCHASE DATE","PRICE","TOTAL STOCK","ISSUED COPIES","ACTION"];
 
+const EXPORT_COLS = [
+  { label: "Book Title", get: (r) => r.title },
+  { label: "Edition", get: (r) => r.edition || "" },
+  { label: "ISBN No", get: (r) => r.isbn || "" },
+  { label: "Category", get: (r) => r.category },
+  { label: "Description", get: (r) => r.description || "" },
+  { label: "Purchase Date", get: (r) => r.purchaseDate },
+  { label: "Price", get: (r) => Number(r.price || 0) },
+  { label: "Total Stock", get: (r) => Number(r.totalStock || 0) },
+  { label: "Issued Copies", get: () => 0 },
+];
+
 export default function BooksPage() {
   const [tab, setTab] = useState("list");
   const [books, setBooks] = useState([]);
@@ -89,6 +102,9 @@ export default function BooksPage() {
         <TabBar tabs={[{k:"list",l:"Books List",i:"☰"},{k:"create",l:"Create Book",i:"✎"}]} active={tab} onChange={setTab}/>
         {tab==="list" ? (
           <div className="p-5">
+            <div className="flex justify-end mb-2">
+              <ExportButton filename="books.csv" rows={filtered} columns={EXPORT_COLS} />
+            </div>
             <ExportBar search={search} setSearch={setSearch}/>
             <div className="border border-slate-100 rounded-xl overflow-x-auto">
               <table className="w-full text-sm min-w-[1000px]">

@@ -6,8 +6,15 @@
 import { useState } from "react";
 import { Filter, Plus, Edit2, Trash2 } from "lucide-react";
 import { sel, PageTitle, Card2, CLASSES, SECTIONS } from "../_shared";
+import { ExportButton } from "../../components/ui";
 
 const SESSIONS = ["2026-2027","2025-2026","2024-2025","2023-2024","2022-2023"];
+
+const ALUMNI_EVENT_COLUMNS = [
+  { label: "Title", get: (e) => e.title },
+  { label: "Date", get: (e) => e.date },
+  { label: "Audience", get: (e) => e.audience || "All" },
+];
 
 function ManageAlumni() {
   const [session, setSession] = useState("2026-2027");
@@ -82,9 +89,12 @@ function AlumniEvents() {
         <Card2>
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">🕐 Events List</h3>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg">
-              <Plus size={12}/> Add Events
-            </button>
+            <div className="flex items-center gap-2">
+              <ExportButton filename="alumni-events.csv" rows={events} columns={ALUMNI_EVENT_COLUMNS} />
+              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg">
+                <Plus size={12}/> Add Events
+              </button>
+            </div>
           </div>
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">

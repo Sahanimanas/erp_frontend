@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
+import { ExportButton } from "../../components/ui";
 import { List, Plus, ChevronDown } from "lucide-react";
 
 const STATUS_OPTIONS = ["All", "Pending", "Approved", "Rejected"];
@@ -125,6 +126,14 @@ const SCOL = {
   Rejected: "bg-red-100 text-red-700",
 };
 
+const ACTIVITY_COLUMNS = [
+  { label: "Title", get: (a) => a.title },
+  { label: "House", get: (a) => a.house },
+  { label: "Points", get: (a) => a.points },
+  { label: "Status", get: (a) => a.status },
+  { label: "Description", get: (a) => a.description || "" },
+];
+
 export default function HouseActivities() {
   usePageTitle("House Activities");
 
@@ -162,12 +171,19 @@ export default function HouseActivities() {
           <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
             <List size={13} className="text-indigo-500" /> House Activities
           </h3>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg"
-          >
-            <Plus size={13} /> Submit Activity
-          </button>
+          <div className="flex items-center gap-2">
+            <ExportButton
+              filename="house-activities.csv"
+              rows={filtered}
+              columns={ACTIVITY_COLUMNS}
+            />
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg"
+            >
+              <Plus size={13} /> Submit Activity
+            </button>
+          </div>
         </div>
 
         {/* Filters */}

@@ -7,7 +7,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { Globe, Plus, ShieldCheck, Trash2, RefreshCw } from "lucide-react";
 import {
-  Card, DataTable, PageHeader, Button, Modal, Input, Select, Badge,
+  Card, DataTable, PageHeader, Button, Modal, Input, Select, Badge, ExportButton,
 } from "../../components/ui";
 import {
   useGetDomainsQuery, useAddDomainMutation, useVerifyDomainMutation,
@@ -49,6 +49,16 @@ export default function DomainsPage() {
     catch (e) { toast.error(e?.data?.error || "Remove failed"); }
   };
 
+  const exportColumns = [
+    { label: "Domain", get: (r) => r.domain },
+    { label: "School", get: (r) => r.school?.name || "" },
+    { label: "Type", get: (r) => r.type },
+    { label: "DNS", get: (r) => r.dnsStatus || "" },
+    { label: "SSL", get: (r) => r.sslStatus || "" },
+    { label: "Primary", get: (r) => (r.isPrimary ? "Yes" : "No") },
+    { label: "Created", get: (r) => formatDate(r.createdAt) },
+  ];
+
   const columns = [
     { key: "domain", label: "Domain", render: (v) => <span className="font-mono text-[12px] text-indigo-600">{v}</span> },
     { key: "school", label: "School", sortable: false, render: (_v, r) => r.school?.name || "—" },
@@ -75,6 +85,7 @@ export default function DomainsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Domain Management" subtitle="Subdomains & custom domains across all tenants" icon={<Globe size={18} />}>
+        <ExportButton filename="domains.csv" rows={domains ?? []} columns={exportColumns} />
         <Button icon={<Plus size={15} />} onClick={() => setOpen(true)}>Add Domain</Button>
       </PageHeader>
 

@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, SearchInput } from "../../components/ui";
+import { PageHeader, Card, Button, SearchInput, ExportButton } from "../../components/ui";
 import apiClient from "../../services/axios";
 
 const PAGE_SIZE = 10;
@@ -60,6 +60,20 @@ export default function ParentListPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const guardianName = (row) => `${row.user?.firstName || ""} ${row.user?.lastName || ""}`.trim();
+  const childrenNames = (row) => (row.students || [])
+    .map(s => `${s.user?.firstName || ""} ${s.user?.lastName || ""}`.trim())
+    .filter(Boolean)
+    .join(", ");
+  const exportColumns = [
+    { label: "Guardian Name", get: (r) => guardianName(r) },
+    { label: "Relationship", get: (r) => r.relationship || "" },
+    { label: "Occupation", get: (r) => r.occupation || "" },
+    { label: "Mobile No", get: (r) => r.user?.phone || "" },
+    { label: "Email", get: (r) => r.user?.email || "" },
+    { label: "Children", get: (r) => childrenNames(r) },
+  ];
+
   return (
     <div>
       <PageHeader title="Parents List" subtitle="All registered parents" icon="👨‍👩‍👧">
@@ -67,11 +81,14 @@ export default function ParentListPage() {
       </PageHeader>
 
       <Card title="Parents List" action={
-        <SearchInput
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search name, email, mobile..."
-        />
+        <>
+          <ExportButton filename="parents.csv" rows={rows} columns={exportColumns} />
+          <SearchInput
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search name, email, mobile..."
+          />
+        </>
       }>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-3 m-3 rounded-lg text-sm">{error}</div>

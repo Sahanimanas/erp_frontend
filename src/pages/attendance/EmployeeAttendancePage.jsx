@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Avatar, Skeleton, EmptyState } from "../../components/ui";
+import { PageHeader, Card, Button, Avatar, Skeleton, EmptyState, ExportButton } from "../../components/ui";
 import { UserCheck, Save } from "lucide-react";
 import {
   useGetEmployeesDailyQuery, useMarkEmployeesBulkMutation,
@@ -75,6 +75,15 @@ export default function EmployeeAttendancePage() {
               className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" />
           </div>
           <div className="flex gap-2 ml-auto">
+            <ExportButton filename="employee-attendance.csv" rows={rows} columns={[
+              { label: "Employee", get: (r) => r.name },
+              { label: "Employee Code", get: (r) => r.employeeCode || "—" },
+              { label: "Designation", get: (r) => r.designation || "—" },
+              { label: "Department", get: (r) => r.department || "—" },
+              { label: "Status", get: (r) => marks[r.employeeId]?.status || "—" },
+              { label: "In Time", get: (r) => marks[r.employeeId]?.inTime || "—" },
+              { label: "Out Time", get: (r) => marks[r.employeeId]?.outTime || "—" },
+            ]} />
             <Button size="sm" variant="success" disabled={!rows.length} onClick={() => markAll("PRESENT")}>All Present</Button>
             <Button size="sm" variant="danger" disabled={!rows.length} onClick={() => markAll("ABSENT")}>All Absent</Button>
           </div>

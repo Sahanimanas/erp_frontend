@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Select, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Select, Badge, ExportButton } from "../../components/ui";
 import { Calendar } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -59,6 +59,14 @@ export default function MonthlyReportPage() {
           <Select label="Month" value={month} onChange={e => setMonth(Number(e.target.value))} options={monthOptions} className="w-40" />
           <Select label="Year" value={year} onChange={e => setYear(Number(e.target.value))} options={yearOptions} className="w-32" />
           <Button onClick={load} disabled={loading || !sectionId}>{loading ? "Loading…" : "Generate"}</Button>
+          <ExportButton filename="monthly-attendance.csv" rows={rows} columns={[
+            { label: "Roll", get: (r) => r.rollNumber },
+            { label: "Student", get: (r) => r.name },
+            { label: "Present", get: (r) => r.present },
+            { label: "Absent", get: (r) => r.absent },
+            { label: "Total", get: (r) => r.total },
+            { label: "%", get: (r) => r.percentage },
+          ]} />
         </div>
       </Card>
       <Card title="Attendance Summary" noPadding>

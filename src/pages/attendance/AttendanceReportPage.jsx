@@ -8,7 +8,7 @@
  */
 import { useState, useMemo } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Badge, Button, Select, DataTable } from "../../components/ui";
+import { PageHeader, Card, Badge, Button, Select, DataTable, ExportButton } from "../../components/ui";
 import {
   useGetMonthlyAttendanceReportQuery,
   useGetAttendanceStatisticsQuery,
@@ -277,13 +277,22 @@ export default function AttendanceReportPage() {
 
       {!reportLoading && report?.students && report.students.length > 0 && (
         <Card noPadding>
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="font-semibold text-slate-800">
-              Student Attendance - {MONTH_OPT.find((m) => m.value === month)?.label} {year}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              {report.students.length} students • {report.attendanceDates?.length || 0} working days
-            </p>
+          <div className="p-4 border-b border-slate-100 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-slate-800">
+                Student Attendance - {MONTH_OPT.find((m) => m.value === month)?.label} {year}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                {report.students.length} students • {report.attendanceDates?.length || 0} working days
+              </p>
+            </div>
+            <ExportButton filename="attendance-report.csv" rows={studentStats} columns={[
+              { label: "Roll No", get: (r) => r.rollNumber || "N/A" },
+              { label: "Student Name", get: (r) => r.name },
+              { label: "Total Days", get: (r) => r.totalDays },
+              { label: "Present", get: (r) => r.presentDays },
+              { label: "Attendance %", get: (r) => r.percentage },
+            ]} />
           </div>
           <DataTable columns={COLUMNS} data={studentStats} />
         </Card>

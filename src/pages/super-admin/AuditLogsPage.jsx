@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { ScrollText } from "lucide-react";
-import { Card, DataTable, Pagination, PageHeader, Select, Badge } from "../../components/ui";
+import { Card, DataTable, Pagination, PageHeader, Select, Badge, ExportButton } from "../../components/ui";
 import { useGetAuditLogsQuery } from "../../redux/api/superAdminApi";
 import { formatDateTime } from "./_saShared";
 
@@ -32,17 +32,29 @@ export default function AuditLogsPage() {
     { key: "createdAt", label: "Timestamp", render: (v) => formatDateTime(v) },
   ];
 
+  const exportColumns = [
+    { label: "Action", get: (r) => r.action },
+    { label: "School", get: (r) => r.school?.name || "" },
+    { label: "Entity", get: (r) => `${r.entity || ""}${r.entityId ? ` · ${String(r.entityId).slice(-6)}` : ""}` },
+    { label: "Actor", get: (r) => (r.user ? `${r.user.firstName} ${r.user.lastName} (${r.user.role})` : "") },
+    { label: "IP", get: (r) => r.ipAddress || "" },
+    { label: "Timestamp", get: (r) => formatDateTime(r.createdAt) },
+  ];
+
   return (
     <div className="space-y-4">
       <PageHeader title="Audit Logs" subtitle="Every privileged platform action, recorded" icon={<ScrollText size={18} />} />
       <Card noPadding>
-        <div className="p-4 border-b border-slate-100 flex gap-3">
+        <div className="p-4 border-b border-slate-100 flex gap-3 items-center">
           <Select
             value={action}
             onChange={(e) => { setAction(e.target.value); setPage(1); }}
             options={ACTIONS.map((a) => ({ value: a, label: a || "All Actions" }))}
             className="w-64"
           />
+          <div className="ml-auto">
+            <ExportButton filename="audit-logs.csv" rows={rows} columns={exportColumns} />
+          </div>
         </div>
         <DataTable columns={columns} data={rows} loading={isLoading || isFetching} emptyText="No audit events yet." />
         <Pagination page={page} total={total} pageSize={20} onPageChange={setPage} />

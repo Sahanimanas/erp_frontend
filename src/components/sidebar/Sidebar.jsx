@@ -12,7 +12,7 @@
  *   ✓ Mobile: slides in/out as a drawer
  */
 import { useEffect } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   selectSidebarCollapsed, selectExpandedSections,
@@ -136,26 +136,32 @@ function NavParent({ item, collapsed }) {
 // ─── Sidebar root ─────────────────────────────────────────────────────────
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const dispatch         = useDispatch();
-  const navigate         = useNavigate();
   const collapsed        = useSelector(selectSidebarCollapsed);
   const userRole         = useSelector(selectUserRole);
 
   // Logout: best-effort revoke the refresh token server-side, then clear all
   // client auth state (Redux + localStorage via the logout reducer) and bounce
   // to the login screen.
-  const handleLogout = async () => {
-    try {
-      const { refreshToken } = JSON.parse(localStorage.getItem("erp_auth") || "{}");
-      await apiClient.post("/auth/logout", { refreshToken }).catch(() => {});
-    } catch {
-      /* ignore network/parse errors — we log out locally regardless */
-    }
+  const handleLogout = () => {
+    // Best-effort server-side token revoke — fire-and-forget so a slow/failed
+    // network call can never block the actual logout.
+    let refreshToken;
+    try { ({ refreshToken } = JSON.parse(localStorage.getItem("erp_auth") || "{}")); } catch { /* ignore */ }
+    apiClient.post("/auth/logout", { refreshToken }).catch(() => {});
+
+    // Clear all client auth state (Redux + localStorage), then hard-redirect to
+    // the login screen. A full reload guarantees we leave the protected area and
+    // no in-memory route guard can bounce us back.
     dispatch(logout());
-    navigate("/login", { replace: true });
+    window.location.assign("/login");
   };
 
   // Filter nav items the user can see
   const filteredNav = routeConfig.filter((item) => {
+    // Super Admin manages the SaaS platform only — show just the "Platform"
+    // section, not the school-operational modules (many of which also list
+    // SUPER_ADMIN in their roles).
+    if (userRole === "SUPER_ADMIN") return item.key === "platform";
     if (!item.roles || item.roles.length === 0) return true;
     if (!userRole) return false;
     return item.roles.includes(userRole);
@@ -196,7 +202,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center shrink-0">
               <Icons.GraduationCap size={16} className="text-white" />
             </div>
-            <span className="text-white font-bold text-[13px] tracking-wide">EduServe</span>
+            <span className="text-white font-bold text-[13px] tracking-wide">GlobalSchoolMitra</span>
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Pro</span>
           </div>
         )}

@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Badge } from "../../components/ui";
+import { PageHeader, Card, Badge, ExportButton } from "../../components/ui";
 import { FileText } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -25,11 +25,21 @@ export default function ExamReportsPage() {
     })();
   }, []);
 
+  const exportColumns = [
+    { label: "Exam", get: (e) => e.name },
+    { label: "Type", get: (e) => (e.type || "").replace(/_/g, " ") },
+    { label: "Start", get: (e) => (e.startDate ? new Date(e.startDate).toLocaleDateString("en-IN") : "") },
+    { label: "End", get: (e) => (e.endDate ? new Date(e.endDate).toLocaleDateString("en-IN") : "") },
+  ];
+
   return (
     <div>
       <PageHeader title="Exam Reports" subtitle="Examinations overview" icon={<FileText size={18} />} />
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
       <Card noPadding>
+        <div className="flex justify-end p-3 border-b border-slate-100">
+          <ExportButton filename="exam-reports.csv" rows={exams} columns={exportColumns} />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

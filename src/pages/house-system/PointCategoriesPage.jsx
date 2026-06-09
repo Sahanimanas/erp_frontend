@@ -5,7 +5,22 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
+import { ExportButton } from "../../components/ui";
 import { Tag, Save, RotateCcw, Edit2, Trash2, ChevronDown } from "lucide-react";
+
+const CATEGORY_COLUMNS = [
+  { label: "Name", get: (c) => c.name },
+  { label: "Description", get: (c) => c.description || "" },
+  { label: "Default Points", get: (c) => c.defaultPoints },
+  { label: "Auto Rule", get: (c) => c.autoRule },
+  {
+    label: "Approval",
+    get: (c) =>
+      [c.requiresCaptainApproval && "Captain", c.requiresTeacherApproval && "Teacher"]
+        .filter(Boolean)
+        .join(", ") || "None",
+  },
+];
 
 const AUTO_RULE_OPTIONS = [
   "Manual (submitted by users)",
@@ -195,10 +210,11 @@ export default function HouseCategories() {
 
         {/* ── RIGHT: Point Categories Table ── */}
         <div className="bg-white rounded-xl border border-slate-100 shadow-sm flex-1 min-w-0">
-          <div className="px-5 py-4 border-b border-slate-100">
+          <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
               <Tag size={13} className="text-indigo-500" /> Point Categories
             </h3>
+            <ExportButton filename="point-categories.csv" rows={categories} columns={CATEGORY_COLUMNS} />
           </div>
 
           <div className="overflow-x-auto">

@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Select, Badge, Avatar } from "../../components/ui";
+import { PageHeader, Card, Select, Badge, Avatar, ExportButton } from "../../components/ui";
 import { FileText } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -43,6 +43,13 @@ export default function ReportCardPage() {
   const name = (s) => s?.user ? `${s.user.firstName} ${s.user.lastName}` : "—";
   const options = [{ value: "", label: "Select student" }, ...students.map(s => ({ value: s.id, label: `${s.rollNumber} · ${name(s)}` }))];
   const exams = perf?.exams || perf?.results || (Array.isArray(perf) ? perf : []);
+  const exportColumns = [
+    { label: "Exam", get: (e) => e.examName || e.name || "" },
+    { label: "Obtained", get: (e) => e.obtained ?? e.totalObtained ?? e.marks ?? "" },
+    { label: "Total", get: (e) => e.total ?? e.totalMarks ?? "" },
+    { label: "Percentage", get: (e) => (e.percentage != null ? `${e.percentage}%` : "") },
+    { label: "Grade", get: (e) => e.grade || "" },
+  ];
 
   return (
     <div>
@@ -65,6 +72,9 @@ export default function ReportCardPage() {
       )}
 
       <Card title="Performance" noPadding>
+        <div className="flex justify-end p-3 border-b border-slate-100">
+          <ExportButton filename="report-card.csv" rows={exams} columns={exportColumns} />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

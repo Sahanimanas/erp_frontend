@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Select, Badge, Button } from "../../components/ui";
+import { PageHeader, Card, Select, Badge, Button, ExportButton } from "../../components/ui";
 import { CalendarDays } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -57,6 +57,15 @@ export default function LeavePage() {
   const name = (e) => e.user ? `${e.user.firstName} ${e.user.lastName}` : (e.employeeCode || "—");
   const empOptions = employees.map(e => ({ value: e.id, label: `${name(e)} (${e.employeeCode || "—"})` }));
 
+  const exportColumns = [
+    { label: "Type", get: (l) => l.leaveType?.name || "" },
+    { label: "From", get: (l) => l.startDate ? new Date(l.startDate).toLocaleDateString("en-IN") : "" },
+    { label: "To", get: (l) => l.endDate ? new Date(l.endDate).toLocaleDateString("en-IN") : "" },
+    { label: "Days", get: (l) => l.days },
+    { label: "Reason", get: (l) => l.reason || "" },
+    { label: "Status", get: (l) => l.status },
+  ];
+
   return (
     <div>
       <PageHeader title="Leave Management" subtitle="Staff leave records" icon={<CalendarDays size={18} />} />
@@ -64,7 +73,7 @@ export default function LeavePage() {
       <Card className="mb-5">
         <Select label="Employee" value={employeeId} onChange={e => setEmployeeId(e.target.value)} options={empOptions} className="max-w-sm" />
       </Card>
-      <Card title="Leave Applications" noPadding>
+      <Card title="Leave Applications" noPadding action={<ExportButton filename="leave-applications.csv" rows={leaves} columns={exportColumns} />}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

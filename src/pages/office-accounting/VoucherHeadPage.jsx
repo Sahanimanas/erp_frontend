@@ -4,9 +4,15 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Select, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Input, Select, Badge, ExportButton } from "../../components/ui";
 import { FileText } from "lucide-react";
 import apiClient from "../../services/axios";
+
+const EXPORT_COLS = [
+  { label: "Name", get: (h) => h.name },
+  { label: "Type", get: (h) => h.type },
+  { label: "Description", get: (h) => h.description || "" },
+];
 
 export default function VoucherHeadPage() {
   usePageTitle("Voucher Head");
@@ -56,6 +62,9 @@ export default function VoucherHeadPage() {
           </form>
         </Card>
         <Card title="Voucher Heads" className="lg:col-span-2" noPadding>
+          <div className="px-4 pt-4 flex justify-end">
+            <ExportButton filename="voucher-heads.csv" rows={heads} columns={EXPORT_COLS} />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="bg-slate-50 border-b border-slate-100">

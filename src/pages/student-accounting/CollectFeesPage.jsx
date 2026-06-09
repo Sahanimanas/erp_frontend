@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Select, Badge, Avatar } from "../../components/ui";
+import { PageHeader, Card, Button, Select, Badge, Avatar, ExportButton } from "../../components/ui";
 import { DollarSign, Search } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -85,7 +85,23 @@ export default function CollectFeesPage() {
       </Card>
 
       {searched && (
-        <Card title={`Students (${students.length})`} noPadding>
+        <Card
+          title={`Students (${students.length})`}
+          noPadding
+          action={
+            <ExportButton
+              filename="collect-fees.csv"
+              rows={students}
+              columns={[
+                { label: "Roll", get: (s) => s.rollNumber },
+                { label: "Student", get: (s) => name(s) },
+                { label: "Payable", get: () => amount },
+                { label: "Status", get: (s) => (collected[s.id] ? "Paid" : "Due") },
+                { label: "Receipt No", get: (s) => (collected[s.id] && collected[s.id] !== "PAID" ? collected[s.id] : "") },
+              ]}
+            />
+          }
+        >
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="bg-slate-50 border-b border-slate-100">

@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Input, Badge, ExportButton } from "../../components/ui";
 
 const INITIAL_DEPARTMENTS = [
   { id: 1, branch: "GenEduServe", name: "MATHS" },
@@ -91,6 +91,11 @@ function ListTable({ rows, onDelete, onEdit }) {
     </div>
   );
 }
+
+const LIST_EXPORT_COLUMNS = [
+  { label: "Branch", get: (r) => r.branch },
+  { label: "Name", get: (r) => r.name },
+];
 
 export default function DepartmentsPage() {
   usePageTitle("Departments & Designations");
@@ -194,7 +199,7 @@ export default function DepartmentsPage() {
 
           {/* Department List */}
           <div className="lg:col-span-2">
-            <Card title="Department List">
+            <Card title="Department List" action={<ExportButton filename="departments.csv" rows={departments} columns={LIST_EXPORT_COLUMNS} />}>
               <ListTable
                 rows={departments}
                 onDelete={(id) => setDepartments((d) => d.filter((r) => r.id !== id))}
@@ -242,7 +247,7 @@ export default function DepartmentsPage() {
 
           {/* Designation List */}
           <div className="lg:col-span-2">
-            <Card title="Designation List">
+            <Card title="Designation List" action={<ExportButton filename="designations.csv" rows={designations} columns={LIST_EXPORT_COLUMNS} />}>
               <ListTable
                 rows={designations}
                 onDelete={(id) => setDesignations((d) => d.filter((r) => r.id !== id))}

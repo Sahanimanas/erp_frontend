@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Modal, Input, Textarea, Badge, SearchInput } from "../../components/ui";
+import { PageHeader, Card, Button, Modal, Input, Textarea, Badge, SearchInput, ExportButton } from "../../components/ui";
 import { Layers, Plus } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -56,7 +56,12 @@ export default function FeesGroupPage() {
         <Button size="sm" icon={<Plus size={13} />} onClick={() => setOpen(true)}>Add Group</Button>
       </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
-      <Card action={<SearchInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search groups…" />} noPadding>
+      <Card action={<><ExportButton filename="fees-groups.csv" rows={filtered} columns={[
+        { label: "Name", get: (g) => g.name },
+        { label: "Description", get: (g) => g.description || "" },
+        { label: "Fee Types", get: (g) => typesFor(g.id).map(t => `${t.name} (${Number(t.amount)})`).join("; ") },
+        { label: "Total", get: (g) => typesFor(g.id).reduce((s, t) => s + Number(t.amount), 0) },
+      ]} /><SearchInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search groups…" /></>} noPadding>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

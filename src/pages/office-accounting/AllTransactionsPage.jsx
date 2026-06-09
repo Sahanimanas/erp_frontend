@@ -4,12 +4,21 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Select, Badge, Pagination } from "../../components/ui";
+import { PageHeader, Card, Select, Badge, Pagination, ExportButton } from "../../components/ui";
 import { List } from "lucide-react";
 import apiClient from "../../services/axios";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const PAGE_SIZE = 15;
+
+const EXPORT_COLS = [
+  { label: "Date", get: (t) => (t.date ? new Date(t.date).toLocaleDateString("en-IN") : "") },
+  { label: "Type", get: (t) => t.type },
+  { label: "Account", get: (t) => t.account?.name || "" },
+  { label: "Head", get: (t) => t.voucherHead?.name || "" },
+  { label: "Description", get: (t) => t.description || "" },
+  { label: "Amount", get: (t) => Number(t.amount || 0) },
+];
 
 export default function AllTransactionsPage() {
   usePageTitle("All Transactions");
@@ -62,6 +71,9 @@ export default function AllTransactionsPage() {
             options={[{ value: "", label: "All" }, { value: "INCOME", label: "Income" }, { value: "EXPENSE", label: "Expense" }]} className="w-40" />
           <Select label="Account" value={filter.accountId} onChange={e => { setFilter(f => ({ ...f, accountId: e.target.value })); setPage(1); }}
             options={[{ value: "", label: "All accounts" }, ...accounts.map(a => ({ value: a.id, label: a.name }))]} className="w-48" />
+          <div className="ml-auto">
+            <ExportButton filename="transactions.csv" rows={rows} columns={EXPORT_COLS} />
+          </div>
         </div>
       </Card>
       <Card noPadding>

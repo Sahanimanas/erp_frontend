@@ -6,6 +6,12 @@
 import { useState } from "react";
 import { Edit2, Trash2, Plus } from "lucide-react";
 import { inp, PageTitle, Card2 } from "../_shared";
+import { ExportButton } from "../../components/ui";
+
+const EXPORT_COLS = [
+  { label: "Branch", get: (r) => r.branch },
+  { label: "Name", get: (r) => r.name },
+];
 
 export default function IssuePage() {
   const [name, setName] = useState("");
@@ -44,6 +50,9 @@ export default function IssuePage() {
         <Card2>
           <div className="px-5 py-4 border-b border-slate-100 text-sm font-semibold text-slate-700 flex items-center gap-2">
             ☰ Book Category List
+            <div className="ml-auto">
+              <ExportButton filename="book-categories.csv" rows={categories} columns={EXPORT_COLS} />
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

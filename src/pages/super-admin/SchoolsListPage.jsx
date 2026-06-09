@@ -4,13 +4,15 @@
  */
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
+import { loginSuccess } from "../../redux/slices/authSlice";
 import {
   Building2, Eye, Pencil, Ban, CheckCircle2, Trash2, LogIn, Plus,
 } from "lucide-react";
 import {
   Card, DataTable, Pagination, SearchInput, Select, PageHeader,
-  Button, Avatar, Modal,
+  Button, Avatar, Modal, ExportButton,
 } from "../../components/ui";
 import {
   useGetSchoolsQuery, useGetPlansQuery, useSuspendSchoolMutation,
@@ -28,6 +30,7 @@ const STATUS_OPTIONS = [
 
 export default function SchoolsListPage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -84,12 +87,38 @@ export default function SchoolsListPage() {
   const handleLoginAs = async (school) => {
     try {
       const res = await loginAs(school.id).unwrap();
-      toast.success(`Impersonation token issued for ${school.name}. Token copied to clipboard.`);
-      try { await navigator.clipboard.writeText(res.accessToken); } catch { /* ignore */ }
+      // Start a real session as the school admin, then hard-redirect into the
+      // school dashboard so every API call uses the impersonation token + tenant.
+      dispatch(loginSuccess({
+        token: res.accessToken,
+        refreshToken: null,
+        tokenExpiry: Date.now() + 15 * 60 * 1000, // impersonation token lives ~15 min
+        user: {
+          id: res.user.id,
+          name: `${res.user.firstName} ${res.user.lastName}`.trim(),
+          email: res.user.email,
+          role: res.user.role,
+          schoolId: res.user.schoolId,
+          avatar: null,
+        },
+      }));
+      toast.success(`Logged in as ${school.name} admin`);
+      window.location.assign("/dashboard");
     } catch (e) {
-      toast.error(e?.data?.error || "Could not impersonate");
+      toast.error(e?.data?.error || "Could not log in as admin");
     }
   };
+
+  const exportColumns = [
+    { label: "School", get: (r) => r.name },
+    { label: "Email", get: (r) => r.email || "" },
+    { label: "Subdomain", get: (r) => r.primaryDomain || "" },
+    { label: "Plan", get: (r) => r.subscriptions?.[0]?.plan?.name || "" },
+    { label: "Students", get: (r) => r._count?.students ?? r.studentCount ?? 0 },
+    { label: "Teachers", get: (r) => r.teacherCount ?? 0 },
+    { label: "Status", get: (r) => r.derivedStatus || "" },
+    { label: "Created", get: (r) => formatDate(r.createdAt) },
+  ];
 
   const columns = [
     {
@@ -174,6 +203,7 @@ export default function SchoolsListPage() {
             options={planOptions}
             className="w-40"
           />
+          <ExportButton filename="schools.csv" rows={rows} columns={exportColumns} />
         </div>
 
         <DataTable

@@ -11,7 +11,7 @@ export function useAuth() {
 }
 
 export function usePageTitle(title) {
-  useEffect(()=>{document.title=title?`${title} — EduServe`:"EduServe";return()=>{document.title="EduServe";};},[title]);
+  useEffect(()=>{document.title=title?`${title} — GlobalSchoolMitra`:"GlobalSchoolMitra";return()=>{document.title="GlobalSchoolMitra";};},[title]);
 }
 
 export function useDebounce(value,delay=400) {

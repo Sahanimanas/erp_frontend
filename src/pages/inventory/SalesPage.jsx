@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Select, SearchInput } from "../../components/ui";
+import { PageHeader, Card, Button, Input, Select, SearchInput, ExportButton } from "../../components/ui";
 
 const SAMPLE_SALES = [
   { id: "0001", role: "Student", saleTo: "",                  payment: "Total Paid", date: "29.Mar.2026", netPayable: "₹2322.00",  paid: "₹2322.00",  due: "₹0.00" },
@@ -16,6 +16,17 @@ const SAMPLE_SALES = [
 ];
 
 const ROLES = ["Student", "Employee", "Other"];
+
+const EXPORT_COLS = [
+  { label: "Bill No", get: (r) => r.id },
+  { label: "Role", get: (r) => r.role },
+  { label: "Sale To", get: (r) => r.saleTo || "" },
+  { label: "Payment Status", get: (r) => r.payment },
+  { label: "Date", get: (r) => r.date },
+  { label: "Net Payable", get: (r) => r.netPayable },
+  { label: "Paid", get: (r) => r.paid },
+  { label: "Due", get: (r) => r.due },
+];
 
 function PaymentBadge({ v }) {
   return (
@@ -95,7 +106,8 @@ export default function SalesPage() {
         </div>
         {tab === "list" ? (
           <>
-            <div className="p-4 flex justify-end">
+            <div className="p-4 flex justify-between items-center gap-3">
+              <ExportButton filename="sales.csv" rows={filtered} columns={EXPORT_COLS} />
               <SearchInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." />
             </div>
             <div className="overflow-x-auto">

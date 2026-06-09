@@ -5,8 +5,16 @@
 import { useState } from "react";
 import { Edit2, Trash2, Plus } from "lucide-react";
 import { inp, sel, PageTitle, Card2, CLASSES, SECTIONS } from "../_shared";
+import { ExportButton } from "../../components/ui";
 
 const TEACHERS = ["Amit Kumar","Priya Sharma","Suresh Singh","Neha Gupta","Rajesh Verma","Anita Yadav"];
+
+const CLASS_TEACHER_COLUMNS = [
+  { label: "Branch", get: (r) => r.branch },
+  { label: "Class Teacher", get: (r) => r.teacher },
+  { label: "Class", get: (r) => r.class },
+  { label: "Section", get: (r) => r.section },
+];
 
 export default function ClassesPage() {
   const [cls, setCls] = useState("");
@@ -67,8 +75,11 @@ export default function ClassesPage() {
 
         {/* Right: List */}
         <Card2>
-          <div className="px-5 py-4 border-b border-slate-100 text-sm font-semibold text-slate-700 flex items-center gap-2">
-            ☰ Class Teacher List
+          <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              ☰ Class Teacher List
+            </span>
+            <ExportButton filename="class-teachers.csv" rows={list} columns={CLASS_TEACHER_COLUMNS} />
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

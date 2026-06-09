@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input } from "../../components/ui";
+import { PageHeader, Card, Button, Input, ExportButton } from "../../components/ui";
 import { CreditCard } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -46,7 +46,22 @@ export default function OfflinePaymentsPage() {
           <span className="ml-auto text-sm text-slate-500">Total: <span className="font-bold text-emerald-600">{fmt(total)}</span></span>
         </div>
       </Card>
-      <Card title={`Payments (${rows.length})`} noPadding>
+      <Card
+        title={`Payments (${rows.length})`}
+        noPadding
+        action={
+          <ExportButton
+            filename="offline-payments.csv"
+            rows={rows}
+            columns={[
+              { label: "Receipt", get: (r) => r.receiptNo || "—" },
+              { label: "Student", get: (r) => studentName(r) },
+              { label: "Amount", get: (r) => Number(r.amount || 0) },
+              { label: "Paid Date", get: (r) => (r.paidDate ? new Date(r.paidDate).toLocaleDateString("en-IN") : "—") },
+            ]}
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

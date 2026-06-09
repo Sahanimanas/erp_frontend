@@ -7,8 +7,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, Textarea } from "../../components/ui";
-import { UserPlus, Plus, Trash2 } from "lucide-react";
+import { UserPlus, Plus, Trash2, Camera, X, FileDown, Eye, EyeOff } from "lucide-react";
 import apiClient from "../../services/axios";
+import { uploadImageFile } from "../../services/upload";
+import { printRecord } from "../../utils/printPdf";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const GENDERS = [{ value: "", label: "Select" }, { value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }, { value: "OTHER", label: "Other" }];
@@ -30,12 +32,14 @@ export default function AddEmployeePage() {
     name: "", email: "", phone: "", password: "", role: "TEACHER",
     city: "", address: "", permanentAddress: "", joiningDate: "", employeeCode: "",
     departmentId: "", designationId: "", reportingToId: "",
-    fatherName: "", husbandName: "", bloodGroup: "", rfidNumber: "", qualification: "",
+    fatherName: "", husbandName: "", bloodGroup: "", rfidNumber: "", qualification: "", photo: "",
   });
   const [experiences, setExperiences] = useState([{ employer: "", role: "", totalExperience: "" }]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -53,6 +57,23 @@ export default function AddEmployeePage() {
   }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const onPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const url = await uploadImageFile(file, "employees");
+      setForm((f) => ({ ...f, photo: url }));
+    } catch (err) {
+      setError(err?.response?.data?.error || err.message || "Photo upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const setExp = (i, k) => (e) => setExperiences((rows) => rows.map((r, idx) => idx === i ? { ...r, [k]: e.target.value } : r));
   const addExp = () => setExperiences((r) => [...r, { employer: "", role: "", totalExperience: "" }]);
   const removeExp = (i) => setExperiences((r) => r.filter((_, idx) => idx !== i));
@@ -79,13 +100,14 @@ export default function AddEmployeePage() {
         reportingToId: form.reportingToId || undefined, fatherName: form.fatherName,
         husbandName: form.husbandName, bloodGroup: form.bloodGroup || undefined,
         rfidNumber: form.rfidNumber, qualification: form.qualification,
+        photo: form.photo || undefined,
         experiences: experiences.filter((x) => x.employer.trim()),
       };
       const res = await apiClient.post("/employees", payload);
       if (res.data.success) {
         setSuccess(`Employee "${firstName} ${lastName}" added (code ${res.data.data.employeeCode}).`);
         window.scrollTo({ top: 0, behavior: "smooth" });
-        setForm((f) => ({ ...f, name: "", email: "", phone: "", password: "", employeeCode: "" }));
+        setForm((f) => ({ ...f, name: "", email: "", phone: "", password: "", employeeCode: "", photo: "" }));
         setExperiences([{ employer: "", role: "", totalExperience: "" }]);
       }
     } catch (err) {
@@ -97,9 +119,35 @@ export default function AddEmployeePage() {
   const desigOptions = [{ value: "", label: "Select" }, ...designations.map((d) => ({ value: d.id, label: d.name }))];
   const empOptions = [{ value: "", label: "None" }, ...employees.map((e) => ({ value: e.id, label: e.user ? `${e.user.firstName} ${e.user.lastName}` : e.employeeCode }))];
 
+  const savePdf = () => {
+    const deptName = departments.find((d) => d.id === form.departmentId)?.name || "";
+    const desigName = designations.find((d) => d.id === form.designationId)?.name || "";
+    printRecord({
+      title: "Employee Record",
+      subtitle: [form.name, desigName, form.employeeCode && `Code ${form.employeeCode}`].filter(Boolean).join("  ·  "),
+      photo: form.photo,
+      sections: [
+        { heading: "Basic Details", rows: [
+          ["Name", form.name], ["Email", form.email], ["Phone", form.phone], ["City", form.city],
+          ["Joining Date", form.joiningDate], ["Employee Code", form.employeeCode], ["Department", deptName], ["Designation", desigName],
+          ["Father's Name", form.fatherName], ["Husband Name", form.husbandName], ["Blood Group", form.bloodGroup],
+          ["RFID Card", form.rfidNumber], ["Qualification", form.qualification], ["Access Role", form.role],
+        ] },
+        { heading: "Address", rows: [["Address", form.address], ["Permanent Address", form.permanentAddress]] },
+        ...(experiences.some((x) => x.employer?.trim()) ? [{
+          heading: "Work Experience",
+          rows: experiences.filter((x) => x.employer?.trim()).map((x, i) => [
+            `#${i + 1} ${x.employer}`, [x.role, x.totalExperience && `(${x.totalExperience})`].filter(Boolean).join(" "),
+          ]),
+        }] : []),
+      ],
+    });
+  };
+
   return (
     <div>
       <PageHeader title="Add Employee" subtitle="Create a staff record" icon={<UserPlus size={18} />}>
+        <Button size="sm" variant="outline" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
         <Button size="sm" variant="secondary" onClick={() => navigate("/employee/list")}>Employee List</Button>
       </PageHeader>
 
@@ -108,7 +156,33 @@ export default function AddEmployeePage() {
 
       <form onSubmit={submit} className="space-y-5">
         <Card title="Basic Details">
-          <div className="p-5">
+          <div className="p-5 flex flex-col lg:flex-row gap-6">
+          {/* Photo uploader */}
+          <div className="flex flex-col items-center gap-3 shrink-0">
+            <div className="relative w-32 h-40 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
+              {form.photo ? (
+                <>
+                  <img src={form.photo} alt="Employee" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, photo: "" }))}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-slate-600 shadow hover:bg-white">
+                    <X size={13} />
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-slate-400">
+                  <Camera size={26} />
+                  <span className="text-[10px]">{uploading ? "Uploading…" : "No photo"}</span>
+                </div>
+              )}
+            </div>
+            <label className={`text-[12px] font-medium ${uploading ? "text-slate-400 cursor-wait" : "text-indigo-600 hover:text-indigo-700 cursor-pointer"}`}>
+              {uploading ? "Uploading…" : form.photo ? "Change photo" : "Upload photo"}
+              <input type="file" accept="image/*" onChange={onPhoto} disabled={uploading} className="hidden" />
+            </label>
+            <span className="text-[10px] text-slate-400">JPG/PNG · max 2MB</span>
+          </div>
+
+          <div className="flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Input label="Name *" value={form.name} onChange={set("name")} placeholder="Full name" />
             <Input label="Email *" type="email" value={form.email} onChange={set("email")} placeholder="Login email" />
@@ -129,6 +203,7 @@ export default function AddEmployeePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             <Textarea label="Address" value={form.address} onChange={set("address")} />
             <Textarea label="Permanent Address" value={form.permanentAddress} onChange={set("permanentAddress")} />
+          </div>
           </div>
           </div>
         </Card>
@@ -155,7 +230,27 @@ export default function AddEmployeePage() {
           <div className="p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Login Email *" type="email" value={form.email} onChange={set("email")} placeholder="Used to sign in" />
-            <Input label="Password *" type="password" value={form.password} onChange={set("password")} placeholder="Set a password" />
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-slate-600">Password *</label>
+              <div className="relative">
+                <input
+                  type={showPwd ? "text" : "password"}
+                  value={form.password}
+                  onChange={set("password")}
+                  placeholder="Set a password"
+                  className="w-full px-3 py-2 pr-10 text-sm border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all placeholder-slate-400 text-slate-700"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                  title={showPwd ? "Hide password" : "Show password"}
+                  aria-label={showPwd ? "Hide password" : "Show password"}
+                >
+                  {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
           </div>
           <p className="text-[11px] text-slate-400 mt-2">The employee signs in with this email and password.</p>
           </div>
@@ -163,6 +258,7 @@ export default function AddEmployeePage() {
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={() => navigate("/employee/list")}>Cancel</Button>
+          <Button type="button" variant="outline" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
           <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save Employee"}</Button>
         </div>
       </form>

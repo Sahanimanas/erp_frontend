@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Badge, Button, DataTable, SearchInput, Select, Modal, Input } from "../../components/ui";
+import { PageHeader, Card, Badge, Button, DataTable, SearchInput, Select, Modal, Input, ExportButton } from "../../components/ui";
 import { FileText, Plus, Eye, Edit2, CheckCircle, Clock, BarChart2 } from "lucide-react";
 
 const EXAMS=[
@@ -28,6 +28,16 @@ export default function ExamListPage() {
     {key:"status",label:"Status",render:v=><Badge variant={STATUS_BADGE[v]} dot>{v}</Badge>},
     {key:"id",label:"Actions",sortable:false,render:(_,r)=><div className="flex gap-1"><Button size="xs" variant="secondary" icon={<Eye size={11}/>}>View</Button>{r.status==="completed"&&<Button size="xs" icon={<BarChart2 size={11}/>}>Results</Button>}</div>},
   ];
+  const EXPORT_COLUMNS=[
+    {label:"Exam Name",get:r=>r.name},
+    {label:"Class",get:r=>r.class},
+    {label:"Date",get:r=>r.date},
+    {label:"Time",get:r=>r.time},
+    {label:"Duration",get:r=>r.dur},
+    {label:"Total Marks",get:r=>r.totalMarks},
+    {label:"Students",get:r=>r.students},
+    {label:"Status",get:r=>r.status},
+  ];
   return (
     <div>
       <PageHeader title="Exam Master" subtitle="Schedule and manage all examinations" icon={<FileText size={18}/>}>
@@ -39,6 +49,7 @@ export default function ExamListPage() {
           <SearchInput value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search exams..." className="w-52"/>
           <Select options={[{value:"",label:"All Classes"},...Array.from({length:12},(_,i)=>({value:String(i+1),label:`Class ${i+1}`}))]} className="w-36"/>
           <Select options={[{value:"",label:"All Status"},{value:"upcoming",label:"Upcoming"},{value:"completed",label:"Completed"},{value:"ongoing",label:"Ongoing"}]} className="w-36"/>
+          <ExportButton filename="exams.csv" rows={filtered} columns={EXPORT_COLUMNS}/>
         </div>
         <DataTable columns={COLUMNS} data={filtered}/>
       </Card>

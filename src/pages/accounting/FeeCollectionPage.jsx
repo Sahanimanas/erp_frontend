@@ -6,9 +6,9 @@ import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
 import {
   PageHeader, Card, DataTable, Badge, Button,
-  SearchInput, Select, Pagination, Modal, Input,
+  SearchInput, Select, Pagination, Modal, Input, ExportButton,
 } from "../../components/ui";
-import { DollarSign, Plus, Receipt, Download, Check, X } from "lucide-react";
+import { DollarSign, Plus, Receipt, Check, X } from "lucide-react";
 import apiClient from "../../services/axios";
 
 const FEE_BADGE = { PAID: "success", PENDING: "danger", PARTIAL: "warning" };
@@ -150,6 +150,17 @@ export default function FeeCollectionPage() {
     },
   ];
 
+  const EXPORT_COLUMNS = [
+    { label: "Roll No", get: (r) => r.roll },
+    { label: "Student", get: (r) => r.name },
+    { label: "Class", get: (r) => r.class },
+    { label: "Total", get: (r) => r.total },
+    { label: "Paid", get: (r) => r.paid },
+    { label: "Due", get: (r) => r.due },
+    { label: "Status", get: (r) => r.status },
+    { label: "Last Paid", get: (r) => r.date },
+  ];
+
   const handleCollectClick = (row) => {
     setViewRow(row);
     setCollectOpen(true);
@@ -229,7 +240,7 @@ export default function FeeCollectionPage() {
   return (
     <div>
       <PageHeader title="Student Accounting" subtitle="Fee collection and receipt management" icon={<DollarSign size={18} />}>
-        <Button variant="secondary" size="sm" icon={<Download size={13} />}>Export</Button>
+        <ExportButton filename="fee-collection.csv" rows={displayStudents} columns={EXPORT_COLUMNS} />
         <Button size="sm" icon={<Plus size={13} />} onClick={() => setCollectOpen(true)}>Collect Fee</Button>
       </PageHeader>
 

@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Select, Badge, SearchInput } from "../../components/ui";
+import { PageHeader, Card, Button, Input, Select, Badge, SearchInput, ExportButton } from "../../components/ui";
 
 const SAMPLE_PURCHASES = [
   { id: 1339, supplier: "NAYA JEEVAN CENTRE", status: "Received", payment: "Partly Paid", date: "28.Mar.2026", netPayable: "₹130320.00", paid: "₹0.00", due: "₹130320.00", remarks: "" },
@@ -17,6 +17,18 @@ const SAMPLE_PURCHASES = [
 ];
 
 const SUPPLIERS = ["NAYA JEEVAN CENTRE", "BOOKS WORLD"];
+
+const EXPORT_COLS = [
+  { label: "Bill No", get: (r) => r.id },
+  { label: "Supplier Name", get: (r) => r.supplier },
+  { label: "Purchase Status", get: (r) => r.status },
+  { label: "Payment Status", get: (r) => r.payment },
+  { label: "Purchase Date", get: (r) => r.date },
+  { label: "Net Payable", get: (r) => r.netPayable },
+  { label: "Paid", get: (r) => r.paid },
+  { label: "Due", get: (r) => r.due },
+  { label: "Remarks", get: (r) => r.remarks || "" },
+];
 
 function PaymentBadge({ v }) {
   const variant = v === "Total Paid" ? "success" : v === "Partly Paid" ? "warning" : "danger";
@@ -107,7 +119,8 @@ export default function PurchasePage() {
         </div>
         {tab === "list" ? (
           <>
-            <div className="p-4 flex justify-end">
+            <div className="p-4 flex justify-between items-center gap-3">
+              <ExportButton filename="purchases.csv" rows={filtered} columns={EXPORT_COLS} />
               <SearchInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." />
             </div>
             <div className="overflow-x-auto">

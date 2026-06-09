@@ -158,6 +158,7 @@ export default function EmployeeListPage() {
     name: `${e.user?.firstName || ''} ${e.user?.lastName || ''}`,
     email: e.user?.email || '-',
     phone: e.user?.phone || '-',
+    employeeCode: e.employeeCode || '',
     designation: e.designation?.name || '-',
     department: e.department?.name || '-',
     dateOfJoining: e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '-',
@@ -166,19 +167,49 @@ export default function EmployeeListPage() {
     original: e,
   }));
 
+  const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+
   // Date-wise filter (by joining/created date) over the current page.
   const filteredEmployees = filterByDateRange(
     displayEmployees,
     (r) => r.original.dateOfJoining || r.createdAt,
     dateRange.from, dateRange.to
   );
+
+  // For "Export all data": fetch every employee matching the active
+  // search/role/department filters, mapped to the same export shape.
+  const fetchAllEmployees = async () => {
+    const params = new URLSearchParams({
+      page: "1", limit: "100000",
+      ...(search && { search }),
+      ...(role && { role }),
+      ...(department && { departmentId: department }),
+    });
+    const res = await apiClient.get(`/employees?${params}`);
+    const list = res.data?.data || [];
+    const mapped = list.map((e) => ({
+      name: `${e.user?.firstName || ''} ${e.user?.lastName || ''}`.trim(),
+      email: e.user?.email || '-',
+      phone: e.user?.phone || '-',
+      employeeCode: e.employeeCode || '',
+      designation: e.designation?.name || '-',
+      department: e.department?.name || '-',
+      dateOfJoining: e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '-',
+      status: e.isActive ? (e.onLeave ? 'ON_LEAVE' : 'ACTIVE') : 'INACTIVE',
+      createdAt: e.createdAt, original: e,
+    }));
+    return filterByDateRange(mapped, (r) => r.original.dateOfJoining || r.createdAt, dateRange.from, dateRange.to);
+  };
+
   const EXPORT_COLS = [
     { label: "Name", get: (r) => r.name },
     { label: "Email", get: (r) => r.email },
     { label: "Phone", get: (r) => r.phone },
+    { label: "Employee Code", get: (r) => r.employeeCode },
     { label: "Designation", get: (r) => r.designation },
     { label: "Department", get: (r) => r.department },
     { label: "Date of Joining", get: (r) => r.dateOfJoining },
+    { label: "Create Date", get: (r) => fmtDateTime(r.createdAt) },
     { label: "Status", get: (r) => r.status },
   ];
 
@@ -198,7 +229,9 @@ export default function EmployeeListPage() {
     { key: "designation", label: "Designation" },
     { key: "department", label: "Department" },
     { key: "phone", label: "Phone" },
+    { key: "employeeCode", label: "Employee Code", render: v => v || "N/A" },
     { key: "dateOfJoining", label: "Joining Date" },
+    { key: "createdAt", label: "Create Date", render: v => <span className="text-[12px] whitespace-nowrap">{fmtDateTime(v)}</span> },
     {
       key: "status",
       label: "Status",
@@ -366,7 +399,7 @@ export default function EmployeeListPage() {
         icon={<Users size={18} />}
       >
         <Button variant="secondary" size="sm" icon={<Upload size={13} />}>Import</Button>
-        <ExportButton filename="employees.csv" rows={filteredEmployees} columns={EXPORT_COLS} />
+        <ExportButton filename="employees.csv" rows={filteredEmployees} columns={EXPORT_COLS} fetchAll={fetchAllEmployees} />
         <Button size="sm" icon={<Plus size={13} />} onClick={() => setAddOpen(true)}>Add Employee</Button>
       </PageHeader>
 

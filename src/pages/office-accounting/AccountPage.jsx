@@ -4,11 +4,20 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Modal, Input, Select, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Modal, Input, Select, Badge, ExportButton } from "../../components/ui";
 import { Briefcase, Plus } from "lucide-react";
 import apiClient from "../../services/axios";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
+
+const EXPORT_COLS = [
+  { label: "Account", get: (a) => a.name },
+  { label: "Type", get: (a) => a.type },
+  { label: "A/C Number", get: (a) => a.accountNumber || "" },
+  { label: "Bank Name", get: (a) => a.bankName || "" },
+  { label: "Opening", get: (a) => Number(a.openingBalance || 0) },
+  { label: "Current Balance", get: (a) => Number(a.currentBalance || 0) },
+];
 
 export default function AccountPage() {
   usePageTitle("Accounts");
@@ -49,6 +58,7 @@ export default function AccountPage() {
   return (
     <div>
       <PageHeader title="Accounts" subtitle="Cash & bank accounts" icon={<Briefcase size={18} />}>
+        <ExportButton filename="accounts.csv" rows={accounts} columns={EXPORT_COLS} />
         <Button size="sm" icon={<Plus size={13} />} onClick={() => setOpen(true)}>Create Account</Button>
       </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}

@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Badge, ExportButton } from "../../components/ui";
 import { AlertCircle, Printer } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -33,6 +33,18 @@ export default function DueFeesInvoicePage() {
   return (
     <div>
       <PageHeader title="Due Fees Invoice" subtitle="Outstanding fee invoices" icon={<AlertCircle size={18} />}>
+        <ExportButton
+          filename="due-fees-invoices.csv"
+          rows={rows}
+          columns={[
+            { label: "Invoice #", get: (r) => `INV-${String(r.id).slice(-6).toUpperCase()}` },
+            { label: "Student", get: (r) => studentName(r) },
+            { label: "Class/Sec", get: (r) => `${r.student?.section?.class?.name || "—"}/${r.student?.section?.name || "—"}` },
+            { label: "Fee Group", get: (r) => r.fee?.group?.name || "—" },
+            { label: "Due Date", get: (r) => (r.fee?.dueDate ? new Date(r.fee.dueDate).toLocaleDateString("en-IN") : "—") },
+            { label: "Amount", get: (r) => Number(r.amount || 0) },
+          ]}
+        />
         <Button size="sm" icon={<Printer size={13} />} onClick={() => window.print()} disabled={rows.length === 0}>Print</Button>
       </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}

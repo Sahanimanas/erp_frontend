@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Badge } from "../../components/ui";
+import { PageHeader, Card, Badge, ExportButton } from "../../components/ui";
 import { AlertCircle } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -32,7 +32,15 @@ export default function PendingFeesPage() {
 
   return (
     <div>
-      <PageHeader title="Pending Fees" subtitle="Outstanding dues" icon={<AlertCircle size={18} />} />
+      <PageHeader title="Pending Fees" subtitle="Outstanding dues" icon={<AlertCircle size={18} />}>
+        <ExportButton filename="pending-fees.csv" rows={rows} columns={[
+          { label: "Student", get: (r) => studentName(r) },
+          { label: "Fee Group", get: (r) => r.fee?.group?.name || "—" },
+          { label: "Amount", get: (r) => Number(r.amount || 0) },
+          { label: "Due Date", get: (r) => r.fee?.dueDate ? new Date(r.fee.dueDate).toLocaleDateString("en-IN") : "—" },
+          { label: "Status", get: (r) => r.status },
+        ]} />
+      </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
       <Card className="mb-5"><p className="text-xs text-slate-400 font-semibold mb-1">Total Outstanding</p><p className="text-3xl font-bold text-amber-600">{fmt(totalPending)}</p><p className="text-xs text-slate-400 mt-1">{rows.length} pending record(s)</p></Card>
       <Card title="Pending Dues" noPadding>

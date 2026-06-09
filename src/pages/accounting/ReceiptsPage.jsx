@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input } from "../../components/ui";
+import { PageHeader, Card, Button, Input, ExportButton } from "../../components/ui";
 import { Receipt } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -45,6 +45,12 @@ export default function ReceiptsPage() {
           <Input label="From" type="date" value={range.startDate} onChange={e => setRange(r => ({ ...r, startDate: e.target.value }))} />
           <Input label="To" type="date" value={range.endDate} onChange={e => setRange(r => ({ ...r, endDate: e.target.value }))} />
           <Button onClick={load} disabled={loading}>{loading ? "Loading…" : "Search"}</Button>
+          <ExportButton filename="receipts.csv" rows={rows} columns={[
+            { label: "Receipt No", get: (r) => r.receiptNo || "—" },
+            { label: "Amount", get: (r) => Number(r.amount || 0) },
+            { label: "Paid Date", get: (r) => r.paidDate ? new Date(r.paidDate).toLocaleDateString("en-IN") : "—" },
+            { label: "Remarks", get: (r) => r.remarks || "—" },
+          ]} />
           <span className="ml-auto text-sm text-slate-500">Total: <span className="font-bold text-emerald-600">{fmt(total)}</span></span>
         </div>
       </Card>

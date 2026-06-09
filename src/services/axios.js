@@ -67,7 +67,7 @@ apiClient.interceptors.response.use(
     const original = error.config;
 
     // Don't try to refresh for auth endpoints or non-401 errors
-    const isAuthEndpoint = original.url?.includes('/auth/login') || original.url?.includes('/auth/refresh');
+    const isAuthEndpoint = original.url?.includes('/auth/login') || original.url?.includes('/auth/refresh') || original.url?.includes('/auth/logout');
     if (error.response?.status !== 401 || original._retry || isAuthEndpoint) {
       return Promise.reject(error);
     }

@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Select, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Select, Badge, ExportButton } from "../../components/ui";
 import { BarChart2 } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -42,6 +42,15 @@ export default function ExamResultsPage() {
   const examOptions = exams.map(e => ({ value: e.id, label: e.name }));
   const sectionOptions = sections.map(s => ({ value: s.id, label: `${s.class?.name || "Class"} - ${s.name}` }));
 
+  const studentName = (r) => r.name || r.studentName || (r.student?.user ? `${r.student.user.firstName} ${r.student.user.lastName}` : "");
+  const exportColumns = [
+    { label: "Rank", get: (r) => r.rank ?? "" },
+    { label: "Student", get: (r) => studentName(r) },
+    { label: "Roll", get: (r) => r.rollNumber || r.student?.rollNumber || "" },
+    { label: "Total", get: (r) => r.total ?? r.totalMarks ?? "" },
+    { label: "Percentage", get: (r) => (r.percentage != null ? `${r.percentage}%` : "") },
+  ];
+
   return (
     <div>
       <PageHeader title="Exam Results" subtitle="Class rankings" icon={<BarChart2 size={18} />} />
@@ -54,6 +63,9 @@ export default function ExamResultsPage() {
         </div>
       </Card>
       <Card title="Rankings" noPadding>
+        <div className="flex justify-end p-3 border-b border-slate-100">
+          <ExportButton filename="exam-results.csv" rows={rows} columns={exportColumns} />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

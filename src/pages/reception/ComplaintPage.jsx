@@ -6,6 +6,7 @@
  */
 import { useState } from "react";
 import { Copy, FileText, FileDown, Printer, Search, Eye, Edit2, Trash2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { ExportButton } from "../../components/ui";
 
 const inp = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
 const sel = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-indigo-400";
@@ -13,14 +14,24 @@ const sel = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-whit
 const COMPLAINT_TYPES = ["Suraj Bhan Singh", "Academic Issue", "Infrastructure", "Staff Behavior", "Fee Related", "Other"];
 const ASSIGN_TO_LIST  = ["Principal", "Vice Principal", "Class Teacher", "Admin", "Accountant"];
 
-function ExportBar({ search, setSearch }) {
+const EXPORT_COLUMNS = [
+  { label: "Complaint Type", get: (r) => r.type },
+  { label: "Complainant Name", get: (r) => r.name },
+  { label: "Mobile No", get: (r) => r.mobile || "" },
+  { label: "Date", get: (r) => r.date },
+  { label: "Date Of Solution", get: (r) => r.dateSolution || "" },
+  { label: "Assign To", get: (r) => r.assignTo },
+];
+
+function ExportBar({ search, setSearch, rows }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <div className="flex gap-1">
+      <div className="flex gap-1 items-center">
         {[Copy, FileText, FileDown, FileDown, Printer].map((Icon, i) => (
           <button key={i} className="p-1.5 rounded hover:bg-slate-100 text-slate-500"><Icon size={13}/></button>
         ))}
         <button className="p-1.5 rounded hover:bg-slate-100 text-slate-500 text-xs font-bold">⊞</button>
+        <ExportButton filename="complaints.csv" rows={rows} columns={EXPORT_COLUMNS} />
       </div>
       <div className="relative">
         <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
@@ -137,7 +148,7 @@ export default function ComplaintPage() {
         <div className="p-5">
           {tab === "list" ? (
             <>
-              <ExportBar search={search} setSearch={setSearch}/>
+              <ExportBar search={search} setSearch={setSearch} rows={filtered}/>
               <div className="border border-slate-100 rounded-xl overflow-x-auto">
                 <table className="w-full text-sm min-w-[900px]">
                   <thead>

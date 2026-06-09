@@ -5,7 +5,7 @@
 import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Select, Skeleton, EmptyState } from "../../components/ui";
+import { PageHeader, Card, Button, Select, Skeleton, EmptyState, ExportButton } from "../../components/ui";
 import { UserCheck, Save } from "lucide-react";
 import {
   useGetAcademicYearsQuery, useGetClassesQuery, useGetSectionsQuery,
@@ -94,6 +94,12 @@ export default function StudentAttendancePage() {
               <span className="text-red-500">Absent: {counts.ABSENT || 0}</span>
               <span className="text-amber-500">Late: {counts.LATE || 0}</span>
               <div className="flex gap-2 ml-auto">
+                <ExportButton filename="student-attendance.csv" rows={rows} columns={[
+                  { label: "Roll No", get: (r) => r.rollNumber },
+                  { label: "Student", get: (r) => r.name },
+                  { label: "Class", get: (r) => `${r.className}-${r.sectionName}` },
+                  { label: "Status", get: (r) => marks[r.studentId] || "—" },
+                ]} />
                 <Button size="xs" variant="success" onClick={() => markAll("PRESENT")}>All Present</Button>
                 <Button size="xs" variant="danger" onClick={() => markAll("ABSENT")}>All Absent</Button>
               </div>

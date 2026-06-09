@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Input, Badge, ExportButton } from "../../components/ui";
 import { DollarSign } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -36,6 +36,13 @@ export default function FeesReportsPage() {
   const collected = completed.reduce((s, c) => s + Number(c.amount), 0);
   const pending = collections.filter(c => c.status === "PENDING").reduce((s, c) => s + Number(c.amount), 0);
 
+  const exportColumns = [
+    { label: "Receipt", get: (c) => c.receiptNo || "" },
+    { label: "Amount", get: (c) => Number(c.amount || 0) },
+    { label: "Status", get: (c) => c.status },
+    { label: "Paid Date", get: (c) => (c.paidDate ? new Date(c.paidDate).toLocaleDateString("en-IN") : "") },
+  ];
+
   return (
     <div>
       <PageHeader title="Fees Reports" subtitle="Collection over a period" icon={<DollarSign size={18} />} />
@@ -53,6 +60,9 @@ export default function FeesReportsPage() {
         <Card><p className="text-xs text-slate-400 font-semibold mb-1">Transactions</p><p className="text-2xl font-bold text-slate-800">{collections.length}</p></Card>
       </div>
       <Card title="Collections" noPadding>
+        <div className="flex justify-end p-3 border-b border-slate-100">
+          <ExportButton filename="fees-collection-report.csv" rows={collections} columns={exportColumns} />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

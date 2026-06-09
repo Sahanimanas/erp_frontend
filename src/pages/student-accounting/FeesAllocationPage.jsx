@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Select, Input, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Select, Input, Badge, ExportButton } from "../../components/ui";
 import { GitBranch } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -78,7 +78,21 @@ export default function FeesAllocationPage() {
           <div className="md:col-span-4"><Button type="submit" disabled={saving}>{saving ? "Allocating…" : "Allocate"}</Button></div>
         </form>
       </Card>
-      <Card title="Allocations for selected section" noPadding>
+      <Card
+        title="Allocations for selected section"
+        noPadding
+        action={
+          <ExportButton
+            filename="fees-allocations.csv"
+            rows={fees}
+            columns={[
+              { label: "Fee Group", get: (f) => f.group?.name || groupName(f.groupId) },
+              { label: "Due Date", get: (f) => (f.dueDate ? new Date(f.dueDate).toLocaleDateString("en-IN") : "—") },
+              { label: "Fine", get: (f) => Number(f.fine || 0) },
+            ]}
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

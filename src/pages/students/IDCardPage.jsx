@@ -52,7 +52,7 @@ export default function IDCardPage() {
           {filtered.map(s => (
             <div key={s.id} className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
               <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-white">
-                <p className="font-bold text-sm tracking-wide">EduServe School</p>
+                <p className="font-bold text-sm tracking-wide">GlobalSchoolMitra School</p>
                 <p className="text-[10px] text-white/70">Student Identity Card</p>
               </div>
               <div className="p-4 flex gap-3 items-center">

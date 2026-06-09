@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Modal, Input, Select, Badge, SearchInput } from "../../components/ui";
+import { PageHeader, Card, Button, Modal, Input, Select, Badge, SearchInput, ExportButton } from "../../components/ui";
 import { Tag, Plus } from "lucide-react";
 import apiClient from "../../services/axios";
 
@@ -56,7 +56,11 @@ export default function FeesTypePage() {
         <Button size="sm" icon={<Plus size={13} />} onClick={() => setOpen(true)}>Add Fee Type</Button>
       </PageHeader>
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
-      <Card action={<SearchInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search types…" />} noPadding>
+      <Card action={<><ExportButton filename="fees-types.csv" rows={filtered} columns={[
+        { label: "Name", get: (t) => t.name },
+        { label: "Group", get: (t) => groupName(t.groupId) },
+        { label: "Amount", get: (t) => Number(t.amount || 0) },
+      ]} /><SearchInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search types…" /></>} noPadding>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50 border-b border-slate-100">

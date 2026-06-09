@@ -5,7 +5,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Select, Input, DataTable, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Select, Input, DataTable, Badge, ExportButton } from "../../components/ui";
 import { Bus, Save, Plus } from "lucide-react";
 import { useGetRoutesQuery, useUpsertRouteMutation } from "../../redux/api/feeMgmtApi";
 
@@ -64,7 +64,20 @@ export default function TransportRouteFeePage() {
         </div>
       </Card>
 
-      <Card noPadding title="Routes">
+      <Card
+        noPadding
+        title="Routes"
+        action={
+          <ExportButton
+            filename="transport-route-fees.csv"
+            rows={routes}
+            columns={[
+              { label: "Route", get: (r) => r.name },
+              { label: "Monthly Fee", get: (r) => Number(r.fee || 0) },
+            ]}
+          />
+        }
+      >
         <DataTable columns={columns} data={routes} loading={isFetching} emptyText="No transport routes yet." />
       </Card>
     </div>
