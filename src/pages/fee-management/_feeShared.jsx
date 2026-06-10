@@ -13,7 +13,9 @@ import {
   useDeleteFeeTypeMutation, useGetIncomeHeadsQuery,
 } from "../../redux/api/feeMgmtApi";
 
-export const FREQUENCIES = ["Monthly", "Session", "One-time"];
+export const FREQUENCIES = ["Monthly", "Quarterly", "Session"];
+// Frequencies that collect across specific months (need a Month-Year picker).
+const MONTHLY_LIKE = ["Monthly", "Quarterly"];
 
 // 12 academic months Jun→May for the current cycle (matches the reference UI).
 export function academicMonths() {
@@ -53,7 +55,7 @@ export function FeeTypeManager({ title, subtitle, icon, isTransport }) {
 
   const submit = async () => {
     if (!form.name.trim()) { toast.error("Name is required"); return; }
-    const body = { ...form, isTransport: !!isTransport, months: form.frequency === "Monthly" ? form.months : [] };
+    const body = { ...form, isTransport: !!isTransport, months: MONTHLY_LIKE.includes(form.frequency) ? form.months : [] };
     try {
       if (editing === "new") await createFeeType(body).unwrap();
       else await updateFeeType({ id: editing, ...body }).unwrap();
@@ -71,7 +73,7 @@ export function FeeTypeManager({ title, subtitle, icon, isTransport }) {
     { key: "name", label: "Name", render: (v) => <span className="font-semibold text-slate-800">{v}</span> },
     { key: "createdAt", label: "Create Date", render: (v) => fmtDate(v) },
     { key: "frequency", label: "Frequency", render: (v) => <Badge variant="info">{v}</Badge> },
-    { key: "months", label: "Month / Year", sortable: false, render: (v, r) => r.frequency === "Monthly" ? (v?.join(", ") || "—") : (r.frequency === "Session" ? "N/A" : "Only Once") },
+    { key: "months", label: "Month / Year", sortable: false, render: (v, r) => MONTHLY_LIKE.includes(r.frequency) ? (v?.join(", ") || "—") : (r.frequency === "Session" ? "N/A" : "Only Once") },
     { key: "incomeHead", label: "Income Head", render: (v) => v || "—" },
     { key: "enabled", label: "Enabled", render: (v) => <Badge variant={v ? "success" : "default"}>{v ? "Yes" : "No"}</Badge> },
     { key: "actions", label: "Edit", sortable: false, render: (_v, r) => (
@@ -94,32 +96,47 @@ export function FeeTypeManager({ title, subtitle, icon, isTransport }) {
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing === "new" ? "Add Fee Type" : "Edit Fee Type"} size="lg">
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input label="Name *" value={form.name} onChange={set("name")} placeholder="TUITION FEE" />
-            <Select label="Frequency" value={form.frequency} onChange={set("frequency")} options={FREQUENCIES.map((f) => ({ value: f, label: f }))} />
-            <Select label="Income Head" value={form.incomeHead} onChange={set("incomeHead")}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input label="Name *" value={form.name} onChange={set("name")} placeholder="Enter Name" />
+            <Select label="Map with Finance Income Head" value={form.incomeHead} onChange={set("incomeHead")}
               options={[{ value: "", label: "Select…" }, ...incomeHeads.map((h) => ({ value: h, label: h }))]} />
           </div>
-          {form.frequency === "Monthly" && (
+          <p className="text-[11px] text-red-500 -mt-1">*Note: Without mapping to a finance income head, payment entries will not be saved in the finance module.</p>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-600 mb-2">Frequency *</label>
+            <div className="flex flex-wrap gap-5">
+              {FREQUENCIES.map((f) => (
+                <label key={f} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                  <input type="radio" name="freq" checked={form.frequency === f} onChange={() => setForm((s) => ({ ...s, frequency: f }))} className="accent-emerald-600" />
+                  {f}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {MONTHLY_LIKE.includes(form.frequency) && (
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-2">Applicable Months</label>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-2">Month / Year *</label>
               <div className="flex flex-wrap gap-1.5">
                 {months.map((m) => (
                   <button key={m} type="button" onClick={() => toggleMonth(m)}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${form.months.includes(m) ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200"}`}>
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${form.months.includes(m) ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"}`}>
                     {m}
                   </button>
                 ))}
               </div>
+              {form.months.length === 0 && <p className="text-[10px] text-slate-400 mt-1">Select the months this fee is collected.</p>}
             </div>
           )}
+
           <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))} className="accent-indigo-600" />
+            <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))} className="accent-emerald-600 w-4 h-4" />
             Enabled
           </label>
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button loading={creating || updating} onClick={submit}>Save</Button>
+            <Button variant="secondary" onClick={() => setEditing(null)}>Close</Button>
+            <Button loading={creating || updating} onClick={submit}>Submit</Button>
           </div>
         </div>
       </Modal>

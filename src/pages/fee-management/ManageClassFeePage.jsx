@@ -85,7 +85,7 @@ export default function ManageClassFeePage() {
                         <input type="checkbox" checked={!!st.enabled} onChange={(e) => set(r.feeTypeId, { enabled: e.target.checked })} className="accent-indigo-600 w-4 h-4" />
                       </td>
                       <td className="px-4 py-2.5 text-slate-600 text-[12px]">{r.frequency}</td>
-                      <td className="px-4 py-2.5 text-slate-500 text-[11px] max-w-[260px]">{r.frequency === "Monthly" ? (r.months?.join(", ") || "—") : (r.frequency === "Session" ? "Only Once" : r.frequency)}</td>
+                      <td className="px-4 py-2.5 text-slate-500 text-[11px] max-w-[260px]">{["Monthly", "Quarterly"].includes(r.frequency) ? (r.months?.join(", ") || "—") : "Only Once"}</td>
                       <td className="px-4 py-2.5">
                         <input type="number" min="0" value={st.amount ?? 0} onChange={(e) => set(r.feeTypeId, { amount: e.target.value })}
                           className="w-28 px-2 py-1 text-[12px] border border-slate-200 rounded-md focus:outline-none focus:border-indigo-400" />

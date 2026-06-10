@@ -19,11 +19,35 @@ export const paymentsApi = baseApi.injectEndpoints({
       transformResponse: unwrap,
       providesTags: (_r, _e, id) => [{ type: "PaymentHistory", id }],
     }),
+    getInstallments: build.query({
+      query: (studentId) => `/payments/students/${studentId}/installments`,
+      transformResponse: unwrap,
+      providesTags: (_r, _e, id) => [{ type: "Installments", id }],
+    }),
     collectPayment: build.mutation({
       query: (body) => ({ url: "/payments/collect", method: "POST", body }),
       transformResponse: unwrap,
       invalidatesTags: (_r, _e, { studentId }) => [
-        { type: "Ledger", id: studentId }, { type: "PaymentHistory", id: studentId },
+        { type: "Ledger", id: studentId }, { type: "PaymentHistory", id: studentId }, { type: "Installments", id: studentId },
+      ],
+    }),
+    adjustInstallment: build.mutation({
+      query: ({ studentId, ...body }) => ({ url: `/payments/students/${studentId}/adjust`, method: "POST", body }),
+      transformResponse: unwrap,
+      invalidatesTags: (_r, _e, { studentId }) => [{ type: "Ledger", id: studentId }, { type: "Installments", id: studentId }],
+    }),
+    deleteInstallmentPayment: build.mutation({
+      query: ({ studentId, ...body }) => ({ url: `/payments/students/${studentId}/delete-installment`, method: "POST", body }),
+      transformResponse: unwrap,
+      invalidatesTags: (_r, _e, { studentId }) => [
+        { type: "Ledger", id: studentId }, { type: "Installments", id: studentId }, { type: "PaymentHistory", id: studentId },
+      ],
+    }),
+    revertReceipt: build.mutation({
+      query: ({ receiptNo }) => ({ url: `/payments/receipts/${receiptNo}/revert`, method: "POST" }),
+      transformResponse: unwrap,
+      invalidatesTags: (_r, _e, { studentId }) => [
+        { type: "Ledger", id: studentId }, { type: "Installments", id: studentId }, { type: "PaymentHistory", id: studentId },
       ],
     }),
     exportClassFees: build.query({
@@ -66,7 +90,11 @@ export const paymentsApi = baseApi.injectEndpoints({
 export const {
   useGetLedgerQuery,
   useGetPaymentHistoryQuery,
+  useGetInstallmentsQuery,
   useCollectPaymentMutation,
+  useAdjustInstallmentMutation,
+  useDeleteInstallmentPaymentMutation,
+  useRevertReceiptMutation,
   useLazyExportClassFeesQuery,
   useBulkDiscountMutation,
   useBulkExtraMutation,

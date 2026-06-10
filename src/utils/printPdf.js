@@ -76,3 +76,61 @@ export function printRecord({ title = "Record", subtitle = "", photo = "", secti
   win.document.close();
   return true;
 }
+
+/**
+ * printTable — open a print-ready tabular report and trigger the print dialog.
+ *
+ *   printTable({
+ *     title: "Demo Class Fee Structure",
+ *     subtitle: "Session 2026-2027 · REGULAR",
+ *     columns: ["Name", "Fee Type", "Payment Name", "Fee Amount", "Total Payment"],
+ *     rows: [["TUITION FEE", "Monthly", "Apr-2026", "Rs. 600", "X 1 = Rs.600"], ...],
+ *     footer: "Total Fee Amount: Rs. 8750",
+ *   })
+ */
+export function printTable({ title = "Report", subtitle = "", columns = [], rows = [], footer = "" }) {
+  const win = window.open("", "_blank", "width=1000,height=1000");
+  if (!win) {
+    alert("Please allow pop-ups for this site to save as PDF.");
+    return false;
+  }
+
+  const head = columns.map((c) => `<th>${esc(c)}</th>`).join("");
+  const body = rows
+    .map((r) => `<tr>${r.map((cell) => `<td>${esc(cell)}</td>`).join("")}</tr>`)
+    .join("");
+
+  win.document.write(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>${esc(title)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; margin: 28px; }
+  header { border-bottom: 3px solid #4f46e5; padding-bottom: 12px; margin-bottom: 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #0f172a; }
+  header p { margin: 0; color: #64748b; font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f1f5f9; text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: #475569; padding: 8px 10px; border: 1px solid #e2e8f0; }
+  td { padding: 7px 10px; font-size: 12px; border: 1px solid #eef2f7; color: #334155; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .footer { margin-top: 16px; font-size: 15px; font-weight: 800; color: #0f172a; text-align: right; }
+  @media print { body { margin: 12mm; } th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+  <header>
+    <h1>${esc(title)}</h1>
+    ${subtitle ? `<p>${esc(subtitle)}</p>` : ""}
+  </header>
+  <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+  ${footer ? `<div class="footer">${esc(footer)}</div>` : ""}
+  <script>
+    window.onload = function () { setTimeout(function () { window.focus(); window.print(); }, 250); };
+  </script>
+</body>
+</html>`);
+  win.document.close();
+  return true;
+}

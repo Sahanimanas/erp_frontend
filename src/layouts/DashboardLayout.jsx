@@ -17,7 +17,6 @@ import { Outlet } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { selectSidebarCollapsed, setMobileOpen } from "../redux/slices/uiSlice";
 import Sidebar from "../components/sidebar/Sidebar";
-import Topbar  from "../components/navbar/Topbar";
 
 export default function DashboardLayout() {
   const dispatch         = useDispatch();
@@ -52,10 +51,8 @@ export default function DashboardLayout() {
           transition-all duration-300
         `}
       >
-        <Topbar onMenuClick={openMobile} />
-
-        {/* Page content fills the whole area beside the sidebar. Individual
-            form pages center themselves with their own max-w + mx-auto. */}
+        {/* Navbar removed — page content fills the whole area beside the
+            sidebar, top to bottom. Form pages center via their own max-w. */}
         <main
           className="flex-1 overflow-y-auto p-4 lg:p-6"
           id="main-content"

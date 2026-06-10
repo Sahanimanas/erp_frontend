@@ -36,13 +36,15 @@ export default function MonthlyFeePaymentPage() {
   };
 
   const columns = [
-    { key: "rollNumber", label: "Roll No", render: (v) => <span className="font-mono text-[11px] text-indigo-600">{v}</span> },
-    { key: "name", label: "Student" },
-    { key: "expected", label: "Expected", render: (v) => money(v) },
-    { key: "paid", label: "Paid", render: (v) => <span className="text-emerald-600">{money(v)}</span> },
-    { key: "due", label: "Due", render: (v) => <Badge variant={Number(v) > 0 ? "danger" : "success"}>{money(v)}</Badge> },
-    { key: "actions", label: "", sortable: false, render: () => (
-        <Button size="xs" icon={<CreditCard size={12} />} onClick={() => navigate("/payments/student-fee")}>Collect</Button>
+    { key: "regId", label: "Reg ID", render: (v) => <span className="font-mono text-[11px] text-indigo-600">{v || "—"}</span> },
+    { key: "name", label: "Student Name", render: (v) => <span className="font-semibold text-slate-800">{v}</span> },
+    { key: "fatherName", label: "Father Name", render: (v) => v || "—" },
+    { key: "phone", label: "Phone Number", render: (v) => <span className="font-mono text-[11px]">{v || "—"}</span> },
+    { key: "month", label: "Month Name", sortable: false, render: () => month || "—" },
+    { key: "due", label: "Due Amount", render: (v) => <Badge variant={Number(v) > 0 ? "danger" : "success"}>{money(v)}</Badge> },
+    { key: "actions", label: "Pay Now", sortable: false, render: (_v, r) => (
+        <Button size="xs" icon={<CreditCard size={12} />} disabled={Number(r.due) <= 0}
+          onClick={() => navigate(`/payments/student-fee?id=${r.studentId}`)}>Pay Now</Button>
       ) },
   ];
 

@@ -18,7 +18,7 @@ import {
   selectSidebarCollapsed, selectExpandedSections,
   toggleSidebar, toggleSection, openSection,
 } from "../../redux/slices/uiSlice";
-import { selectUserRole, logout } from "../../redux/slices/authSlice";
+import { selectUserRole, selectUser, logout } from "../../redux/slices/authSlice";
 import { routeConfig } from "../../routes/routeConfig";
 import apiClient from "../../services/axios";
 import * as Icons from "lucide-react";
@@ -37,10 +37,10 @@ function NavLeaf({ item, collapsed }) {
       to={item.path}
       end
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group
+        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group border-l-2
          ${isActive
-           ? "bg-indigo-600 text-white font-semibold shadow-lg shadow-indigo-600/25"
-           : "text-slate-400 hover:text-white hover:bg-white/5"
+           ? "bg-emerald-500/10 text-emerald-300 font-semibold border-emerald-400"
+           : "text-slate-400 hover:text-white hover:bg-white/5 border-transparent"
          }`
       }
       title={collapsed ? item.label : undefined}
@@ -78,7 +78,7 @@ function NavParent({ item, collapsed }) {
         className={`
           w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left
           ${isExpanded || isParentActive
-            ? "bg-indigo-600/15 text-indigo-300"
+            ? "bg-emerald-500/10 text-emerald-300"
             : "text-slate-400 hover:text-white hover:bg-white/5"
           }
         `}
@@ -117,7 +117,7 @@ function NavParent({ item, collapsed }) {
                   className={({ isActive }) =>
                     `flex items-center gap-2.5 px-3 py-2 rounded-md text-[11.5px] transition-all duration-150
                      ${isActive
-                       ? "bg-indigo-600 text-white font-semibold"
+                       ? "bg-emerald-500/10 text-emerald-300 font-semibold"
                        : "text-slate-500 hover:text-white hover:bg-white/5"
                      }`
                   }
@@ -138,6 +138,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const dispatch         = useDispatch();
   const collapsed        = useSelector(selectSidebarCollapsed);
   const userRole         = useSelector(selectUserRole);
+  const user             = useSelector(selectUser);
+  const initials         = user?.name ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) : "U";
 
   // Logout: best-effort revoke the refresh token server-side, then clear all
   // client auth state (Redux + localStorage via the logout reducer) and bounce
@@ -170,7 +172,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   // Explicit sidebar ordering: core school modules pinned right under Dashboard,
   // and the generic/utility modules pushed to the bottom. Anything not listed
   // keeps its original routeConfig order, placed in between.
-  const HEAD_ORDER = ["dashboard", "students", "employee", "admission", "attendance", "fee-management", "payments", "exams"];
+  const HEAD_ORDER = ["dashboard", "students", "employee", "admission", "fee-management", "payments", "attendance", "exams"];
   const TAIL_ORDER = ["tasks", "house", "inventory", "license"];
   const weightFor = (item, idx) => {
     const head = HEAD_ORDER.indexOf(item.key);
@@ -199,7 +201,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       <div className="flex items-center justify-between h-14 px-3 border-b border-slate-800/50 shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0">
               <Icons.GraduationCap size={16} className="text-white" />
             </div>
             <span className="text-white font-bold text-[13px] tracking-wide">GlobalSchoolMitra</span>
@@ -207,7 +209,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center mx-auto">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto">
             <Icons.GraduationCap size={16} className="text-white" />
           </div>
         )}
@@ -247,16 +249,37 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         )}
       </nav>
 
-      {/* ── Logout ───────────────────────────────────────────────────── */}
+      {/* ── Profile + Logout ─────────────────────────────────────────── */}
       <div className="p-2 border-t border-slate-800/50 shrink-0">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
-          title={collapsed ? "Logout" : undefined}
-        >
-          <Icons.LogOut size={16} />
-          {!collapsed && <span className="text-[12.5px] font-medium">Logout</span>}
-        </button>
+        {collapsed ? (
+          <div className="flex flex-col items-center gap-1.5">
+            <NavLink to="/account/profile" title={user?.name || "My Profile"}
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold">
+              {initials}
+            </NavLink>
+            <button onClick={handleLogout} title="Logout" className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              <Icons.LogOut size={16} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            {/* Profile — moved here from the top-right corner */}
+            <NavLink to="/account/profile"
+              className="flex-1 min-w-0 flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+                {initials}
+              </div>
+              <div className="min-w-0 text-left">
+                <p className="text-[12px] font-semibold text-white truncate">{user?.name || "User"}</p>
+                <p className="text-[10px] text-slate-400 truncate">{user?.role || ""}</p>
+              </div>
+            </NavLink>
+            <button onClick={handleLogout} title="Logout"
+              className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
+              <Icons.LogOut size={16} />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
