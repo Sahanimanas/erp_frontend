@@ -8,9 +8,11 @@ import {
   SearchInput, Select, Pagination, Modal,
   Input, Avatar, DateRangeFilter, ExportButton,
 } from "../../components/ui";
-import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload } from "lucide-react";
+import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload, Camera, X } from "lucide-react";
 import apiClient from "../../services/axios";
 import { filterByDateRange } from "../../utils/exportExcel";
+import { uploadImageFile } from "../../services/upload";
+import toast from "react-hot-toast";
 
 const STATUS_BADGE = { ACTIVE: "success", INACTIVE: "default", ON_LEAVE: "warning" };
 const ROLE_OPTIONS = [
@@ -269,6 +271,7 @@ export default function EmployeeListPage() {
             designationId: initialData.original?.designationId || '',
             dateOfJoining: initialData.original?.dateOfJoining?.split('T')[0] || '',
             baseSalary: initialData.original?.baseSalary || '',
+            photo: initialData.original?.photo || '',
           }
         : {
             firstName: '',
@@ -282,9 +285,26 @@ export default function EmployeeListPage() {
             designationId: '',
             dateOfJoining: '',
             baseSalary: '',
+            photo: '',
           }
     );
     const [submitLoading, setSubmitLoading] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+    const onPhoto = async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      setUploadingPhoto(true);
+      try {
+        const url = await uploadImageFile(file, "employees");
+        setForm((f) => ({ ...f, photo: url }));
+      } catch (err) {
+        toast.error(err?.response?.data?.error || err.message || "Photo upload failed");
+      } finally {
+        setUploadingPhoto(false);
+      }
+    };
 
     const handleSubmit = async (e) => {
       e.preventDefault();
@@ -302,6 +322,30 @@ export default function EmployeeListPage() {
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Profile photo */}
+        <div className="flex items-center gap-4">
+          <div className="relative w-20 h-24 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
+            {form.photo ? (
+              <>
+                <img src={form.photo} alt="Employee" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => setForm((f) => ({ ...f, photo: "" }))}
+                  className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-white/90 text-slate-600 shadow hover:bg-white"><X size={11} /></button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-0.5 text-slate-400">
+                <Camera size={20} />
+                <span className="text-[9px]">{uploadingPhoto ? "Uploading…" : "No photo"}</span>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className={`text-[12px] font-medium ${uploadingPhoto ? "text-slate-400 cursor-wait" : "text-indigo-600 hover:text-indigo-700 cursor-pointer"}`}>
+              {uploadingPhoto ? "Uploading…" : form.photo ? "Change photo" : "Upload photo"}
+              <input type="file" accept="image/*" onChange={onPhoto} disabled={uploadingPhoto} className="hidden" />
+            </label>
+            <p className="text-[10px] text-slate-400 mt-0.5">JPG/PNG · max 2MB (Cloudinary)</p>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="First Name *"

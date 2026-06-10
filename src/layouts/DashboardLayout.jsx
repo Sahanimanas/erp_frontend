@@ -15,6 +15,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { Menu, GraduationCap } from "lucide-react";
 import { selectSidebarCollapsed, setMobileOpen } from "../redux/slices/uiSlice";
 import Sidebar from "../components/sidebar/Sidebar";
 
@@ -51,8 +52,20 @@ export default function DashboardLayout() {
           transition-all duration-300
         `}
       >
-        {/* Navbar removed — page content fills the whole area beside the
-            sidebar, top to bottom. Form pages center via their own max-w. */}
+        {/* Mobile-only top bar — opens the sidebar drawer. Hidden on desktop,
+            where the page content fills the area beside the always-visible sidebar. */}
+        <header className="lg:hidden flex items-center gap-3 h-14 px-4 bg-[#0f172a] text-white shrink-0">
+          <button onClick={openMobile} aria-label="Open menu" className="p-1.5 -ml-1 rounded-lg hover:bg-white/10">
+            <Menu size={20} />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+              <GraduationCap size={15} className="text-white" />
+            </div>
+            <span className="font-bold text-[13px] tracking-wide">GlobalSchoolMitra</span>
+          </div>
+        </header>
+
         <main
           className="flex-1 overflow-y-auto p-4 lg:p-6"
           id="main-content"

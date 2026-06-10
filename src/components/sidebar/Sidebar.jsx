@@ -11,7 +11,7 @@
  *   ✓ Expand/collapse state persisted in Redux uiSlice
  *   ✓ Mobile: slides in/out as a drawer
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -31,11 +31,12 @@ function Icon({ name, size = 16, className = "" }) {
 }
 
 // ─── Nav leaf item (link) ──────────────────────────────────────────────────
-function NavLeaf({ item, collapsed }) {
+function NavLeaf({ item, collapsed, onNavigate }) {
   return (
     <NavLink
       to={item.path}
       end
+      onClick={onNavigate}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group border-l-2
          ${isActive
@@ -56,7 +57,7 @@ function NavLeaf({ item, collapsed }) {
 }
 
 // ─── Nav parent item (expandable) ─────────────────────────────────────────
-function NavParent({ item, collapsed }) {
+function NavParent({ item, collapsed, onNavigate }) {
   const dispatch         = useDispatch();
   const location         = useLocation();
   const expandedSections = useSelector(selectExpandedSections);
@@ -114,6 +115,7 @@ function NavParent({ item, collapsed }) {
                   key={child.key}
                   to={child.path}
                   end
+                  onClick={onNavigate}
                   className={({ isActive }) =>
                     `flex items-center gap-2.5 px-3 py-2 rounded-md text-[11.5px] transition-all duration-150
                      ${isActive
@@ -136,7 +138,17 @@ function NavParent({ item, collapsed }) {
 // ─── Sidebar root ─────────────────────────────────────────────────────────
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const dispatch         = useDispatch();
-  const collapsed        = useSelector(selectSidebarCollapsed);
+  const collapsedPref    = useSelector(selectSidebarCollapsed);
+  // On mobile the sidebar is a full drawer — never icon-collapsed.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  const collapsed        = isMobile ? false : collapsedPref;
   const userRole         = useSelector(selectUserRole);
   const user             = useSelector(selectUser);
   const initials         = user?.name ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) : "U";
@@ -216,7 +228,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         {!collapsed && (
           <button
             onClick={() => dispatch(toggleSidebar())}
-            className="text-slate-500 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5"
+            className="hidden lg:inline-flex text-slate-500 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5"
             title="Collapse sidebar"
           >
             <Icons.PanelLeftClose size={15} />
@@ -242,9 +254,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
         {visibleNav.map((item) =>
           item.children ? (
-            <NavParent key={item.key} item={item} collapsed={collapsed} />
+            <NavParent key={item.key} item={item} collapsed={collapsed} onNavigate={onMobileClose} />
           ) : (
-            <NavLeaf key={item.key} item={item} collapsed={collapsed} />
+            <NavLeaf key={item.key} item={item} collapsed={collapsed} onNavigate={onMobileClose} />
           )
         )}
       </nav>
@@ -264,7 +276,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         ) : (
           <div className="flex items-center gap-2">
             {/* Profile — moved here from the top-right corner */}
-            <NavLink to="/account/profile"
+            <NavLink to="/account/profile" onClick={onMobileClose}
               className="flex-1 min-w-0 flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
                 {initials}

@@ -4,7 +4,7 @@
  */
 import { Badge } from "../../components/ui";
 
-export const ROOT_DOMAIN = import.meta.env.VITE_ROOT_DOMAIN ?? "schoolerp.com";
+export const ROOT_DOMAIN = import.meta.env.VITE_ROOT_DOMAIN ?? "globalschoolmitra.com";
 
 // ── Formatters ───────────────────────────────────────────────────────────
 export function formatBytes(bytes) {

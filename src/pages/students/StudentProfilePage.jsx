@@ -71,10 +71,26 @@ export default function StudentProfilePage() {
     ["Mother Name", student.motherName || "—"],
     ["Guardian", student.guardianName || "—"],
     ["Guardian Phone", student.guardianPhone || "—"],
+    ["Father Aadhar", student.fatherAadhar || "—"],
+    ["Mother Aadhar", student.motherAadhar || "—"],
+    ["Father Occupation", student.fatherOccupation || "—"],
+    ["Mother Occupation", student.motherOccupation || "—"],
+    ["Father Qualification", student.fatherQualification || "—"],
+    ["Mother Qualification", student.motherQualification || "—"],
+    ["Guardian Email", student.guardianEmail || "—"],
     ["City / Pincode", `${student.city || "—"} / ${student.pincode || "—"}`],
+    ["Current Address", student.address || "—"],
+    ["Permanent Address", student.permanentAddress || "—"],
     ["Hostel", student.hostelAllotted ? (student.hostelName || "Yes") : "No"],
-    ["Transport", student.transportAllotted ? (student.busNo || "Yes") : "No"],
+    ["Hostel Room", student.hostelRoomNo || "—"],
+    ["Transport", student.transportAllotted ? "Yes" : "No"],
+    ["Transport Route / Bus", `${student.transportRoute || "—"} / ${student.busNo || "—"}`],
+    ["Fee Plan", student.feePlan || "—"],
+    ["Remarks", student.remarks || "—"],
   ] : [];
+
+  const education = Array.isArray(student?.educationHistory) ? student.educationHistory : [];
+  const documents = Array.isArray(student?.documents) ? student.documents : [];
 
   const savePdf = () => {
     if (!student) return;
@@ -162,6 +178,45 @@ export default function StudentProfilePage() {
               )}
             </Card>
           </div>
+
+          {/* Prior education history */}
+          {education.length > 0 && (
+            <Card title="Academic / Prior Education" className="mt-5">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="bg-slate-50 border-b border-slate-100">
+                    {["Course / Class", "Passing Year", "Marks / Grade", "College / School"].map((h) => (
+                      <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase">{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {education.map((e, i) => (
+                      <tr key={i}>
+                        <td className="px-4 py-2 text-[12.5px] text-slate-700">{e.courseName || "—"}</td>
+                        <td className="px-4 py-2 text-[12.5px] text-slate-600">{e.passingYear || "—"}</td>
+                        <td className="px-4 py-2 text-[12.5px] text-slate-600">{e.marksOrGrade || "—"}</td>
+                        <td className="px-4 py-2 text-[12.5px] text-slate-600">{e.schoolName || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {/* Uploaded documents */}
+          {documents.length > 0 && (
+            <Card title="Documents" className="mt-5">
+              <ul className="divide-y divide-slate-50">
+                {documents.map((d) => (
+                  <li key={d.id} className="flex items-center justify-between px-1 py-2 text-sm">
+                    <span className="text-slate-700">{d.type || "Document"}</span>
+                    {d.fileUrl && <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-indigo-600 text-[12px] hover:underline">View / Download</a>}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </>
       )}
     </div>

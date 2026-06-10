@@ -40,8 +40,8 @@ const EMPTY = {
 
 const EMPTY_EDU = { courseName: "", passingYear: "", marksOrGrade: "", schoolName: "" };
 
-export default function AddStudentPage() {
-  usePageTitle("Add Student");
+export default function AddStudentPage({ title = "Add Student", subtitle = "Admit a new student", redirectTo = "/students/search" } = {}) {
+  usePageTitle(title);
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY);
   const [education, setEducation] = useState([{ ...EMPTY_EDU }]);
@@ -166,7 +166,7 @@ export default function AddStudentPage() {
       }
 
       toast.success("Student admitted successfully");
-      navigate("/students/search");
+      navigate(redirectTo);
     } catch (err) {
       toast.error(err?.data?.error || "Failed to create student");
     }
@@ -213,7 +213,7 @@ export default function AddStudentPage() {
 
   return (
     <form onSubmit={submit} className="space-y-4 w-full">
-      <PageHeader title="Add Student" subtitle="Admit a new student" icon={<UserPlus size={18} />}>
+      <PageHeader title={title} subtitle={subtitle} icon={<UserPlus size={18} />}>
         <Button type="button" variant="secondary" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
         <Button type="submit" loading={isLoading} icon={<Save size={14} />}>Save Student</Button>
       </PageHeader>
@@ -387,7 +387,7 @@ export default function AddStudentPage() {
       </Card>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={() => navigate("/students/search")}>Cancel</Button>
+        <Button type="button" variant="secondary" onClick={() => navigate(redirectTo)}>Cancel</Button>
         <Button type="button" variant="outline" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
         <Button type="submit" loading={isLoading} icon={<Save size={14} />}>Submit</Button>
       </div>

@@ -23,7 +23,7 @@ import {
   useActivateSchoolMutation, useGetAuditLogsQuery, useLoginAsSchoolAdminMutation,
 } from "../../redux/api/superAdminApi";
 import {
-  StatusBadge, PlanBadge, formatBytes, formatMoney, formatDate, formatDateTime,
+  StatusBadge, PlanBadge, formatBytes, formatMoney, formatDate, formatDateTime, ROOT_DOMAIN,
 } from "./_saShared";
 
 const TABS = [
@@ -79,7 +79,7 @@ export default function SchoolDetailsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={school.name} subtitle={school.primaryDomain || `${school.slug}.schoolerp.com`} icon={<Building2 size={18} />}>
+      <PageHeader title={school.name} subtitle={school.primaryDomain || `${school.slug}.${ROOT_DOMAIN}`} icon={<Building2 size={18} />}>
         <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => navigate("/super-admin/schools")}>Back</Button>
         <Button icon={<LogIn size={15} />} loading={impersonating} onClick={handleLoginAs}>Login as Admin</Button>
       </PageHeader>
@@ -125,7 +125,7 @@ function OverviewTab({ school, sub }) {
     { icon: Mail, label: "Email", value: school.email },
     { icon: Phone, label: "Phone", value: school.phone || "—" },
     { icon: MapPin, label: "Location", value: [school.city, school.state, school.country].filter(Boolean).join(", ") || "—" },
-    { icon: Globe, label: "Subdomain", value: school.primaryDomain || `${school.slug}.schoolerp.com` },
+    { icon: Globe, label: "Subdomain", value: school.primaryDomain || `${school.slug}.${ROOT_DOMAIN}` },
   ];
   return (
     <div className="space-y-4">
