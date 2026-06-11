@@ -22,7 +22,7 @@ import { selectUserRole, selectUser, logout } from "../../redux/slices/authSlice
 import { routeConfig } from "../../routes/routeConfig";
 import apiClient from "../../services/axios";
 import * as Icons from "lucide-react";
-
+import logo from "../../../public/logo.jpeg"
 // ─── Icon resolver ─────────────────────────────────────────────────────────
 function Icon({ name, size = 16, className = "" }) {
   const LucideIcon = Icons[name];
@@ -141,6 +141,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const collapsedPref    = useSelector(selectSidebarCollapsed);
   // On mobile the sidebar is a full drawer — never icon-collapsed.
   const [isMobile, setIsMobile] = useState(false);
+  // Brand logo from /public/logo.png; falls back to the icon if not present.
+  const [logoOk, setLogoOk] = useState(true);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1023px)");
     const apply = () => setIsMobile(mq.matches);
@@ -213,17 +215,29 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       <div className="flex items-center justify-between h-14 px-3 border-b border-slate-800/50 shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0">
-              <Icons.GraduationCap size={16} className="text-white" />
-            </div>
+            {logoOk ? (
+              <img src={logo} alt="Global School Mitra"
+                onError={() => setLogoOk(false)}
+                className="w-8 h-8 rounded-xl object-contain bg-white shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0">
+                <Icons.GraduationCap size={16} className="text-white" />
+              </div>
+            )}
             <span className="text-white font-bold text-[13px] tracking-wide">GlobalSchoolMitra</span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Pro</span>
+            {/* <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Pro</span> */}
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto">
-            <Icons.GraduationCap size={16} className="text-white" />
-          </div>
+          logoOk ? (
+            <img src="/logo.png" alt="Global School Mitra"
+              onError={() => setLogoOk(false)}
+              className="w-8 h-8 rounded-xl object-contain bg-white mx-auto" />
+          ) : (
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto">
+              <Icons.GraduationCap size={16} className="text-white" />
+            </div>
+          )
         )}
         {!collapsed && (
           <button
