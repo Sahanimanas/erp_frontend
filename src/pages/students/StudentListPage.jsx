@@ -12,10 +12,9 @@ import {
 import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload } from "lucide-react";
 import apiClient from "../../services/axios";
 import { filterByDateRange } from "../../utils/exportExcel";
+import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 
 const FEE_BADGE = { PAID:"success", PENDING:"danger", PARTIAL:"warning" };
-const CLASS_OPT = [{ value:"", label:"All Classes" }, ...Array.from({length:12},(_,i)=>({ value:String(i+1), label:`Class ${i+1}` }))];
-const SEC_OPT   = [{ value:"", label:"All Sections" }, ...["A","B","C","D"].map(s=>({ value:s, label:`Section ${s}` }))];
 const FEE_OPT   = [{ value:"", label:"All Status" }, { value:"PAID",label:"Paid" }, { value:"PENDING",label:"Pending" }, { value:"PARTIAL",label:"Partial" }];
 
 export default function StudentListPage() {
@@ -24,24 +23,17 @@ export default function StudentListPage() {
   const [students,setStudents]=useState([]); const [loading,setLoading]=useState(false); const [error,setError]=useState("");
   const [search,setSearch]=useState(""); const [cls,setCls]=useState(""); const [section,setSection]=useState(""); const [feeStatus,setFee]=useState("");
   const [page,setPage]=useState(1); const [total,setTotal]=useState(0); const [addOpen,setAddOpen]=useState(false); const [viewRow,setViewRow]=useState(null);
-  const [classes,setClasses]=useState([]);
   const [dateRange,setDateRange]=useState({from:"",to:""});
   const PAGE_SIZE=10;
 
-  // Fetch classes on mount (drives the Class dropdown in the add form)
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const response = await apiClient.get("/academic/classes?limit=100");
-        if (response.data.success) {
-          setClasses(response.data.data || []);
-        }
-      } catch (err) {
-        console.error("Class fetch error:", err);
-      }
-    };
-    fetchClasses();
-  }, []);
+  // Live classes (every class configured / imported for the school) and the
+  // sections of the currently-selected class — the SAME source every other
+  // class/section dropdown uses, so imported classes appear here automatically.
+  const { data: classes = [] } = useGetClassesQuery();
+  const { data: sections = [] } = useGetSectionsQuery(cls, { skip: !cls });
+
+  const classFilterOpts = [{ value:"", label:"All Classes" }, ...classes.map(c=>({ value:c.id, label:c.name }))];
+  const sectionFilterOpts = [{ value:"", label:"All Sections" }, ...sections.map(s=>({ value:s.id, label:s.name }))];
 
   // Fetch students from API
   useEffect(() => {
@@ -53,6 +45,8 @@ export default function StudentListPage() {
           page: String(page),
           limit: String(PAGE_SIZE),
           ...(search && { search }),
+          ...(cls && { classId: cls }),
+          ...(section && { sectionId: section }),
         });
 
         const response = await apiClient.get(`/students?${params}`);
@@ -69,7 +63,7 @@ export default function StudentListPage() {
     };
 
     fetchStudents();
-  }, [page, search]);
+  }, [page, search, cls, section]);
 
   const handleAddStudent = async (formData) => {
     try {
@@ -217,8 +211,8 @@ export default function StudentListPage() {
         {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 m-4 rounded-lg text-sm">{error}</div>}
         <div className="flex gap-2 flex-wrap p-4 border-b border-slate-100 items-end">
           <SearchInput value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search by name or roll..." className="w-52"/>
-          <Select value={cls} onChange={e=>{setCls(e.target.value);setPage(1);}} options={CLASS_OPT} className="w-36"/>
-          <Select value={section} onChange={e=>{setSection(e.target.value);setPage(1);}} options={SEC_OPT} className="w-36"/>
+          <Select value={cls} onChange={e=>{setCls(e.target.value);setSection("");setPage(1);}} options={classFilterOpts} className="w-44"/>
+          <Select value={section} onChange={e=>{setSection(e.target.value);setPage(1);}} options={sectionFilterOpts} className="w-36" disabled={!cls}/>
           <DateRangeFilter from={dateRange.from} to={dateRange.to} onChange={setDateRange} label="Admission" />
           <Button variant="secondary" size="sm" icon={<Filter size={12}/>} onClick={()=>{setSearch("");setCls("");setSection("");setFee("");setDateRange({from:"",to:""});setPage(1);}}>Clear</Button>
           <span className="ml-auto text-[11px] text-slate-500">{loading ? "Loading..." : `${filteredStudents.length} of ${total} students`}</span>

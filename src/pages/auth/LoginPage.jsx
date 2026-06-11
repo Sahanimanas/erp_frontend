@@ -93,7 +93,7 @@ export default function LoginPage() {
                 {loading?<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>:<><ArrowRight size={16}/><span>Login</span></>}
               </button>
             </form>
-            <div className="mt-4 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2 text-center"><p className="text-xs text-indigo-400">Demo: <span className="font-mono font-bold">admin@school.com</span> / <span className="font-mono font-bold">test123</span></p></div>
+            {/* <div className="mt-4 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2 text-center"><p className="text-xs text-indigo-400">Demo: <span className="font-mono font-bold">admin@school.com</span> / <span className="font-mono font-bold">test123</span></p></div> */}
             <p className="text-center text-xs text-slate-600 mt-4">© 2026 GlobalSchoolMitra School Management</p>
           </div>
         </div>
