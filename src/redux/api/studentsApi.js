@@ -82,7 +82,12 @@ export const studentsApi = baseApi.injectEndpoints({
     importStudents: build.mutation({
       query: (students) => ({ url: "/students/import", method: "POST", body: { students } }),
       transformResponse: (r) => r?.data ?? r,
-      invalidatesTags: [{ type: "Students", id: "LIST" }],
+      // Import auto-creates classes/sections — refresh those dropdowns too.
+      invalidatesTags: [
+        { type: "Students", id: "LIST" },
+        { type: "Academic", id: "CLASSES" },
+        { type: "Academic", id: "SECTIONS" },
+      ],
     }),
     // Promote selected students to a target class (Promote Student page).
     promoteStudents: build.mutation({

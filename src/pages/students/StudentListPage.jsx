@@ -2,6 +2,7 @@
  * StudentListPage.jsx — Full-featured student management page
  */
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
 import {
   PageHeader, Card, DataTable, Badge, Button,
@@ -19,6 +20,7 @@ const FEE_OPT   = [{ value:"", label:"All Status" }, { value:"PAID",label:"Paid"
 
 export default function StudentListPage() {
   usePageTitle("Students");
+  const navigate = useNavigate();
   const [students,setStudents]=useState([]); const [loading,setLoading]=useState(false); const [error,setError]=useState("");
   const [search,setSearch]=useState(""); const [cls,setCls]=useState(""); const [section,setSection]=useState(""); const [feeStatus,setFee]=useState("");
   const [page,setPage]=useState(1); const [total,setTotal]=useState(0); const [addOpen,setAddOpen]=useState(false); const [viewRow,setViewRow]=useState(null);
@@ -206,7 +208,7 @@ export default function StudentListPage() {
   return (
     <div>
       <PageHeader title="Student Details" subtitle="Manage all enrolled students" icon={<Users size={18}/>}>
-        <Button variant="secondary" size="sm" icon={<Upload size={13}/>}>Import</Button>
+        <Button variant="secondary" size="sm" icon={<Upload size={13}/>} onClick={() => navigate("/students/upload")}>Import</Button>
         <ExportButton filename="students.csv" rows={filteredStudents} columns={EXPORT_COLS} />
         <Button size="sm" icon={<Plus size={13}/>} onClick={()=>setAddOpen(true)}>Add Student</Button>
       </PageHeader>

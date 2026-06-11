@@ -112,6 +112,8 @@ export const baseApi = createApi({
     "SaDomains", "SaAudit", "SaSubscription", "SaUsers",
     // Admission
     "Admission", "AdmissionStats",
+    // Academic structure (classes / sections)
+    "Academic",
     // Fee management
     "FeeType", "FeeStructure", "TransportRoute",
     // Payments

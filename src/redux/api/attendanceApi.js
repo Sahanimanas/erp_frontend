@@ -129,10 +129,34 @@ export const attendanceApi = baseApi.injectEndpoints({
     getClasses: build.query({
       query: () => ({ url: "/academic/classes", params: { limit: 200 } }),
       transformResponse: (r) => r?.data ?? [],
+      providesTags: [{ type: "Academic", id: "CLASSES" }],
     }),
     getSections: build.query({
       query: (classId) => ({ url: "/academic/sections", params: { limit: 500, ...(classId ? { classId } : {}) } }),
       transformResponse: (r) => r?.data ?? [],
+      providesTags: [{ type: "Academic", id: "SECTIONS" }],
+    }),
+
+    // ── Class / Section management (Settings → Classes & Sections) ──────────
+    // Creating/removing here refreshes every class & section dropdown app-wide
+    // via the Academic cache tags above.
+    createClass: build.mutation({
+      query: (body) => ({ url: "/academic/classes", method: "POST", body }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: [{ type: "Academic", id: "CLASSES" }],
+    }),
+    deleteClass: build.mutation({
+      query: (classId) => ({ url: `/academic/classes/${classId}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Academic", id: "CLASSES" }, { type: "Academic", id: "SECTIONS" }],
+    }),
+    createSection: build.mutation({
+      query: (body) => ({ url: "/academic/sections", method: "POST", body }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: [{ type: "Academic", id: "SECTIONS" }, { type: "Academic", id: "CLASSES" }],
+    }),
+    deleteSection: build.mutation({
+      query: (sectionId) => ({ url: `/academic/sections/${sectionId}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Academic", id: "SECTIONS" }, { type: "Academic", id: "CLASSES" }],
     }),
   }),
   overrideExisting: false,
@@ -155,4 +179,8 @@ export const {
   useGetAcademicYearsQuery,
   useGetClassesQuery,
   useGetSectionsQuery,
+  useCreateClassMutation,
+  useDeleteClassMutation,
+  useCreateSectionMutation,
+  useDeleteSectionMutation,
 } = attendanceApi;

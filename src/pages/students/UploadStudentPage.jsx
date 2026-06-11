@@ -9,7 +9,15 @@ import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, Badge } from "../../components/ui";
 import { Upload, Download, FileSpreadsheet } from "lucide-react";
 import { useImportStudentsMutation } from "../../redux/api/studentsApi";
-import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/attendanceApi";
+import { useGetClassesQuery } from "../../redux/api/attendanceApi";
+import { aliasStudentRow } from "../../utils/studentImport";
+
+// Academic sessions: previous → current (Apr–Mar cycle). e.g. 2025-2026, 2026-2027.
+const SESSIONS = (() => {
+  const now = new Date();
+  const y = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  return [`${y - 1}-${y}`, `${y}-${y + 1}`];
+})();
 
 // Every column the importer understands. `section` maps to the class section
 // (A/B/…); booleans accept Yes/No/true/false/1/0.
@@ -53,14 +61,13 @@ const SAMPLE_ROWS = [
 export default function UploadStudentPage() {
   usePageTitle("Upload Student");
   const [classId, setClassId] = useState("");
-  const [year, setYear] = useState("");
+  const [year, setYear] = useState(SESSIONS[SESSIONS.length - 1]);
   const [feePlan, setFeePlan] = useState("REGULAR");
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [result, setResult] = useState(null);
   const [parsing, setParsing] = useState(false);
 
-  const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
   const [importStudents, { isLoading }] = useImportStudentsMutation();
 
@@ -99,16 +106,19 @@ export default function UploadStudentPage() {
   };
 
   const upload = async () => {
-    if (!classId) { toast.error("Select a class"); return; }
     if (!rows.length) { toast.error("Choose an Excel file first"); return; }
-    // Pass every column through; the backend picks the fields it knows and
-    // coerces Yes/No → boolean. Page-level fee plan applies when a row omits it.
-    const students = rows.map((r) => ({
+    // Class is optional: if a row carries its own Class column the backend
+    // find-or-creates that class; otherwise the page-selected class is used.
+    const students = rows.map(aliasStudentRow).map((r) => ({
       ...r,
-      classId,
+      ...(classId ? { classId } : {}),
       sectionName: r.section || r.sectionName || "A",
       feePlan: r.feePlan || feePlan,
     }));
+    if (!classId && !students.some((s) => s.className || s.class)) {
+      toast.error("Pick a class, or include a Class column in the file");
+      return;
+    }
     try {
       const res = await importStudents(students).unwrap();
       setResult(res);
@@ -120,6 +130,21 @@ export default function UploadStudentPage() {
 
   const previewCols = rows.length ? Object.keys(rows[0]) : [];
 
+  // Unique classes & sections detected in the file (after header aliasing).
+  // These are auto-created on upload and then appear in every class/section
+  // dropdown across the app.
+  const detected = (() => {
+    const cls = new Set(), sec = new Set();
+    for (const raw of rows) {
+      const r = aliasStudentRow(raw);
+      const c = (r.className || r.class || "").toString().trim();
+      const s = (r.section || r.sectionName || "").toString().trim();
+      if (c) cls.add(c);
+      if (s) sec.add(s);
+    }
+    return { classes: [...cls], sections: [...sec] };
+  })();
+
   return (
     <div className="space-y-4 max-w-6xl mx-auto">
       <PageHeader title="Upload Student" subtitle="Bulk-import students from an Excel (.xlsx) or CSV file" icon={<Upload size={18} />} />
@@ -127,11 +152,11 @@ export default function UploadStudentPage() {
       <Card title="Select Session and Class">
         <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
           <Select label="Session" value={year} onChange={(e) => setYear(e.target.value)}
-            options={[{ value: "", label: "Select" }, ...years.map((y) => ({ value: y.id, label: y.name }))]} />
+            options={SESSIONS.map((s) => ({ value: s, label: s }))} />
           <Select label="Fee Plan" value={feePlan} onChange={(e) => setFeePlan(e.target.value)}
             options={["REGULAR", "PROMOTION", "FREE_ADMISSION"].map((p) => ({ value: p, label: p }))} />
-          <Select label="Class *" value={classId} onChange={(e) => setClassId(e.target.value)}
-            options={[{ value: "", label: "Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
+          <Select label="Class (optional — taken from the file if blank)" value={classId} onChange={(e) => setClassId(e.target.value)}
+            options={[{ value: "", label: "From file / Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
         </div>
         <div className="px-5 pb-5 space-y-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -143,10 +168,33 @@ export default function UploadStudentPage() {
             {parsing && <Badge variant="warning">Reading file…</Badge>}
             {rows.length > 0 && <Badge variant="info">{rows.length} rows parsed</Badge>}
           </div>
-          <Button icon={<Upload size={14} />} loading={isLoading} disabled={!rows.length || !classId} onClick={upload}>Upload</Button>
+          <Button icon={<Upload size={14} />} loading={isLoading} disabled={!rows.length || parsing} onClick={upload}>Upload</Button>
           <p className="text-[11px] text-slate-400">Download the sample to see every supported column. <b>firstName</b>, <b>rollNumber</b>, <b>gender</b>, <b>dateOfBirth</b> (YYYY-MM-DD) and <b>section</b> are required per row; the rest are optional. Hostel/Transport accept Yes/No.</p>
         </div>
       </Card>
+
+      {rows.length > 0 && (detected.classes.length > 0 || detected.sections.length > 0) && (
+        <Card title="Detected in file" subtitle="These classes & sections are auto-created on upload, then appear in every class/section dropdown across the app.">
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase mb-2">Classes ({detected.classes.length})</p>
+              <div className="flex flex-wrap gap-2">
+                {detected.classes.length
+                  ? detected.classes.map((c) => <Badge key={c} variant="success">{c}</Badge>)
+                  : <span className="text-xs text-slate-400">None — pick a class above</span>}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase mb-2">Sections ({detected.sections.length})</p>
+              <div className="flex flex-wrap gap-2">
+                {detected.sections.length
+                  ? detected.sections.map((s) => <Badge key={s} variant="info">{s}</Badge>)
+                  : <span className="text-xs text-slate-400">Defaults to A</span>}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {rows.length > 0 && (
         <Card title="Preview" subtitle={`${rows.length} rows · ${previewCols.length} columns`}>

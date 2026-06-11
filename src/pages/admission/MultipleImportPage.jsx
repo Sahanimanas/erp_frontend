@@ -1,82 +1,98 @@
 /**
  * MultipleImportPage.jsx
  * Module : admission
- * Page   : Multiple Import (matches Multiple Import CSV screenshot)
+ * Page   : Multiple Import — bulk-import students from an Excel (.xlsx) or CSV
+ *          file. Headers are matched flexibly; if the file has a Class column,
+ *          the class is auto-created. Creates real Student records via
+ *          /students/import (they then appear in Student Details, etc.).
  */
 import { useState, useRef } from "react";
+import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Select } from "../../components/ui";
+import { PageHeader, Card, Button, Select, Badge } from "../../components/ui";
+import { Download, UploadCloud, FileSpreadsheet } from "lucide-react";
+import { useGetClassesQuery } from "../../redux/api/attendanceApi";
+import { useImportStudentsMutation } from "../../redux/api/studentsApi";
+import { aliasStudentRow, parseStudentsFile, downloadStudentSample } from "../../utils/studentImport";
 
-const CLASS_OPTIONS = [
-  { value: "", label: "Select" },
-  ...[...Array(12)].map((_, i) => ({ value: String(i + 1), label: `Class ${i + 1}` })),
-];
+const SECTIONS_AZ = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 
 const instructions = [
-  "Download the first sample file.",
-  "Open the downloaded 'csv' file and carefully fill the details of the student.",
-  "The date you are trying to enter the \"Birthday\" and \"AdmissionDate\" column make sure the date format is Y-m-d (2026-05-26).",
-  "Do not import the duplicate \"Roll Number\" And \"Register No\".",
-  "For student \"Gender\" use Male, Female value.",
-  "If enable Automatically Generate login details, leave the \"username\" and \"password\" columns blank.",
+  "Download the sample file and fill in the student details.",
+  "Supported formats: Excel (.xlsx / .xls) and CSV.",
+  "If your file has a Class column, the class is created automatically — you don't have to pick one.",
+  "Dates (Date of Birth / Admission Date) should be Y-m-d, e.g. 2026-05-26 (missing dates default automatically).",
+  "Gender: Male / Female / Other (defaults to Male if blank).",
 ];
-
 const notes = [
-  { label: "Category is optional", text: "— leave the \"CategoryID\" column blank (or remove it from the CSV) if you don't want to assign one." },
-  { label: "Roll number is optional", text: "— leave the \"Roll\" column blank to auto-generate the next available roll for that class & section." },
-  { label: "", text: "If a parent is existing / if you want to use the same parent information for multiple students only enter the \"GuardianUsername\" and leave other columns blank." },
+  { label: "Headers are flexible", text: "— Student Name, Roll No, Father Name, Contact No, Class, Section are matched automatically." },
+  { label: "Roll number optional", text: "— a unique Student Id / Registration No is used as the roll number when present." },
+  { label: "", text: "Imported students show up immediately in Student Details, Online Admission List, fees-by-class and the dashboard — and admin can edit them." },
 ];
 
 export default function MultipleImportPage() {
   usePageTitle("Multiple Import");
+  const { data: classes = [] } = useGetClassesQuery();
+  const [importStudents, { isLoading }] = useImportStudentsMutation();
 
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedSection, setSelectedSection] = useState("");
+  const [classId, setClassId] = useState("");
+  const [section, setSection] = useState("");
   const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [rows, setRows] = useState([]);
+  const [parsing, setParsing] = useState(false);
+  const [result, setResult] = useState(null);
   const fileRef = useRef();
 
-  const sectionOptions = selectedClass
-    ? ["A", "B", "C", "D"].map((s) => ({ value: s, label: s }))
-    : [];
-
-  const handleFileChange = (e) => {
-    const f = e.target.files[0];
-    if (f) setFile(f);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const f = e.dataTransfer.files[0];
-    if (f) setFile(f);
+  const onPick = async (f) => {
+    if (!f) return;
+    setFile(f);
+    setResult(null);
+    setParsing(true);
+    try {
+      const parsed = await parseStudentsFile(f);
+      setRows(parsed);
+      if (!parsed.length) toast.error("The file has no data rows");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not read the file. Use the sample template format.");
+      setRows([]);
+    } finally {
+      setParsing(false);
+    }
   };
 
   const handleUpload = async () => {
-    if (!selectedClass || !selectedSection || !file) {
-      alert("Please select class, section and upload a CSV file.");
+    if (!rows.length) { toast.error("Upload a file with student rows"); return; }
+    const students = rows.map(aliasStudentRow).map((r) => ({
+      ...r,
+      ...(classId ? { classId } : {}),
+      sectionName: r.section || section || "A",
+      feePlan: r.feePlan || "REGULAR",
+    }));
+    if (!classId && !students.some((s) => s.className || s.class)) {
+      toast.error("Pick a class, or include a Class column in the file");
       return;
     }
-    setUploading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setUploading(false);
-    alert(`Imported: ${file.name}`);
-    setFile(null);
+    try {
+      const res = await importStudents(students).unwrap();
+      setResult(res);
+      toast.success(`Imported ${res.imported} student(s)${res.failed ? `, ${res.failed} failed` : ""}`);
+    } catch (e) {
+      toast.error(e?.data?.error || "Import failed");
+    }
   };
+
+  const previewCols = rows.length ? Object.keys(rows[0]) : [];
 
   return (
     <div>
-      <PageHeader
-        title="Multiple Import"
-        subtitle="Import students via CSV"
-        icon="📥"
-      />
+      <PageHeader title="Multiple Import" subtitle="Bulk-import students via Excel or CSV" icon={<UploadCloud size={18} />} />
 
       <Card>
         <div className="p-5 space-y-6">
-          {/* Download button */}
           <div className="flex justify-end">
-            <Button variant="secondary">
-              ⬇ Download Sample Import File
+            <Button variant="secondary" icon={<Download size={14} />} onClick={() => downloadStudentSample()}>
+              Download Sample Import File
             </Button>
           </div>
 
@@ -96,78 +112,80 @@ export default function MultipleImportPage() {
             <div className="space-y-3">
               {notes.map((n, i) => (
                 <div key={i} className="text-xs text-slate-600">
-                  {n.label && (
-                    <span className="font-semibold text-indigo-600">{n.label}: </span>
-                  )}
+                  {n.label && <span className="font-semibold text-indigo-600">{n.label}: </span>}
                   {n.text}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Form */}
+          {/* Class + Section (optional — taken from the file if blank) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
-            <Select
-              label="Class *"
-              value={selectedClass}
-              onChange={(e) => { setSelectedClass(e.target.value); setSelectedSection(""); }}
-              options={CLASS_OPTIONS}
-            />
-            <Select
-              label="Section *"
-              value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-              options={[
-                { value: "", label: selectedClass ? "Select" : "Select Class First" },
-                ...sectionOptions,
-              ]}
-              disabled={!selectedClass}
-            />
+            <Select label="Class (optional — from file if blank)" value={classId} onChange={(e) => setClassId(e.target.value)}
+              options={[{ value: "", label: "From file / Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
+            <Select label="Default Section (used when a row has none)" value={section} onChange={(e) => setSection(e.target.value)}
+              options={[{ value: "", label: "From file / Select" }, ...SECTIONS_AZ.map((s) => ({ value: s, label: s }))]} />
           </div>
 
           {/* File upload */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-              Select CSV File *
-            </label>
+            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Select Excel / CSV File *</label>
             <div
               className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors
                 ${file ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:border-indigo-300"}`}
-              onDrop={handleDrop}
+              onDrop={(e) => { e.preventDefault(); onPick(e.dataTransfer.files[0]); }}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => fileRef.current?.click()}
             >
-              <span className="text-4xl">{file ? "📄" : "☁️"}</span>
+              <FileSpreadsheet size={34} className={file ? "text-indigo-600" : "text-slate-300"} />
               {file ? (
                 <div className="text-center">
                   <p className="text-sm font-semibold text-indigo-700">{file.name}</p>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    {(file.size / 1024).toFixed(1)} KB
+                    {(file.size / 1024).toFixed(1)} KB {parsing ? "· reading…" : rows.length ? `· ${rows.length} rows` : ""}
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">Drag and drop a file here or click</p>
+                <p className="text-sm text-slate-500">Drag and drop an .xlsx / .csv file here, or click</p>
               )}
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                onChange={(e) => { onPick(e.target.files[0]); e.target.value = ""; }} />
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 justify-end">
-            {file && (
-              <Button variant="secondary" onClick={() => setFile(null)}>
-                Clear
-              </Button>
-            )}
-            <Button loading={uploading} onClick={handleUpload}>
-              Import Students
-            </Button>
+          {/* Preview */}
+          {rows.length > 0 && (
+            <div className="overflow-x-auto border border-slate-100 rounded-lg">
+              <table className="w-full text-sm">
+                <thead><tr className="bg-slate-50 border-b border-slate-100">
+                  {previewCols.map((h) => <th key={h} className="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">{h}</th>)}
+                </tr></thead>
+                <tbody className="divide-y divide-slate-50">
+                  {rows.slice(0, 8).map((r, i) => (
+                    <tr key={i}>{previewCols.map((h, j) => <td key={j} className="px-3 py-1.5 text-[12px] text-slate-600 whitespace-nowrap">{String(r[h] ?? "")}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+              {rows.length > 8 && <p className="px-3 py-1.5 text-[11px] text-slate-400">…and {rows.length - 8} more</p>}
+            </div>
+          )}
+
+          {result && (
+            <div className="bg-slate-50 rounded-lg p-4 space-y-1">
+              <p className="text-sm text-emerald-600 font-semibold">✓ Imported {result.imported}</p>
+              {result.failed > 0 && (
+                <>
+                  <p className="text-sm text-red-500 font-semibold">✗ Failed {result.failed}</p>
+                  <ul className="text-[11px] text-slate-500 list-disc pl-5">{result.errors?.slice(0, 10).map((e, i) => <li key={i}>{e}</li>)}</ul>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 justify-end items-center">
+            {parsing && <Badge variant="warning">Reading file…</Badge>}
+            {file && <Button variant="secondary" onClick={() => { setFile(null); setRows([]); setResult(null); }}>Clear</Button>}
+            <Button loading={isLoading} disabled={!rows.length} onClick={handleUpload}>Import Students</Button>
           </div>
         </div>
       </Card>

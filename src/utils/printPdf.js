@@ -17,7 +17,19 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-export function printRecord({ title = "Record", subtitle = "", photo = "", sections = [] }) {
+/**
+ * The current school's name for the printout header. Read from the persisted
+ * auth user (populated on login). Callers may override via the `school` option.
+ */
+export function getSchoolName() {
+  try {
+    return JSON.parse(localStorage.getItem("erp_auth"))?.user?.schoolName || "";
+  } catch {
+    return "";
+  }
+}
+
+export function printRecord({ title = "Record", subtitle = "", photo = "", sections = [], school = getSchoolName() }) {
   const win = window.open("", "_blank", "width=900,height=1000");
   if (!win) {
     alert("Please allow pop-ups for this site to save as PDF.");
@@ -43,6 +55,7 @@ export function printRecord({ title = "Record", subtitle = "", photo = "", secti
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; margin: 32px; }
+  .school { text-align: center; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: .3px; margin-bottom: 12px; }
   header { display: flex; align-items: center; gap: 20px; border-bottom: 3px solid #2563eb; padding-bottom: 16px; margin-bottom: 20px; }
   header img { width: 92px; height: 112px; object-fit: cover; border: 1px solid #e2e8f0; border-radius: 8px; }
   header .t { flex: 1; }
@@ -58,6 +71,7 @@ export function printRecord({ title = "Record", subtitle = "", photo = "", secti
 </style>
 </head>
 <body>
+  ${school ? `<div class="school">${esc(school)}</div>` : ""}
   <header>
     ${photo ? `<img src="${esc(photo)}" alt="photo" />` : ""}
     <div class="t">
@@ -88,7 +102,7 @@ export function printRecord({ title = "Record", subtitle = "", photo = "", secti
  *     footer: "Total Fee Amount: Rs. 8750",
  *   })
  */
-export function printTable({ title = "Report", subtitle = "", columns = [], rows = [], footer = "" }) {
+export function printTable({ title = "Report", subtitle = "", columns = [], rows = [], footer = "", school = getSchoolName() }) {
   const win = window.open("", "_blank", "width=1000,height=1000");
   if (!win) {
     alert("Please allow pop-ups for this site to save as PDF.");
@@ -108,6 +122,7 @@ export function printTable({ title = "Report", subtitle = "", columns = [], rows
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; margin: 28px; }
+  .school { text-align: center; font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: .3px; margin-bottom: 10px; }
   header { border-bottom: 3px solid #4f46e5; padding-bottom: 12px; margin-bottom: 16px; }
   h1 { font-size: 20px; margin: 0 0 4px; color: #0f172a; }
   header p { margin: 0; color: #64748b; font-size: 12.5px; }
@@ -120,6 +135,7 @@ export function printTable({ title = "Report", subtitle = "", columns = [], rows
 </style>
 </head>
 <body>
+  ${school ? `<div class="school">${esc(school)}</div>` : ""}
   <header>
     <h1>${esc(title)}</h1>
     ${subtitle ? `<p>${esc(subtitle)}</p>` : ""}

@@ -568,6 +568,7 @@ export const routeConfig = [
     roles: ADMIN_ONLY,
     children: [
       { key: "settings-general",      label: "Global Settings",       path: "/settings/general",           icon: "Settings",   lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
+      { key: "settings-classes",      label: "Classes & Sections",    path: "/settings/classes",           icon: "School",     lazy: () => import("../pages/settings/ManageClassesPage"),               roles: ADMIN_ONLY },
       { key: "settings-school",       label: "School Settings",       path: "/settings/school",            icon: "School",     lazy: lazy("settings/SchoolInfoPage"),                                   roles: ADMIN_ONLY },
       { key: "settings-roles",        label: "Role Permission",       path: "/settings/roles",             icon: "Shield",     lazy: lazy("settings/RolesPage"),                                        roles: [ROLES.SUPER_ADMIN] },
       { key: "settings-translations", label: "Translations",          path: "/settings/translations",      icon: "Globe",      lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },

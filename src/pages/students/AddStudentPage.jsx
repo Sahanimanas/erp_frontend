@@ -12,7 +12,7 @@ import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, Textarea } from "../../components/ui";
 import { UserPlus, Save, Camera, X, Plus, Trash2, Upload, FileText, FileDown } from "lucide-react";
 import { useCreateStudentMutation } from "../../redux/api/studentsApi";
-import { useGetClassesQuery, useGetSectionsQuery, useGetAcademicYearsQuery } from "../../redux/api/attendanceApi";
+import { useGetClassesQuery } from "../../redux/api/attendanceApi";
 import { uploadImageFile, uploadDocumentFile } from "../../services/upload";
 import { printRecord } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
@@ -22,13 +22,21 @@ const GENDERS = ["", "Male", "Female", "Other"];
 const CATEGORIES = ["", "General", "OBC", "SC", "ST", "EWS"];
 const FEE_PLANS = ["REGULAR", "CONCESSION", "RTE", "STAFF WARD"];
 const QUALIFICATIONS = ["", "Below 10th", "10th", "12th", "Graduate", "Post Graduate", "Doctorate", "Other"];
+// Sections A–Z (the backend find-or-creates the section under the class).
+const SECTIONS_AZ = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+// Academic sessions: previous → current (Apr–Mar cycle). e.g. 2025-2026, 2026-2027.
+const SESSIONS = (() => {
+  const now = new Date();
+  const y = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  return [`${y - 1}-${y}`, `${y}-${y + 1}`];
+})();
 
 const EMPTY = {
   name: "", email: "", phone: "", password: "Student@123",
   gender: "", dateOfBirth: "", bloodGroup: "", category: "", caste: "", religion: "", motherTongue: "",
   aadharNumber: "", penNumber: "", apaarNo: "", smartCardNo: "", height: "", weight: "", remarks: "",
   enabled: true, photo: "",
-  session: "", feePlan: "REGULAR", classId: "", sectionName: "",
+  session: SESSIONS[SESSIONS.length - 1], feePlan: "REGULAR", classId: "", sectionName: "",
   rollNumber: "", admissionNumber: "", admissionDate: "", registrationNo: "",
   hostelAllotted: false, hostelName: "", hostelRoomNo: "",
   transportAllotted: false, transportRoute: "", busNo: "",
@@ -48,9 +56,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
   const [docs, setDocs] = useState([]); // { file, name, status }
   const [uploading, setUploading] = useState(false);
 
-  const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
-  const { data: sections = [] } = useGetSectionsQuery(form.classId, { skip: !form.classId });
   const [createStudent, { isLoading }] = useCreateStudentMutation();
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -300,13 +306,13 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
       <Card title="Admission Information">
         <div className="p-5 grid grid-cols-1 md:grid-cols-4 gap-4">
           <Select label="Session" value={form.session} onChange={set("session")}
-            options={[{ value: "", label: "Select..." }, ...years.map((y) => ({ value: y.id, label: y.name }))]} />
+            options={SESSIONS.map((s) => ({ value: s, label: s }))} />
           <Select label="Fee Plan *" value={form.feePlan} onChange={set("feePlan")}
             options={FEE_PLANS.map((p) => ({ value: p, label: p }))} />
           <Select label="Class *" value={form.classId} onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value, sectionName: "" }))}
             options={[{ value: "", label: "Select..." }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
           <Select label="Section *" value={form.sectionName} onChange={set("sectionName")}
-            options={[{ value: "", label: form.classId ? "Select Section" : "Pick a class first" }, ...sections.map((s) => ({ value: s.name, label: s.name }))]} />
+            options={[{ value: "", label: "Select Section" }, ...SECTIONS_AZ.map((s) => ({ value: s, label: s }))]} />
           <Input label="Admission No" value={form.admissionNumber} onChange={set("admissionNumber")} placeholder="Enter Admission No" />
           <Input label="Joining Date" type="date" value={form.admissionDate} onChange={set("admissionDate")} />
           <Input label="Registration No" value={form.registrationNo} onChange={set("registrationNo")} placeholder="Registration No" />
