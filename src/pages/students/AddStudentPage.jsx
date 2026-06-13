@@ -5,14 +5,15 @@
  * Cloudinary-backed upload + student-documents endpoints. A STUDENT login is
  * created automatically.
  */
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, Textarea } from "../../components/ui";
 import { UserPlus, Save, Camera, X, Plus, Trash2, Upload, FileText, FileDown } from "lucide-react";
-import { useCreateStudentMutation } from "../../redux/api/studentsApi";
+import { useCreateStudentMutation, useUpdateStudentMutation, useGetStudentQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
+import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { uploadImageFile, uploadDocumentFile } from "../../services/upload";
 import { printRecord } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
@@ -48,8 +49,47 @@ const EMPTY = {
 
 const EMPTY_EDU = { courseName: "", passingYear: "", marksOrGrade: "", schoolName: "" };
 
+// Map a student record (from the list row or GET /students/:id) onto the form
+// shape so editing prefills every field with current values.
+const iso = (d) => (d ? String(d).slice(0, 10) : "");
+function mapStudentToForm(s) {
+  return {
+    ...EMPTY,
+    name: [s.user?.firstName, s.user?.lastName].filter(Boolean).join(" ").trim(),
+    email: s.user?.email || "",
+    phone: s.user?.phone || "",
+    password: "", // leave blank — only updates the login password if filled
+    gender: s.gender || "",
+    dateOfBirth: iso(s.dateOfBirth),
+    bloodGroup: s.bloodGroup || "", category: s.category || "", caste: s.caste || "",
+    religion: s.religion || "", motherTongue: s.motherTongue || "",
+    aadharNumber: s.aadharNumber || "", penNumber: s.penNumber || "", apaarNo: s.apaarNo || "",
+    smartCardNo: s.smartCardNo || "", height: s.height || "", weight: s.weight || "", remarks: s.remarks || "",
+    enabled: s.user?.isActive ?? true, photo: s.photo || "",
+    session: EMPTY.session, feePlan: s.feePlan || "REGULAR",
+    classId: s.section?.class?.id || "", sectionName: s.section?.name || "",
+    rollNumber: s.rollNumber || "", admissionNumber: s.admissionNumber || "",
+    admissionDate: iso(s.admissionDate), registrationNo: s.registrationNo || "",
+    hostelAllotted: s.hostelAllotted || false, hostelName: s.hostelName || "", hostelRoomNo: s.hostelRoomNo || "",
+    transportAllotted: s.transportAllotted || false, transportRoute: s.transportRoute || "", busNo: s.busNo || "",
+    fatherName: s.fatherName || "", motherName: s.motherName || "",
+    fatherOccupation: s.fatherOccupation || "", motherOccupation: s.motherOccupation || "",
+    fatherQualification: s.fatherQualification || "", motherQualification: s.motherQualification || "",
+    fatherAadhar: s.fatherAadhar || "", motherAadhar: s.motherAadhar || "",
+    guardianName: s.guardianName || "", guardianPhone: s.guardianPhone || "", guardianEmail: s.guardianEmail || "",
+    address: s.address || "", permanentAddress: s.permanentAddress || "", city: s.city || "", pincode: s.pincode || "",
+  };
+}
+
 export default function AddStudentPage({ title = "Add Student", subtitle = "Admit a new student", redirectTo = "/students/search" } = {}) {
-  usePageTitle(title);
+  const [params] = useSearchParams();
+  const editId = params.get("id") || "";
+  const isEdit = !!editId;
+  const pageTitle = isEdit ? "Edit Student" : title;
+  const pageSubtitle = isEdit ? "Update student details and fill in missing fields" : subtitle;
+  const doneTo = isEdit ? "/students/list" : redirectTo;
+
+  usePageTitle(pageTitle);
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY);
   const [education, setEducation] = useState([{ ...EMPTY_EDU }]);
@@ -57,7 +97,29 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
   const [uploading, setUploading] = useState(false);
 
   const { data: classes = [] } = useGetClassesQuery();
-  const [createStudent, { isLoading }] = useCreateStudentMutation();
+  // Sessions configured under Settings → Sessions feed this dropdown; fall back to
+  // the computed Apr–Mar defaults when none have been set up yet.
+  const { data: sessionList = [] } = useGetSessionsQuery();
+  const sessionOptions = [...new Set([
+    ...(sessionList.length ? sessionList.map((s) => s.name) : SESSIONS),
+  ])];
+  const [createStudent, { isLoading: creating }] = useCreateStudentMutation();
+  const [updateStudent, { isLoading: updating }] = useUpdateStudentMutation();
+  const isLoading = creating || updating;
+
+  // Edit mode: prefill the whole form so the admin can change current values and
+  // fill empty fields. When we arrive from the Student List we already have the
+  // full row (passed via navigation state) — prefill instantly and skip the
+  // network round-trip. Only fetch when the page is opened directly by URL.
+  const location = useLocation();
+  const stateStudent = location.state?.student || null;
+  const { data: existingRes } = useGetStudentQuery(editId, { skip: !isEdit || !!stateStudent });
+  useEffect(() => {
+    const s = stateStudent ?? existingRes?.data ?? existingRes;
+    if (!isEdit || !s) return;
+    setForm(mapStudentToForm(s));
+    setEducation(Array.isArray(s.educationHistory) && s.educationHistory.length ? s.educationHistory.map((r) => ({ ...EMPTY_EDU, ...r })) : [{ ...EMPTY_EDU }]);
+  }, [existingRes, stateStudent, isEdit]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setChk = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.checked }));
@@ -107,6 +169,8 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
       firstName,
       lastName,
       email: form.email || `${form.rollNumber.toLowerCase()}@student.local`,
+      // On create, fall back to the default login password. On edit, only send a
+      // password when the admin typed a new one (handled below).
       password: form.password || "Student@123",
       phone: form.phone,
       gender: form.gender || "Male",
@@ -156,10 +220,17 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
     };
 
     try {
-      const created = await createStudent(payload).unwrap();
-      const studentId = created?.data?.id ?? created?.id;
+      let studentId = editId;
+      if (isEdit) {
+        const editPayload = { ...payload, enabled: form.enabled };
+        if (form.password) editPayload.password = form.password; else delete editPayload.password;
+        await updateStudent({ id: editId, ...editPayload }).unwrap();
+      } else {
+        const created = await createStudent(payload).unwrap();
+        studentId = created?.data?.id ?? created?.id;
+      }
 
-      // Upload any selected documents now that we have the student id.
+      // Upload any newly selected documents now that we have the student id.
       if (studentId && docs.length) {
         for (const d of docs) {
           try {
@@ -169,12 +240,13 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
             toast.error(`Could not upload "${d.name}": ${docErr?.response?.data?.error || docErr.message}`);
           }
         }
+        setDocs([]);
       }
 
-      toast.success("Student admitted successfully");
-      navigate(redirectTo);
+      toast.success(isEdit ? "Student updated successfully" : "Student admitted successfully");
+      navigate(doneTo);
     } catch (err) {
-      toast.error(err?.data?.error || "Failed to create student");
+      toast.error(err?.data?.error || (isEdit ? "Failed to update student" : "Failed to create student"));
     }
   };
 
@@ -219,9 +291,9 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
 
   return (
     <form onSubmit={submit} className="space-y-4 w-full">
-      <PageHeader title={title} subtitle={subtitle} icon={<UserPlus size={18} />}>
+      <PageHeader title={pageTitle} subtitle={pageSubtitle} icon={<UserPlus size={18} />}>
         <Button type="button" variant="secondary" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
-        <Button type="submit" loading={isLoading} icon={<Save size={14} />}>Save Student</Button>
+        <Button type="submit" loading={isLoading} icon={<Save size={14} />}>{isEdit ? "Update Student" : "Save Student"}</Button>
       </PageHeader>
 
       {/* ── Basic Information ─────────────────────────────────────────────── */}
@@ -306,7 +378,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
       <Card title="Admission Information">
         <div className="p-5 grid grid-cols-1 md:grid-cols-4 gap-4">
           <Select label="Session" value={form.session} onChange={set("session")}
-            options={SESSIONS.map((s) => ({ value: s, label: s }))} />
+            options={[...new Set([...sessionOptions, form.session].filter(Boolean))].map((s) => ({ value: s, label: s }))} />
           <Select label="Fee Plan *" value={form.feePlan} onChange={set("feePlan")}
             options={FEE_PLANS.map((p) => ({ value: p, label: p }))} />
           <Select label="Class *" value={form.classId} onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value, sectionName: "" }))}
@@ -393,9 +465,9 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
       </Card>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={() => navigate(redirectTo)}>Cancel</Button>
+        <Button type="button" variant="secondary" onClick={() => navigate(doneTo)}>Cancel</Button>
         <Button type="button" variant="outline" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
-        <Button type="submit" loading={isLoading} icon={<Save size={14} />}>Submit</Button>
+        <Button type="submit" loading={isLoading} icon={<Save size={14} />}>{isEdit ? "Update" : "Submit"}</Button>
       </div>
     </form>
   );
