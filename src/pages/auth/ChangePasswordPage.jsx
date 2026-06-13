@@ -86,9 +86,9 @@ export default function ChangePasswordPage() {
   );
 
   return (
-    <div>
+    <div className="max-w-lg mx-auto">
       <PageHeader title="Change Password" subtitle="Account" icon={<Lock size={18} />} />
-      <Card className="max-w-lg">
+      <Card className="p-7">
         <form onSubmit={submit} className="space-y-4">
           {success && (
             <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-lg text-sm">

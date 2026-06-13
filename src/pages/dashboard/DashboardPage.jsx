@@ -75,7 +75,7 @@ function SchoolDashboard() {
   const dashboardData = stats || getDefaultStats();
   return (
     <div>
-      <WelcomeBanner name={user?.name??"Demo"}/>
+      <WelcomeBanner name={user?.name??"Demo"} schoolName={user?.schoolName} schoolLogo={user?.schoolLogo}/>
       {/* Date-wise filter — scopes fee collection + attendance metrics */}
       <Card className="mb-4">
         <div className="p-4 flex flex-wrap items-end gap-3">

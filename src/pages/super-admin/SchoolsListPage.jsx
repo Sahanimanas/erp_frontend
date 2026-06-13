@@ -8,8 +8,9 @@ import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
 import { loginSuccess } from "../../redux/slices/authSlice";
 import {
-  Building2, Eye, Pencil, Ban, CheckCircle2, Trash2, LogIn, Plus,
+  Building2, Eye, Pencil, Ban, CheckCircle2, Trash2, LogIn, Plus, KeyRound,
 } from "lucide-react";
+import { ResetPasswordModal } from "./_ResetPasswordModal";
 import {
   Card, DataTable, Pagination, SearchInput, Select, PageHeader,
   Button, Avatar, Modal, ExportButton,
@@ -36,6 +37,7 @@ export default function SchoolsListPage() {
   const [status, setStatus] = useState("all");
   const [planId, setPlanId] = useState("");
   const [confirm, setConfirm] = useState(null); // { type, school }
+  const [resetSchool, setResetSchool] = useState(null); // school whose admin pw is being reset
 
   const limit = 10;
   const queryArgs = {
@@ -99,6 +101,8 @@ export default function SchoolsListPage() {
           email: res.user.email,
           role: res.user.role,
           schoolId: res.user.schoolId,
+          schoolName: res.school?.name ?? school.name ?? null,
+          schoolLogo: res.school?.logo ?? school.logo ?? null,
           avatar: null,
         },
       }));
@@ -168,6 +172,7 @@ export default function SchoolsListPage() {
             {row.isActive ? <Ban size={14} /> : <CheckCircle2 size={14} />}
           </button>
           <button title="Login as Admin" disabled={impersonating} onClick={() => handleLoginAs(row)} className="p-1.5 rounded-lg hover:bg-slate-100 text-indigo-500"><LogIn size={14} /></button>
+          <button title="Reset Admin Password" onClick={() => setResetSchool(row)} className="p-1.5 rounded-lg hover:bg-slate-100 text-violet-500"><KeyRound size={14} /></button>
           <button title="Delete" onClick={() => setConfirm({ type: "delete", school: row })} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 size={14} /></button>
         </div>
       ),
@@ -226,6 +231,13 @@ export default function SchoolsListPage() {
           <Button variant="danger" loading={deleting} onClick={handleDelete}>Delete</Button>
         </div>
       </Modal>
+
+      {/* Reset school admin password */}
+      <ResetPasswordModal
+        open={!!resetSchool}
+        onClose={() => setResetSchool(null)}
+        school={resetSchool ? { id: resetSchool.id, name: resetSchool.name } : null}
+      />
     </div>
   );
 }

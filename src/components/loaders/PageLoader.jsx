@@ -51,8 +51,9 @@ export function SpinnerLoader({ size = 16, className = "" }) {
 }
 
 /**
- * Loader — triple-ring blue spinner (see `.loader` in index.css). Centered in a
- * flex box with an optional label; use for full-section / full-page loading.
+ * Loader — green "LOADING" ring spinner (see `.loader-*` in index.css). A spinning
+ * green arc orbits static, glowing "LOADING" text. Centered in a flex box with an
+ * optional label; use for full-section / full-page loading on every page.
  */
 export function Loader({ label = "", className = "", minH = "70vh" }) {
   return (
@@ -62,7 +63,10 @@ export function Loader({ label = "", className = "", minH = "70vh" }) {
       role="status"
       aria-label={label || "Loading"}
     >
-      <span className="loader" />
+      <div className="loader-wrap">
+        <span className="loader-ring" />
+        <span className="loader-text">LOADING</span>
+      </div>
       {label && <p className="text-sm text-slate-500">{label}</p>}
     </div>
   );

@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search, X, Download } from "lucide-react";
+import { Loader } from "../loaders/PageLoader";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BUTTON
@@ -269,11 +270,7 @@ export function DataTable({ columns = [], data = [], loading = false, emptyText 
       })
     : data;
 
-  if (loading) return (
-    <div className="p-4 space-y-2.5 animate-pulse">
-      {[...Array(6)].map((_, i) => <div key={i} className="h-10 bg-slate-100 rounded-lg" />)}
-    </div>
-  );
+  if (loading) return <Loader minH="280px" />;
 
   return (
     <div className="overflow-x-auto">
@@ -378,19 +375,36 @@ export function Pagination({ page, total, pageSize, onPageChange }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // WELCOME BANNER
 // ─────────────────────────────────────────────────────────────────────────────
-export function WelcomeBanner({ name = "Demo" }) {
+export function WelcomeBanner({ name = "Demo", schoolName = "", schoolLogo = null }) {
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
+  // Once logged into a school, the banner represents the institution — show the
+  // school name + logo instead of the individual admin's name.
+  const title = schoolName || name;
+  const initials = (schoolName || name || "S").trim().charAt(0).toUpperCase();
   return (
     <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 text-white px-6 py-5 mb-6">
       <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/5" />
       <div className="absolute right-16 -bottom-10 w-44 h-44 rounded-full bg-white/5" />
       <div className="absolute right-4 top-4 w-16 h-16 rounded-full bg-white/10" />
       <div className="relative z-10 flex items-center justify-between">
-        <div>
-          <h2 className="text-[18px] font-bold">Welcome, {name} 👋</h2>
-          <p className="text-indigo-200 text-[12px] mt-1">Today is {today}</p>
+        <div className="flex items-center gap-3">
+          {schoolLogo ? (
+            <img
+              src={schoolLogo}
+              alt={title}
+              className="w-12 h-12 rounded-xl object-cover bg-white/15 border border-white/25 shrink-0"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center text-lg font-bold shrink-0">
+              {initials}
+            </div>
+          )}
+          <div>
+            <h2 className="text-[18px] font-bold">Welcome, {title} 👋</h2>
+            <p className="text-indigo-200 text-[12px] mt-1">Today is {today}</p>
+          </div>
         </div>
         <div className="hidden sm:flex items-center gap-2 bg-white/15 border border-white/25 px-4 py-2 rounded-xl">
           <span className="text-[12px] font-semibold">

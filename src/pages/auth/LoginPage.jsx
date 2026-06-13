@@ -49,6 +49,8 @@ export default function LoginPage() {
             email: user.email,
             role: user.role,
             schoolId: user.schoolId,
+            schoolName: user.schoolName ?? null,
+            schoolLogo: user.schoolLogo ?? null,
             avatar: null
           }
         }));

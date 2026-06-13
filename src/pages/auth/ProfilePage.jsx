@@ -44,7 +44,7 @@ export default function ProfilePage() {
     : [];
 
   return (
-    <div>
+    <div className="max-w-3xl mx-auto">
       <PageHeader title="My Profile" subtitle="Account" icon={<UserCog size={18} />} />
 
       {loading ? (
@@ -52,7 +52,7 @@ export default function ProfilePage() {
       ) : error ? (
         <Card><div className="p-6 text-center text-red-600 text-sm">{error}</div></Card>
       ) : (
-        <Card>
+        <Card className="p-7">
           <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
             <Avatar name={fullName} size="lg" />
             <div>
@@ -63,9 +63,9 @@ export default function ProfilePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-5">
             {fields.map(([label, value]) => (
-              <div key={label} className="bg-slate-50 rounded-lg p-3">
-                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">{label}</p>
-                <p className="text-[13px] font-semibold text-slate-700 mt-0.5 break-words">{value || "—"}</p>
+              <div key={label} className="bg-slate-50 rounded-lg px-3 py-2.5 flex flex-col">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide leading-4">{label}</span>
+                <span className="text-[13px] font-semibold text-slate-700 mt-1 break-words leading-5 min-h-[20px]">{value || "—"}</span>
               </div>
             ))}
           </div>

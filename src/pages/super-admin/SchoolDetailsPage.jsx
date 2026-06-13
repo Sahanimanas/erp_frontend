@@ -11,6 +11,7 @@ import { loginSuccess } from "../../redux/slices/authSlice";
 import {
   Building2, ArrowLeft, LogIn, Users as UsersIcon, HardDrive, Layers,
   CreditCard, ScrollText, Settings as SettingsIcon, Mail, Phone, MapPin, Globe,
+  KeyRound,
 } from "lucide-react";
 import {
   Card, Tabs, PageHeader, Button, Input, Select, DataTable, Pagination,
@@ -22,6 +23,7 @@ import {
   useUpdateSchoolModulesMutation, useUpdateSchoolMutation, useSuspendSchoolMutation,
   useActivateSchoolMutation, useGetAuditLogsQuery, useLoginAsSchoolAdminMutation,
 } from "../../redux/api/superAdminApi";
+import { ResetPasswordModal } from "./_ResetPasswordModal";
 import {
   StatusBadge, PlanBadge, formatBytes, formatMoney, formatDate, formatDateTime, ROOT_DOMAIN,
 } from "./_saShared";
@@ -46,6 +48,7 @@ export default function SchoolDetailsPage() {
 
   const { data: school, isLoading, isError } = useGetSchoolQuery(id);
   const [loginAs, { isLoading: impersonating }] = useLoginAsSchoolAdminMutation();
+  const [resetOpen, setResetOpen] = useState(false);
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-20" /><Skeleton className="h-96" /></div>;
   if (isError || !school) {
@@ -67,6 +70,8 @@ export default function SchoolDetailsPage() {
           email: res.user.email,
           role: res.user.role,
           schoolId: res.user.schoolId,
+          schoolName: res.school?.name ?? school?.name ?? null,
+          schoolLogo: res.school?.logo ?? school?.logo ?? null,
           avatar: null,
         },
       }));
@@ -81,8 +86,11 @@ export default function SchoolDetailsPage() {
     <div className="space-y-4">
       <PageHeader title={school.name} subtitle={school.primaryDomain || `${school.slug}.${ROOT_DOMAIN}`} icon={<Building2 size={18} />}>
         <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => navigate("/super-admin/schools")}>Back</Button>
+        <Button variant="outline" icon={<KeyRound size={15} />} onClick={() => setResetOpen(true)}>Reset Password</Button>
         <Button icon={<LogIn size={15} />} loading={impersonating} onClick={handleLoginAs}>Login as Admin</Button>
       </PageHeader>
+
+      <ResetPasswordModal open={resetOpen} onClose={() => setResetOpen(false)} school={{ id, name: school.name }} />
 
       {/* Identity strip */}
       <Card>

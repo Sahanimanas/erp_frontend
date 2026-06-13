@@ -68,6 +68,16 @@ export const superAdminApi = baseApi.injectEndpoints({
       transformResponse: unwrap,
       invalidatesTags: ["SaAudit"],
     }),
+    resetSchoolAdminPassword: build.mutation({
+      // password optional — omit to have the server generate a strong one.
+      query: ({ id, password }) => ({
+        url: `/admin/schools/${id}/reset-password`,
+        method: "POST",
+        body: password ? { password } : {},
+      }),
+      transformResponse: unwrap,
+      invalidatesTags: ["SaAudit"],
+    }),
     checkSubdomain: build.mutation({
       query: (subdomain) => ({ url: "/admin/schools/check-subdomain", method: "POST", body: { subdomain } }),
       transformResponse: unwrap,
@@ -154,6 +164,7 @@ export const {
   useUpdateSchoolModulesMutation,
   useGetSchoolUsersQuery,
   useLoginAsSchoolAdminMutation,
+  useResetSchoolAdminPasswordMutation,
   useCheckSubdomainMutation,
   useGetPlansQuery,
   useCreatePlanMutation,

@@ -31,19 +31,22 @@ function Icon({ name, size = 16, className = "" }) {
 }
 
 // ─── Nav leaf item (link) ──────────────────────────────────────────────────
-function NavLeaf({ item, collapsed, onNavigate }) {
+function NavLeaf({ item, collapsed, onNavigate, dim = false }) {
   return (
     <NavLink
       to={item.path}
       end
       onClick={onNavigate}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group border-l-2
-         ${isActive
-           ? "bg-emerald-500/10 text-emerald-300 font-semibold border-emerald-400"
-           : "text-slate-400 hover:text-white hover:bg-white/5 border-transparent"
-         }`
-      }
+      className={({ isActive }) => {
+        // `dim` forces the inactive look even on the active route — used so the
+        // Dashboard stops looking selected once the user opens another section.
+        const active = isActive && !dim;
+        return `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group border-t
+         ${active
+           ? "bg-emerald-500/20 text-white font-bold border-emerald-400"
+           : "text-white hover:bg-white/10 border-white/20 hover:border-white/40"
+         }`;
+      }}
       title={collapsed ? item.label : undefined}
     >
       <span className="flex-shrink-0">
@@ -77,10 +80,10 @@ function NavParent({ item, collapsed, onNavigate }) {
       <button
         onClick={() => !collapsed && dispatch(toggleSection(item.key))}
         className={`
-          w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left
+          w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left border-t
           ${isExpanded || isParentActive
-            ? "bg-emerald-500/10 text-emerald-300"
-            : "text-slate-400 hover:text-white hover:bg-white/5"
+            ? "bg-emerald-500/20 text-white font-bold border-emerald-400"
+            : "text-white hover:bg-white/10 border-white/20 hover:border-white/40"
           }
         `}
         title={collapsed ? item.label : undefined}
@@ -107,7 +110,7 @@ function NavParent({ item, collapsed, onNavigate }) {
           className="overflow-hidden transition-all duration-200"
           style={{ maxHeight: isExpanded ? `${item.children.length * 40}px` : "0px" }}
         >
-          <div className="ml-4 mt-1 border-l border-slate-700/40 pl-3 space-y-0.5 pb-1">
+          <div className="ml-4 mt-1 border-l border-white/15 pl-3 space-y-0.5 pb-1">
             {item.children
               .filter((c) => !c.hidden)
               .map((child) => (
@@ -117,10 +120,10 @@ function NavParent({ item, collapsed, onNavigate }) {
                   end
                   onClick={onNavigate}
                   className={({ isActive }) =>
-                    `flex items-center gap-2.5 px-3 py-2 rounded-md text-[11.5px] transition-all duration-150
+                    `flex items-center gap-2.5 px-3 py-2 rounded-md text-[11.5px] transition-all duration-150 border-t
                      ${isActive
-                       ? "bg-emerald-500/10 text-emerald-300 font-semibold"
-                       : "text-slate-500 hover:text-white hover:bg-white/5"
+                       ? "bg-emerald-500/20 text-white font-bold border-emerald-400"
+                       : "text-white/80 hover:text-white hover:bg-white/10 border-white/15 hover:border-white/40"
                      }`
                   }
                 >
@@ -151,9 +154,19 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     return () => mq.removeEventListener("change", apply);
   }, []);
   const collapsed        = isMobile ? false : collapsedPref;
+  const expandedSections = useSelector(selectExpandedSections);
+  // True once the user opens any expandable section — used to drop the Dashboard
+  // highlight so two items aren't shown "selected" at the same time.
+  const anyExpanded      = expandedSections.length > 0;
   const userRole         = useSelector(selectUserRole);
   const user             = useSelector(selectUser);
   const initials         = user?.name ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) : "U";
+
+  // Brand shown at the top of the sidebar. For a school user it's their own
+  // school's name + logo; the Super Admin (no school) sees the platform brand.
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
+  const brandName    = (!isSuperAdmin && user?.schoolName) || "GlobalSchoolMitra";
+  const brandLogo    = (!isSuperAdmin && user?.schoolLogo) || logo;
 
   // Logout: best-effort revoke the refresh token server-side, then clear all
   // client auth state (Redux + localStorage via the logout reducer) and bounce
@@ -205,18 +218,18 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       className={`
         fixed lg:static inset-y-0 left-0 z-50
         flex flex-col shrink-0
-        bg-[#0f172a] border-r border-slate-800/50
+        bg-gray-900 border-r-4 border-white/10
         transition-all duration-300 ease-in-out
         ${collapsed ? "w-[52px]" : "w-[220px]"}
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
     >
       {/* ── Logo ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between h-14 px-3 border-b border-slate-800/50 shrink-0">
+      <div className="flex items-center justify-between h-14 px-3 border-b border-white/10 shrink-0">
         {!collapsed && (
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             {logoOk ? (
-              <img src={logo} alt="Global School Mitra"
+              <img src={brandLogo} alt={brandName}
                 onError={() => setLogoOk(false)}
                 className="w-8 h-8 rounded-xl object-contain bg-white shrink-0" />
             ) : (
@@ -224,13 +237,12 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
                 <Icons.GraduationCap size={16} className="text-white" />
               </div>
             )}
-            <span className="text-white font-bold text-[13px] tracking-wide">GlobalSchoolMitra</span>
-            {/* <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Pro</span> */}
+            <span className="text-white font-bold text-[13px] tracking-wide truncate">{brandName}</span>
           </div>
         )}
         {collapsed && (
           logoOk ? (
-            <img src="/logo.png" alt="Global School Mitra"
+            <img src={brandLogo} alt={brandName}
               onError={() => setLogoOk(false)}
               className="w-8 h-8 rounded-xl object-contain bg-white mx-auto" />
           ) : (
@@ -242,7 +254,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         {!collapsed && (
           <button
             onClick={() => dispatch(toggleSidebar())}
-            className="hidden lg:inline-flex text-slate-500 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5"
+            className="hidden lg:inline-flex text-slate-200 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10"
             title="Collapse sidebar"
           >
             <Icons.PanelLeftClose size={15} />
@@ -254,7 +266,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {collapsed && (
         <button
           onClick={() => dispatch(toggleSidebar())}
-          className="flex items-center justify-center py-2 text-slate-500 hover:text-white transition-colors"
+          className="flex items-center justify-center py-2 text-slate-200 hover:text-white transition-colors"
         >
           <Icons.PanelLeftOpen size={15} />
         </button>
@@ -263,27 +275,33 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {/* ── Nav ──────────────────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         {!collapsed && (
-          <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest px-3 mb-2">MAIN</p>
+          <p className="text-[9px] font-bold text-slate-200 uppercase tracking-widest px-3 mb-2">MAIN</p>
         )}
 
         {visibleNav.map((item) =>
           item.children ? (
             <NavParent key={item.key} item={item} collapsed={collapsed} onNavigate={onMobileClose} />
           ) : (
-            <NavLeaf key={item.key} item={item} collapsed={collapsed} onNavigate={onMobileClose} />
+            <NavLeaf
+              key={item.key}
+              item={item}
+              collapsed={collapsed}
+              onNavigate={onMobileClose}
+              dim={item.key === "dashboard" && anyExpanded}
+            />
           )
         )}
       </nav>
 
       {/* ── Profile + Logout ─────────────────────────────────────────── */}
-      <div className="p-2 border-t border-slate-800/50 shrink-0">
+      <div className="p-2 border-t border-white/10 shrink-0">
         {collapsed ? (
           <div className="flex flex-col items-center gap-1.5">
             <NavLink to="/account/profile" title={user?.name || "My Profile"}
               className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold">
               {initials}
             </NavLink>
-            <button onClick={handleLogout} title="Logout" className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            <button onClick={handleLogout} title="Logout" className="p-2 rounded-lg text-slate-200 hover:text-red-400 hover:bg-red-500/10 transition-colors">
               <Icons.LogOut size={16} />
             </button>
           </div>
@@ -297,11 +315,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
               </div>
               <div className="min-w-0 text-left">
                 <p className="text-[12px] font-semibold text-white truncate">{user?.name || "User"}</p>
-                <p className="text-[10px] text-slate-400 truncate">{user?.role || ""}</p>
+                <p className="text-[10px] text-slate-200 truncate">{user?.role || ""}</p>
               </div>
             </NavLink>
             <button onClick={handleLogout} title="Logout"
-              className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
+              className="p-2 rounded-lg text-slate-200 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
               <Icons.LogOut size={16} />
             </button>
           </div>
