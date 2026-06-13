@@ -17,13 +17,16 @@ export const FREQUENCIES = ["Monthly", "Quarterly", "Session"];
 // Frequencies that collect across specific months (need a Month-Year picker).
 const MONTHLY_LIKE = ["Monthly", "Quarterly"];
 
-// 12 academic months Jun→May for the current cycle (matches the reference UI).
+// 12 academic months Apr→Mar for the current session. The Indian academic
+// session runs April→March, so the cycle starts in April: if we're in April or
+// later the session began this calendar year, otherwise it began last year.
 export function academicMonths() {
   const now = new Date();
-  const startYear = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+  const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
   const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const out = [];
-  for (let i = 5; i < 17; i++) {
+  // April (index 3) of the start year through March (index 2) of the next year.
+  for (let i = 3; i < 15; i++) {
     const m = i % 12;
     const y = startYear + (i >= 12 ? 1 : 0);
     out.push(`${names[m]}-${y}`);

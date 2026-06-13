@@ -457,6 +457,7 @@ export const routeConfig = [
     roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT],
     children: [
       { key: "pay-student",   label: "Student Fee Payment", path: "/payments/student-fee",   icon: "CreditCard",   lazy: lazy("payments/StudentFeePaymentPage"), roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
+      { key: "pay-quick",     label: "Quick Collect",       path: "/payments/quick-collect", icon: "Wallet",       lazy: lazy("payments/QuickCollectPage"),      roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
       { key: "pay-monthly",   label: "Monthly Fee Payment", path: "/payments/monthly",       icon: "CalendarClock",lazy: lazy("payments/MonthlyFeePaymentPage"), roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
       { key: "pay-create",    label: "Add Fee Payment",     path: "/payments/create",        icon: "ReceiptText",  lazy: lazy("payments/CreateFeePaymentPage"),  roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
       { key: "pay-demand",    label: "Demand Receipt",      path: "/payments/demand-receipt",icon: "FileText",     lazy: lazy("payments/DemandReceiptPage"),     roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
