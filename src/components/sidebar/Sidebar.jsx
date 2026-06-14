@@ -187,6 +187,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
   // Filter nav items the user can see
   const filteredNav = routeConfig.filter((item) => {
+    // Hidden sections are kept routable but never shown in the sidebar.
+    if (item.hidden) return false;
     // Super Admin manages the SaaS platform only — show just the "Platform"
     // section, not the school-operational modules (many of which also list
     // SUPER_ADMIN in their roles).

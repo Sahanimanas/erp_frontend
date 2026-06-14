@@ -91,6 +91,7 @@ export const routeConfig = [
   // ── Task Management ───────────────────────────────────────────────────────
   {
     key: "tasks",
+    hidden: true,
     label: "Task Management",
     path: "/tasks",
     icon: "ClipboardList",
@@ -106,6 +107,7 @@ export const routeConfig = [
   // ── House System ──────────────────────────────────────────────────────────
   {
     key: "house",
+    hidden: true,
     label: "House System",
     path: "/house",
     icon: "Home",
@@ -121,6 +123,7 @@ export const routeConfig = [
   // ── Inventory ─────────────────────────────────────────────────────────────
   {
     key: "inventory",
+    hidden: true,
     label: "Inventory",
     path: "/inventory",
     icon: "Package",
@@ -141,6 +144,7 @@ export const routeConfig = [
   // ── License & Payments ────────────────────────────────────────────────────
   {
     key: "license",
+    hidden: true,
     label: "License & Payments",
     path: "/license",
     icon: "CreditCard",
@@ -151,6 +155,7 @@ export const routeConfig = [
   // ── Reception ─────────────────────────────────────────────────────────────
   {
     key: "reception",
+    hidden: true,
     label: "Reception",
     path: "/reception",
     icon: "Building2",
@@ -267,6 +272,7 @@ export const routeConfig = [
   // ── Academic ──────────────────────────────────────────────────────────────
   {
     key: "academic",
+    hidden: true,
     label: "Academic",
     path: "/academic",
     icon: "BookOpen",
@@ -451,6 +457,7 @@ export const routeConfig = [
   // ── Payments ────────────────────────────────────────────────────────────────
   {
     key: "payments",
+    hidden: true,
     label: "Payments",
     path: "/payments",
     icon: "CreditCard",
@@ -551,6 +558,7 @@ export const routeConfig = [
   // ── Alumni ────────────────────────────────────────────────────────────────
   {
     key: "alumni",
+    hidden: true,
     label: "Alumni",
     path: "/alumni",
     icon: "GraduationCap",
@@ -568,22 +576,22 @@ export const routeConfig = [
     icon: "Settings",
     roles: ADMIN_ONLY,
     children: [
-      { key: "settings-general",      label: "Global Settings",       path: "/settings/general",           icon: "Settings",   lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
+      { key: "settings-general",      label: "Global Settings",       path: "/settings/general",           icon: "Settings",   lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
       { key: "settings-classes",      label: "Classes & Sections",    path: "/settings/classes",           icon: "School",     lazy: () => import("../pages/settings/ManageClassesPage"),               roles: ADMIN_ONLY },
       { key: "settings-sessions",     label: "Sessions",              path: "/settings/sessions",          icon: "CalendarRange", lazy: () => import("../pages/settings/ManageSessionsPage"),           roles: ADMIN_ONLY },
-      { key: "settings-school",       label: "School Settings",       path: "/settings/school",            icon: "School",     lazy: lazy("settings/SchoolInfoPage"),                                   roles: ADMIN_ONLY },
-      { key: "settings-roles",        label: "Role Permission",       path: "/settings/roles",             icon: "Shield",     lazy: lazy("settings/RolesPage"),                                        roles: [ROLES.SUPER_ADMIN] },
-      { key: "settings-translations", label: "Translations",          path: "/settings/translations",      icon: "Globe",      lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-cron",         label: "Cron Job",              path: "/settings/cron",              icon: "Clock",      lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-bell",         label: "Bell Timing",           path: "/settings/bell",              icon: "Bell",       lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-bell-assign",  label: "Bell Assign By D...",   path: "/settings/bell-assign",       icon: "Bell",       lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-sys-student",  label: "System Student ...",    path: "/settings/system-student",    icon: "User",       lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-custom-field", label: "Custom Field",          path: "/settings/custom-field",      icon: "Sliders",    lazy: () => import("../pages/settings/CustomFieldPage"),                 roles: ADMIN_ONLY },
-      { key: "settings-db-backup",    label: "Database Backup",       path: "/settings/database-backup",   icon: "Database",   lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-branch-mig",   label: "Branch Migration",      path: "/settings/branch-migration",  icon: "GitBranch",  lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-mobile-dl",    label: "Mobile App Dow...",     path: "/settings/mobile-app-dl",     icon: "Smartphone", lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-sys-update",   label: "System Update",         path: "/settings/system-update",     icon: "RefreshCw",  lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
-      { key: "settings-login-log",    label: "User Login Log",        path: "/settings/login-log",         icon: "FileText",   lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY },
+      { key: "settings-school",       label: "School Settings",       path: "/settings/school",            icon: "School",     lazy: lazy("settings/SchoolInfoPage"),                                   roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-roles",        label: "Role Permission",       path: "/settings/roles",             icon: "Shield",     lazy: lazy("settings/RolesPage"),                                        roles: [ROLES.SUPER_ADMIN], hidden: true },
+      { key: "settings-translations", label: "Translations",          path: "/settings/translations",      icon: "Globe",      lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-cron",         label: "Cron Job",              path: "/settings/cron",              icon: "Clock",      lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-bell",         label: "Bell Timing",           path: "/settings/bell",              icon: "Bell",       lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-bell-assign",  label: "Bell Assign By D...",   path: "/settings/bell-assign",       icon: "Bell",       lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-sys-student",  label: "System Student ...",    path: "/settings/system-student",    icon: "User",       lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-custom-field", label: "Custom Field",          path: "/settings/custom-field",      icon: "Sliders",    lazy: () => import("../pages/settings/CustomFieldPage"),                 roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-db-backup",    label: "Database Backup",       path: "/settings/database-backup",   icon: "Database",   lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-branch-mig",   label: "Branch Migration",      path: "/settings/branch-migration",  icon: "GitBranch",  lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-mobile-dl",    label: "Mobile App Dow...",     path: "/settings/mobile-app-dl",     icon: "Smartphone", lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-sys-update",   label: "System Update",         path: "/settings/system-update",     icon: "RefreshCw",  lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
+      { key: "settings-login-log",    label: "User Login Log",        path: "/settings/login-log",         icon: "FileText",   lazy: lazy("settings/GeneralSettingsPage"),                              roles: ADMIN_ONLY, hidden: true },
     ],
   },
 
