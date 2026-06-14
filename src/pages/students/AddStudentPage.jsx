@@ -85,8 +85,11 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
   const [params] = useSearchParams();
   const editId = params.get("id") || "";
   const isEdit = !!editId;
-  const pageTitle = isEdit ? "Edit Student" : title;
-  const pageSubtitle = isEdit ? "Update student details and fill in missing fields" : subtitle;
+  // View mode (?view=1): same form layout, read-only — used as the full student
+  // profile page. Fields are disabled via a <fieldset disabled> wrapper.
+  const isView = params.get("view") === "1";
+  const pageTitle = isView ? "Student Profile" : isEdit ? "Edit Student" : title;
+  const pageSubtitle = isView ? "Complete student record" : isEdit ? "Update student details and fill in missing fields" : subtitle;
   const doneTo = isEdit ? "/students/list" : redirectTo;
 
   usePageTitle(pageTitle);
@@ -207,6 +210,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
 
   const submit = async (e) => {
     e.preventDefault();
+    if (isView) return; // read-only profile view never submits
     if (!form.name.trim() || !form.classId || !form.sectionName || !form.rollNumber || !form.dateOfBirth) {
       toast.error("Name, class, section, roll number and date of birth are required");
       return;
@@ -345,8 +349,15 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
     <form onSubmit={submit} className="space-y-4 w-full">
       <PageHeader title={pageTitle} subtitle={pageSubtitle} icon={<UserPlus size={18} />}>
         <Button type="button" variant="secondary" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
-        <Button type="submit" loading={isLoading} icon={<Save size={14} />}>{isEdit ? "Update Student" : "Save Student"}</Button>
+        {isView ? (
+          <Button type="button" icon={<UserPlus size={14} />} onClick={() => navigate(`/students/add?id=${editId}`)}>Edit Student</Button>
+        ) : (
+          <Button type="submit" loading={isLoading} icon={<Save size={14} />}>{isEdit ? "Update Student" : "Save Student"}</Button>
+        )}
       </PageHeader>
+
+      {/* All fields live inside a fieldset so view mode can disable them all at once. */}
+      <fieldset disabled={isView} className="space-y-4 w-full min-w-0 border-0 p-0 m-0">
 
       {/* ── Basic Information ─────────────────────────────────────────────── */}
       <Card title="Basic Information">
@@ -369,19 +380,23 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
                 </div>
               )}
             </div>
-            <label className={`text-[12px] font-medium ${uploading ? "text-slate-400 cursor-wait" : "text-indigo-600 hover:text-indigo-700 cursor-pointer"}`}>
-              {uploading ? "Uploading…" : form.photo ? "Change photo" : "Upload photo"}
-              <input type="file" accept="image/*" onChange={onPhoto} disabled={uploading} className="hidden" />
-            </label>
-            <button
-              type="button"
-              onClick={() => setCameraOpen(true)}
-              disabled={uploading}
-              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-emerald-600 hover:text-emerald-700 disabled:text-slate-400"
-            >
-              <Camera size={13} /> Use camera
-            </button>
-            <span className="text-[10px] text-slate-400">JPG/PNG · take a photo or upload</span>
+            {!isView && (
+              <>
+                <label className={`text-[12px] font-medium ${uploading ? "text-slate-400 cursor-wait" : "text-indigo-600 hover:text-indigo-700 cursor-pointer"}`}>
+                  {uploading ? "Uploading…" : form.photo ? "Change photo" : "Upload photo"}
+                  <input type="file" accept="image/*" onChange={onPhoto} disabled={uploading} className="hidden" />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setCameraOpen(true)}
+                  disabled={uploading}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-emerald-600 hover:text-emerald-700 disabled:text-slate-400"
+                >
+                  <Camera size={13} /> Use camera
+                </button>
+                <span className="text-[10px] text-slate-400">JPG/PNG · take a photo or upload</span>
+              </>
+            )}
           </div>
 
           {/* Fields */}
@@ -524,11 +539,20 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
         </div>
       </Card>
 
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={() => navigate(doneTo)}>Cancel</Button>
-        <Button type="button" variant="outline" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
-        <Button type="submit" loading={isLoading} icon={<Save size={14} />}>{isEdit ? "Update" : "Submit"}</Button>
-      </div>
+      </fieldset>
+
+      {isView ? (
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={() => navigate("/students/list")}>Back to List</Button>
+          <Button type="button" icon={<UserPlus size={14} />} onClick={() => navigate(`/students/add?id=${editId}`)}>Edit Student</Button>
+        </div>
+      ) : (
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={() => navigate(doneTo)}>Cancel</Button>
+          <Button type="button" variant="outline" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
+          <Button type="submit" loading={isLoading} icon={<Save size={14} />}>{isEdit ? "Update" : "Submit"}</Button>
+        </div>
+      )}
 
       {/* Camera capture */}
       <Modal open={cameraOpen} onClose={() => setCameraOpen(false)} title="Take a photo" size="md">

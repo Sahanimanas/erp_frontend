@@ -4,7 +4,7 @@
  * Accepts ?id=<studentId> to deep-link from the student list.
  */
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Avatar, Badge, Select, Button } from "../../components/ui";
 import { User, FileDown } from "lucide-react";
@@ -15,9 +15,13 @@ import { Loader } from "../../components/loaders/PageLoader";
 export default function StudentProfilePage() {
   usePageTitle("Student Profile");
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
+  // When opened from the Student List we already have the full row — show it
+  // instantly while the detail fetch (parents/documents) refreshes in the background.
+  const stateStudent = location.state?.student || null;
   const [students, setStudents] = useState([]);
   const [studentId, setStudentId] = useState(params.get("id") || "");
-  const [student, setStudent] = useState(null);
+  const [student, setStudent] = useState(stateStudent);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -133,7 +137,7 @@ export default function StudentProfilePage() {
         <Select label="Student" value={studentId} onChange={e => onPick(e.target.value)} options={options} className="max-w-md" />
       </Card>
 
-      {loading ? (
+      {loading && !student ? (
         <Card><Loader label="Loading profile…" /></Card>
       ) : !student ? (
         <Card><div className="p-10 text-center text-slate-400 text-sm">Select a student to view their profile.</div></Card>

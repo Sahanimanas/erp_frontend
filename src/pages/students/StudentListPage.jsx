@@ -136,7 +136,7 @@ export default function StudentListPage() {
     {key:"dob",label:"D.O.B."},
     {key:"phone",label:"Phone"},
     {key:"fees",label:"Fee Status",render:v=><Badge variant={FEE_BADGE[v] || "default"}>{v.charAt(0).toUpperCase()+v.slice(1)}</Badge>},
-    {key:"id",label:"Actions",sortable:false,render:(_,r)=><div className="flex gap-1"><button onClick={()=>setViewRow(r)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-500"><Eye size={13}/></button><button title="Edit student" onClick={()=>navigate(`/students/add?id=${r.id}`,{state:{student:r.original}})} className="p-1.5 rounded-md hover:bg-amber-50 text-amber-500"><Edit2 size={13}/></button><button onClick={()=>handleDelete(r.id)} className="p-1.5 rounded-md hover:bg-red-50 text-red-500"><Trash2 size={13}/></button></div>},
+    {key:"id",label:"Actions",sortable:false,render:(_,r)=><div className="flex gap-1"><button title="View profile" onClick={()=>navigate(`/students/add?id=${r.id}&view=1`,{state:{student:r.original}})} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-500"><Eye size={13}/></button><button title="Edit student" onClick={()=>navigate(`/students/add?id=${r.id}`,{state:{student:r.original}})} className="p-1.5 rounded-md hover:bg-amber-50 text-amber-500"><Edit2 size={13}/></button><button onClick={()=>handleDelete(r.id)} className="p-1.5 rounded-md hover:bg-red-50 text-red-500"><Trash2 size={13}/></button></div>},
   ];
 
   function AddStudentForm({ onSubmit, onCancel }) {
