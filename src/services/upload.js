@@ -8,8 +8,6 @@
  */
 import apiClient from "./axios";
 
-const MAX_BYTES = 2 * 1024 * 1024; // 2MB
-
 /** Read a File into a base64 data URI. */
 export function fileToDataUri(file) {
   return new Promise((resolve, reject) => {
@@ -28,7 +26,7 @@ export function fileToDataUri(file) {
 export async function uploadImageFile(file, folder = "misc") {
   if (!file) throw new Error("No file selected");
   if (!file.type.startsWith("image/")) throw new Error("Please choose an image file");
-  if (file.size > MAX_BYTES) throw new Error("Image must be under 2MB");
+  // No size cap on photos (per requirement). The server body limit is the only bound.
 
   const dataUri = await fileToDataUri(file);
   const res = await apiClient.post("/uploads/image", { image: dataUri, folder });
