@@ -8,9 +8,9 @@ import { useSearchParams, useLocation } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Avatar, Badge, Select, Button } from "../../components/ui";
 import { User, FileDown } from "lucide-react";
-import apiClient from "../../services/axios";
 import { printRecord } from "../../utils/printPdf";
 import { Loader } from "../../components/loaders/PageLoader";
+import { useGetStudentsQuery, useGetStudentQuery } from "../../redux/api/studentsApi";
 
 export default function StudentProfilePage() {
   usePageTitle("Student Profile");
@@ -19,34 +19,19 @@ export default function StudentProfilePage() {
   // When opened from the Student List we already have the full row — show it
   // instantly while the detail fetch (parents/documents) refreshes in the background.
   const stateStudent = location.state?.student || null;
-  const [students, setStudents] = useState([]);
   const [studentId, setStudentId] = useState(params.get("id") || "");
   const [student, setStudent] = useState(stateStudent);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await apiClient.get("/students?limit=500");
-        if (res.data.success) setStudents(res.data.data || []);
-      } catch (err) { console.error(err); }
-    })();
-  }, []);
+  // Picker list + per-id detail via RTK Query (cached). Same behaviour as before;
+  // the instantly-shown row is replaced by the fetched detail once it arrives.
+  const { data: listResp } = useGetStudentsQuery({ limit: 500 });
+  const students = listResp?.data ?? [];
 
-  useEffect(() => {
-    if (!studentId) { setStudent(null); return; }
-    (async () => {
-      setLoading(true); setError("");
-      try {
-        const res = await apiClient.get(`/students/${studentId}`);
-        if (res.data.success) setStudent(res.data.data);
-      } catch (err) {
-        setError(err.response?.data?.error || err.message || "Failed to load student");
-        setStudent(null);
-      } finally { setLoading(false); }
-    })();
-  }, [studentId]);
+  const { data: detailResp, isFetching, isError, error: detErr } = useGetStudentQuery(studentId, { skip: !studentId });
+  useEffect(() => { if (detailResp?.data) setStudent(detailResp.data); }, [detailResp]);
+  useEffect(() => { if (!studentId) setStudent(null); }, [studentId]);
+  const loading = isFetching;
+  const error = isError ? (detErr?.data?.error || detErr?.error || "Failed to load student") : "";
 
   const onPick = (id) => { setStudentId(id); setParams(id ? { id } : {}); };
   const name = (s) => s?.user ? `${s.user.firstName} ${s.user.lastName}` : "—";

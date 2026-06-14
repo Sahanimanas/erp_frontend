@@ -1,7 +1,7 @@
 /**
  * StudentListPage.jsx — Full-featured student management page
  */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
 import {
@@ -10,9 +10,9 @@ import {
   Input, Textarea, Avatar, DateRangeFilter, ExportButton,
 } from "../../components/ui";
 import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload } from "lucide-react";
-import apiClient from "../../services/axios";
 import { filterByDateRange } from "../../utils/exportExcel";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
+import { useGetStudentsQuery, useCreateStudentMutation, useDeleteStudentMutation } from "../../redux/api/studentsApi";
 
 const FEE_BADGE = { PAID:"success", PENDING:"danger", PARTIAL:"warning" };
 const FEE_OPT   = [{ value:"", label:"All Status" }, { value:"PAID",label:"Paid" }, { value:"PENDING",label:"Pending" }, { value:"PARTIAL",label:"Partial" }];
@@ -20,9 +20,9 @@ const FEE_OPT   = [{ value:"", label:"All Status" }, { value:"PAID",label:"Paid"
 export default function StudentListPage() {
   usePageTitle("Students");
   const navigate = useNavigate();
-  const [students,setStudents]=useState([]); const [loading,setLoading]=useState(false); const [error,setError]=useState("");
+  const [error,setError]=useState("");
   const [search,setSearch]=useState(""); const [cls,setCls]=useState(""); const [section,setSection]=useState(""); const [feeStatus,setFee]=useState("");
-  const [page,setPage]=useState(1); const [total,setTotal]=useState(0); const [addOpen,setAddOpen]=useState(false); const [viewRow,setViewRow]=useState(null);
+  const [page,setPage]=useState(1); const [addOpen,setAddOpen]=useState(false); const [viewRow,setViewRow]=useState(null);
   const [dateRange,setDateRange]=useState({from:"",to:""});
   const PAGE_SIZE=10;
 
@@ -35,62 +35,40 @@ export default function StudentListPage() {
   const classFilterOpts = [{ value:"", label:"All Classes" }, ...classes.map(c=>({ value:c.id, label:c.name }))];
   const sectionFilterOpts = [{ value:"", label:"All Sections" }, ...sections.map(s=>({ value:s.id, label:s.name }))];
 
-  // Fetch students from API
-  useEffect(() => {
-    const fetchStudents = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const params = new URLSearchParams({
-          page: String(page),
-          limit: String(PAGE_SIZE),
-          ...(search && { search }),
-          ...(cls && { classId: cls }),
-          ...(section && { sectionId: section }),
-        });
+  // Students via RTK Query — same params/behaviour as before, but cached so
+  // returning to this page is instant and edits/deletes auto-refresh the list.
+  const { data: studentsResp, isFetching, isError, error: fetchErr } = useGetStudentsQuery({
+    page,
+    limit: PAGE_SIZE,
+    ...(search && { search }),
+    ...(cls && { classId: cls }),
+    ...(section && { sectionId: section }),
+  });
+  const students = studentsResp?.data ?? [];
+  const total = studentsResp?.pagination?.total ?? 0;
+  const loading = isFetching;
+  const fetchError = isError ? (fetchErr?.data?.error || fetchErr?.error || "Failed to fetch students") : "";
 
-        const response = await apiClient.get(`/students?${params}`);
-        if (response.data.success) {
-          setStudents(response.data.data || []);
-          setTotal(response.data.pagination?.total || 0);
-        }
-      } catch (err) {
-        setError(err.message || "Failed to fetch students");
-        console.error("Student fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudents();
-  }, [page, search, cls, section]);
+  const [createStudent] = useCreateStudentMutation();
+  const [deleteStudent] = useDeleteStudentMutation();
 
   const handleAddStudent = async (formData) => {
     try {
-      await apiClient.post("/students", formData);
+      await createStudent(formData).unwrap(); // invalidates the list → auto-refetch
       setAddOpen(false);
       setError("");
-      // Refresh list
       setPage(1);
-      // Reload students
-      const params = new URLSearchParams({ page: "1", limit: String(PAGE_SIZE) });
-      const response = await apiClient.get(`/students?${params}`);
-      if (response.data.success) {
-        setStudents(response.data.data || []);
-        setTotal(response.data.pagination?.total || 0);
-      }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || "Failed to add student");
+      setError(err?.data?.error || err.message || "Failed to add student");
     }
   };
 
   const handleDelete = async (studentId) => {
     if (confirm("Are you sure you want to delete this student?")) {
       try {
-        await apiClient.delete(`/students/${studentId}`);
-        setStudents(students.filter(s => s.id !== studentId));
+        await deleteStudent(studentId).unwrap(); // invalidates the list → auto-refetch
       } catch (err) {
-        setError(err.response?.data?.error || "Failed to delete student");
+        setError(err?.data?.error || "Failed to delete student");
       }
     }
   };
@@ -208,7 +186,7 @@ export default function StudentListPage() {
       </PageHeader>
       
       <Card noPadding>
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 m-4 rounded-lg text-sm">{error}</div>}
+        {(error || fetchError) && <div className="bg-red-50 border border-red-200 text-red-700 p-3 m-4 rounded-lg text-sm">{error || fetchError}</div>}
         <div className="flex gap-2 flex-wrap p-4 border-b border-slate-100 items-end">
           <SearchInput value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search by name or roll..." className="w-52"/>
           <Select value={cls} onChange={e=>{setCls(e.target.value);setSection("");setPage(1);}} options={classFilterOpts} className="w-44"/>
