@@ -2,6 +2,7 @@
  * EmployeeListPage.jsx — Full-featured employee management page
  */
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
 import {
   PageHeader, Card, DataTable, Badge, Button,
@@ -27,6 +28,7 @@ const DEPT_OPTIONS = [{ value: "", label: "All Departments" }]; // Will be popul
 
 export default function EmployeeListPage() {
   usePageTitle("Employees");
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -36,7 +38,6 @@ export default function EmployeeListPage() {
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [addOpen, setAddOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [viewRow, setViewRow] = useState(null);
   const [deptOptions, setDeptOptions] = useState(DEPT_OPTIONS);
@@ -104,23 +105,6 @@ export default function EmployeeListPage() {
 
     fetchMetadata();
   }, []);
-
-  const handleAddEmployee = async (formData) => {
-    try {
-      await apiClient.post("/employees", formData);
-      setAddOpen(false);
-      setPage(1);
-      // Refresh list
-      const params = new URLSearchParams({ page: "1", limit: String(PAGE_SIZE) });
-      const response = await apiClient.get(`/employees?${params}`);
-      if (response.data.success) {
-        setEmployees(response.data.data || []);
-        setTotal(response.data.pagination?.total || 0);
-      }
-    } catch (err) {
-      setError(err.response?.data?.error || "Failed to add employee");
-    }
-  };
 
   const handleEditEmployee = async (formData) => {
     try {
@@ -444,7 +428,7 @@ export default function EmployeeListPage() {
       >
         <Button variant="secondary" size="sm" icon={<Upload size={13} />}>Import</Button>
         <ExportButton filename="employees.csv" rows={filteredEmployees} columns={EXPORT_COLS} fetchAll={fetchAllEmployees} />
-        <Button size="sm" icon={<Plus size={13} />} onClick={() => setAddOpen(true)}>Add Employee</Button>
+        <Button size="sm" icon={<Plus size={13} />} onClick={() => navigate("/employee/add")}>Add Employee</Button>
       </PageHeader>
 
       <Card noPadding>
@@ -532,10 +516,6 @@ export default function EmployeeListPage() {
             </div>
           </div>
         )}
-      </Modal>
-
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add New Employee" size="lg">
-        <EmployeeForm onSubmit={handleAddEmployee} onCancel={() => setAddOpen(false)} />
       </Modal>
 
       <Modal open={!!editRow} onClose={() => setEditRow(null)} title="Edit Employee" size="lg">

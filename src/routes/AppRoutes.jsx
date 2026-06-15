@@ -27,14 +27,17 @@ function safeLazy(factory) {
   return lazy(() => factory().catch(() => ({ default: Missing })));
 }
 
-function buildRoutes(items) {
+function buildRoutes(items, parentSectionKey = null) {
   return items.flatMap((item) => {
+    // The top-level item establishes the "section" used for privilege gating;
+    // its children inherit it so every page maps back to one sidebar section.
+    const sectionKey = parentSectionKey ?? item.key;
     if (item.children?.length) {
       const firstVisible = item.children.find((c) => !c.hidden);
       return (
         <Route key={item.key} path={item.path}>
           {firstVisible && <Route index element={<Navigate to={firstVisible.path} replace />} />}
-          {buildRoutes(item.children)}
+          {buildRoutes(item.children, sectionKey)}
         </Route>
       );
     }
@@ -43,7 +46,7 @@ function buildRoutes(items) {
       return (
         <Route key={item.key} path={item.path}
           element={
-            <RoleRoute allowedRoles={item.roles}>
+            <RoleRoute allowedRoles={item.roles} sectionKey={sectionKey}>
               <Suspense fallback={<PageLoader />}><Page /></Suspense>
             </RoleRoute>
           }

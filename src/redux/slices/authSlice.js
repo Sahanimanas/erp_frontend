@@ -105,5 +105,7 @@ export const selectAuth       = (state) => state.auth;
 export const selectToken      = (state) => state.auth.token;
 export const selectUser       = (state) => state.auth.user;
 export const selectUserRole   = (state) => state.auth.user?.role;
+// Designation module privileges; `null`/`undefined` ⇒ not restricted.
+export const selectUserPermissions = (state) => state.auth.user?.permissions ?? null;
 
 export default authSlice.reducer;

@@ -11,17 +11,23 @@
  */
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { selectAuth } from "../redux/slices/authSlice";
+import { selectAuth, selectUserPermissions } from "../redux/slices/authSlice";
+import { canAccessSection } from "./routeConfig";
 
-export default function RoleRoute({ allowedRoles = [], children }) {
+export default function RoleRoute({ allowedRoles = [], sectionKey, children }) {
   const { user } = useSelector(selectAuth);
+  const permissions = useSelector(selectUserPermissions);
 
-  // Empty allowedRoles = accessible by every authenticated user
-  if (!allowedRoles || allowedRoles.length === 0) return children;
+  // Role check (empty allowedRoles = any authenticated user).
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (!user || !allowedRoles.includes(user.role)) return <Navigate to="/403" replace />;
+  }
 
-  // Role check
-  if (user && allowedRoles.includes(user.role)) return children;
+  // Designation-privilege check — blocks direct URL access to a section the
+  // user's designation doesn't grant (admin roles & unmapped sections pass).
+  if (sectionKey && !canAccessSection(sectionKey, permissions, user?.role)) {
+    return <Navigate to="/403" replace />;
+  }
 
-  // Forbidden → show 403 page (or redirect to dashboard)
-  return <Navigate to="/403" replace />;
+  return children;
 }

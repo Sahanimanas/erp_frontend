@@ -66,6 +66,9 @@ export default function LoginPage() {
             schoolId: user.schoolId,
             schoolName: user.schoolName ?? null,
             schoolLogo: user.schoolLogo ?? null,
+            // Designation module privileges — gate sidebar/pages. Admin roles
+            // bypass this filter (see Sidebar); null means "not restricted".
+            permissions: user.permissions ?? null,
             avatar: null
           }
         }));

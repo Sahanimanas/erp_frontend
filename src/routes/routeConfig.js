@@ -55,6 +55,55 @@ const ALL_STAFF = [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES
 const ADMIN_ONLY = [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL];
 const ALL_ROLES = Object.values(ROLES);
 
+/**
+ * Roles that bypass designation-privilege filtering and always see every
+ * section their `roles` allow (they administer the school).
+ */
+export const PRIVILEGE_EXEMPT_ROLES = [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL];
+
+/**
+ * Maps a top-level sidebar section `key` → the Designation privilege module
+ * (the names in DesignationPage's PRIVILEGES checklist) that grants access to
+ * it. Sections not listed here are utility/always-available and never gated.
+ *
+ * For a user with a designation, a mapped section shows only when its privilege
+ * is in their permission list; users with no designation are not restricted.
+ */
+export const MODULE_PRIVILEGE = {
+  dashboard:      "Home",
+  students:       "Student",
+  employee:       "Employee",
+  admission:      "Admission",
+  "fee-management": "Fees Management",
+  "student-acct": "Finance",
+  "office-acct":  "Finance",
+  payments:       "Payment",
+  attendance:     "Attendance",
+  "face-attend":  "Photo Attendance",
+  "qr-attend":    "Attendance",
+  exams:          "Exam Management",
+  "online-exam":  "Exam Management",
+  "ai-exam":      "Exam Management",
+  reports:        "Reports",
+  transport:      "Transport Management",
+  "bulk-comm":    "Communication",
+  "live-rooms":   "Course Management",
+  homework:       "Course Management",
+};
+
+/**
+ * Whether a user with `permissions` (their designation's privilege list, or
+ * null/undefined when they have no designation) may see the section `key`.
+ * Privilege-exempt roles and unmapped sections are always allowed.
+ */
+export function canAccessSection(key, permissions, role) {
+  if (PRIVILEGE_EXEMPT_ROLES.includes(role)) return true;
+  if (!Array.isArray(permissions)) return true;        // no designation → unrestricted
+  const required = MODULE_PRIVILEGE[key];
+  if (!required) return true;                           // utility section, not gated
+  return permissions.includes(required);
+}
+
 // ─── Route Config ──────────────────────────────────────────────────────────
 export const routeConfig = [
   // ── Platform (SUPER ADMIN only) ───────────────────────────────────────────
@@ -236,6 +285,7 @@ export const routeConfig = [
       { key: "emp-dept",        label: "Department",       path: "/employee/departments",    icon: "Building",     lazy: lazy("hr/DepartmentPage"),         roles: ADMIN_ONLY },
       { key: "emp-upload",      label: "Upload Employee",  path: "/employee/upload",         icon: "Upload",       lazy: lazy("hr/UploadEmployeePage"),     roles: ADMIN_ONLY },
       { key: "emp-idprint",     label: "Employee ID Print",path: "/employee/id-print",       icon: "IdCard",       lazy: lazy("hr/EmployeeIdPrintPage"),    roles: ADMIN_ONLY },
+      { key: "emp-ideditor",    label: "Employee ID Card Editor", path: "/employee/id-editor", icon: "Pencil",     lazy: lazy("hr/EmployeeIdCardEditorPage"), roles: ADMIN_ONLY },
       { key: "emp-deactivate",  label: "Login Deactivate", path: "/employee/deactivate",     icon: "Lock",         lazy: lazy("hr/LoginDeactivatePage"),    roles: ADMIN_ONLY },
       { key: "emp-leaves",      label: "Leave Mgmt",       path: "/employee/leaves",         icon: "Calendar",     lazy: lazy("hr/LeavePage"),              roles: ADMIN_ONLY },
       { key: "emp-payroll",     label: "Payroll",          path: "/employee/payroll",        icon: "DollarSign",   lazy: lazy("hr/PayrollPage"),            roles: ADMIN_ONLY },

@@ -18,8 +18,8 @@ import {
   selectSidebarCollapsed, selectExpandedSections,
   toggleSidebar, toggleSection, openSection,
 } from "../../redux/slices/uiSlice";
-import { selectUserRole, selectUser, logout } from "../../redux/slices/authSlice";
-import { routeConfig } from "../../routes/routeConfig";
+import { selectUserRole, selectUser, selectUserPermissions, logout } from "../../redux/slices/authSlice";
+import { routeConfig, canAccessSection } from "../../routes/routeConfig";
 import apiClient from "../../services/axios";
 import * as Icons from "lucide-react";
 import logo from "../../../public/logo.jpeg"
@@ -161,6 +161,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const anyExpanded      = expandedSections.length > 0;
   const userRole         = useSelector(selectUserRole);
   const user             = useSelector(selectUser);
+  const permissions      = useSelector(selectUserPermissions);
   const initials         = user?.name ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) : "U";
 
   // Brand shown at the top of the sidebar. For a school user it's their own
@@ -194,9 +195,13 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     // section, not the school-operational modules (many of which also list
     // SUPER_ADMIN in their roles).
     if (userRole === "SUPER_ADMIN") return item.key === "platform";
-    if (!item.roles || item.roles.length === 0) return true;
-    if (!userRole) return false;
-    return item.roles.includes(userRole);
+    if (item.roles && item.roles.length > 0) {
+      if (!userRole) return false;
+      if (!item.roles.includes(userRole)) return false;
+    }
+    // Designation-privilege gating: a user with a designation only sees the
+    // sections their privileges grant (admin roles & unmapped sections pass).
+    return canAccessSection(item.key, permissions, userRole);
   });
 
   // Explicit sidebar ordering: core school modules pinned right under Dashboard,

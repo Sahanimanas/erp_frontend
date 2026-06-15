@@ -11,6 +11,7 @@ import { UserPlus, Plus, Trash2, Camera, X, FileDown, Eye, EyeOff } from "lucide
 import apiClient from "../../services/axios";
 import { uploadImageFile } from "../../services/upload";
 import { printRecord } from "../../utils/printPdf";
+import CameraCapture from "../../components/CameraCapture";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const GENDERS = [{ value: "", label: "Select" }, { value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }, { value: "OTHER", label: "Other" }];
@@ -40,6 +41,7 @@ export default function AddEmployeePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -58,9 +60,8 @@ export default function AddEmployeePage() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const onPhoto = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  // Upload a chosen/captured image File to Cloudinary and store its URL.
+  const uploadPhoto = async (file) => {
     if (!file) return;
     setUploading(true);
     setError("");
@@ -72,6 +73,12 @@ export default function AddEmployeePage() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const onPhoto = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    uploadPhoto(file);
   };
 
   const setExp = (i, k) => (e) => setExperiences((rows) => rows.map((r, idx) => idx === i ? { ...r, [k]: e.target.value } : r));
@@ -175,12 +182,21 @@ export default function AddEmployeePage() {
                 </div>
               )}
             </div>
-            <label className={`text-[12px] font-medium ${uploading ? "text-slate-400 cursor-wait" : "text-indigo-600 hover:text-indigo-700 cursor-pointer"}`}>
-              {uploading ? "Uploading…" : form.photo ? "Change photo" : "Upload photo"}
-              <input type="file" accept="image/*" onChange={onPhoto} disabled={uploading} className="hidden" />
-            </label>
+            <div className="flex items-center gap-3">
+              <label className={`text-[12px] font-medium ${uploading ? "text-slate-400 cursor-wait" : "text-indigo-600 hover:text-indigo-700 cursor-pointer"}`}>
+                {uploading ? "Uploading…" : form.photo ? "Change photo" : "Upload photo"}
+                <input type="file" accept="image/*" onChange={onPhoto} disabled={uploading} className="hidden" />
+              </label>
+              <span className="text-slate-300">·</span>
+              <button type="button" onClick={() => setCameraOpen(true)} disabled={uploading}
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-indigo-600 hover:text-indigo-700 disabled:text-slate-400 disabled:cursor-not-allowed">
+                <Camera size={13} /> Use camera
+              </button>
+            </div>
             <span className="text-[10px] text-slate-400">JPG/PNG · max 2MB</span>
           </div>
+
+          <CameraCapture open={cameraOpen} onClose={() => setCameraOpen(false)} onCapture={uploadPhoto} />
 
           <div className="flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
