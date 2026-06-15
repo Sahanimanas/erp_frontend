@@ -44,7 +44,14 @@ export default function EmployeeIdPrintPage() {
 
   return (
     <div className="space-y-4">
-      <style>{`@media print { .no-print { display:none !important; } body { background:#fff; } }`}</style>
+      <style>{`
+        @media print {
+          .no-print { display:none !important; }
+          /* Keep gradient/background colors when printing — browsers strip them by default. */
+          body, body * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { background:#fff; }
+        }
+      `}</style>
       <div className="no-print">
         <PageHeader title="Employee Id Print" subtitle="Generate printable staff ID cards" icon={<IdCard size={18} />}>
           <Button icon={<Printer size={14} />} disabled={!rows.length} onClick={() => window.print()}>Print</Button>

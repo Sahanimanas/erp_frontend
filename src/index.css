@@ -8,40 +8,32 @@
 @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .page-enter { animation: fadeSlideIn 0.2s ease-out; }
 
-/* ── Green "LOADING" ring loader ─────────────────────────────────────────── */
-.loader-wrap {
-  position: relative;
-  width: 130px;
-  height: 130px;
+/* ── Sky-blue orbiting-dots loader ───────────────────────────────────────── */
+.loader {
+  width: 50px;
+  aspect-ratio: 1;
   display: grid;
-  place-items: center;
 }
-/* Faint static track behind the spinning arc */
-.loader-wrap::before {
+.loader::before,
+.loader::after {
   content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 3px solid rgba(22, 163, 74, 0.12);
+  grid-area: 1/1;
+  --c: no-repeat radial-gradient(farthest-side, #0ea5e9 92%, #0000);
+  background:
+    var(--c) 50%  0,
+    var(--c) 50%  100%,
+    var(--c) 100% 50%,
+    var(--c) 0    50%;
+  background-size: 12px 12px;
+  animation: l12 1s infinite;
 }
-.loader-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  border-top-color: #16a34a;
-  border-right-color: #22c55e;
-  animation: l15 1.1s infinite linear;
-  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.55));
+.loader::before {
+  margin: 4px;
+  filter: hue-rotate(45deg);
+  background-size: 8px 8px;
+  animation-timing-function: linear;
 }
-.loader-text {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.32em;
-  color: #16a34a;
-  text-shadow: 0 0 10px rgba(34, 197, 94, 0.45);
-}
-@keyframes l15 { 100% { transform: rotate(1turn); } }
+@keyframes l12 { 100% { transform: rotate(.5turn); } }
 
 /* ── Outlined table rows/cells across every page ─────────────────────────── */
 table { border-collapse: collapse; }

@@ -110,7 +110,8 @@ function NavParent({ item, collapsed, onNavigate }) {
           className="overflow-hidden transition-all duration-200"
           style={{ maxHeight: isExpanded ? `${item.children.length * 40}px` : "0px" }}
         >
-          <div className="ml-4 mt-1 border-l border-white/15 pl-3 space-y-0.5 pb-1">
+          {/* Open submenu panel: white background, full sidebar width (bleeds past nav padding) */}
+          <div className="-mx-2 mt-1 bg-white p-1.5 space-y-0.5 shadow-sm">
             {item.children
               .filter((c) => !c.hidden)
               .map((child) => (
@@ -120,14 +121,14 @@ function NavParent({ item, collapsed, onNavigate }) {
                   end
                   onClick={onNavigate}
                   className={({ isActive }) =>
-                    `flex items-center gap-2.5 px-3 py-2 rounded-md text-[11.5px] transition-all duration-150 border-t
+                    `flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold transition-all duration-150
                      ${isActive
-                       ? "bg-emerald-500/20 text-white font-bold border-emerald-400"
-                       : "text-white/80 hover:text-white hover:bg-white/10 border-white/15 hover:border-white/40"
+                       ? "bg-emerald-100 text-emerald-700 font-bold"
+                       : "text-slate-700 hover:bg-slate-100"
                      }`
                   }
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 flex-shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-black flex-shrink-0" />
                   <span className="truncate">{child.label}</span>
                 </NavLink>
               ))}
