@@ -508,7 +508,6 @@ export const routeConfig = [
   // ── Payments ────────────────────────────────────────────────────────────────
   {
     key: "payments",
-    hidden: true,
     label: "Payments",
     path: "/payments",
     icon: "CreditCard",
