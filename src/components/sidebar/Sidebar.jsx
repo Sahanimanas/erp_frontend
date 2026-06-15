@@ -43,7 +43,7 @@ function NavLeaf({ item, collapsed, onNavigate, dim = false }) {
         const active = isActive && !dim;
         return `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group border-t
          ${active
-           ? "bg-emerald-500/20 text-white font-bold border-emerald-400"
+           ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold border-emerald-400 shadow-md"
            : "text-white hover:bg-white/10 border-white/20 hover:border-white/40"
          }`;
       }}
@@ -82,7 +82,7 @@ function NavParent({ item, collapsed, onNavigate }) {
         className={`
           w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left border-t
           ${isExpanded || isParentActive
-            ? "bg-emerald-500/20 text-white font-bold border-emerald-400"
+            ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold border-emerald-400 shadow-md"
             : "text-white hover:bg-white/10 border-white/20 hover:border-white/40"
           }
         `}
