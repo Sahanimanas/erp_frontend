@@ -91,11 +91,18 @@ export default function StudentFeePaymentPage() {
 
   // ── row actions ──────────────────────────────────────────────────────────
   const onDiscount = async (r) => {
-    const v = window.prompt(`Discount for ${r.name} (${r.monthLabel}) — current due ${r.due}`, "0");
+    // The most that can be discounted is whatever is still owed before the
+    // discount, i.e. current remaining due + the discount already applied.
+    const maxDiscount = r.due + r.discount;
+    const v = window.prompt(
+      `Discount for ${r.name} (${r.monthLabel})\nMax allowed: ${maxDiscount} (enter 0 to remove)`,
+      String(r.discount || 0)
+    );
     if (v == null) return;
     const amount = Number(v);
-    if (!(amount > 0)) return;
-    try { await adjust({ studentId, feeTypeId: r.feeTypeId, month: r.month, kind: "DISCOUNT", amount }).unwrap(); toast.success("Discount applied"); }
+    if (Number.isNaN(amount) || amount < 0) { toast.error("Enter a valid discount amount"); return; }
+    if (amount > maxDiscount) { toast.error(`Discount cannot exceed ${money(maxDiscount)}`); return; }
+    try { await adjust({ studentId, feeTypeId: r.feeTypeId, month: r.month, kind: "DISCOUNT", amount }).unwrap(); toast.success("Discount updated"); }
     catch (e) { toast.error(e?.data?.error || "Failed"); }
   };
   const onExtra = async (r) => {
@@ -262,7 +269,7 @@ export default function StudentFeePaymentPage() {
                         <td className="px-3 py-2.5 text-emerald-600 text-[12px]">{money(r.paid)}</td>
                         <td className="px-3 py-2.5 text-[12px]">
                           <span className="text-amber-600">{money(r.discount)}</span>
-                          {r.due > 0 && <button onClick={() => onDiscount(r)} title="Add discount" className="ml-1 p-0.5 text-slate-400 hover:text-indigo-600"><Pencil size={12} /></button>}
+                          {(r.due > 0 || r.discount > 0) && <button onClick={() => onDiscount(r)} title={r.discount > 0 ? "Edit discount" : "Add discount"} className="ml-1 p-0.5 text-slate-400 hover:text-indigo-600"><Pencil size={12} /></button>}
                         </td>
                         <td className="px-3 py-2.5 font-semibold text-red-500 text-[12px]">{money(r.due)}</td>
                         <td className="px-3 py-2.5">
