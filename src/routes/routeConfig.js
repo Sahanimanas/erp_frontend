@@ -426,6 +426,7 @@ export const routeConfig = [
   // ── Face Attendance ───────────────────────────────────────────────────────
   {
     key: "face-attend",
+    hidden: true,
     label: "Face Attendance",
     path: "/face-attendance",
     icon: "Camera",
@@ -465,6 +466,7 @@ export const routeConfig = [
   // ── Events ────────────────────────────────────────────────────────────────
   {
     key: "events",
+    hidden: true,
     label: "Events",
     path: "/events",
     icon: "CalendarDays",
@@ -478,6 +480,7 @@ export const routeConfig = [
   // ── Bulk SMS & Email ──────────────────────────────────────────────────────
   {
     key: "bulk-comm",
+    hidden: true,
     label: "Bulk SMS & Email",
     path: "/communication",
     icon: "MessageSquare",
@@ -594,6 +597,7 @@ export const routeConfig = [
   // ── Hostel ────────────────────────────────────────────────────────────────
   {
     key: "hostel",
+    hidden: true,
     label: "Hostel",
     path: "/hostel",
     icon: "BedDouble",
