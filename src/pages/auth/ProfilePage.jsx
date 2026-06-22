@@ -21,8 +21,9 @@ export default function ProfilePage() {
 
   // School edit modal
   const [editOpen, setEditOpen] = useState(false);
-  const [schoolForm, setSchoolForm] = useState({ name: "", logo: "" });
+  const [schoolForm, setSchoolForm] = useState({ name: "", logo: "", watermark: "", address: "", phone: "" });
   const [uploading, setUploading] = useState(false);
+  const [uploadingWm, setUploadingWm] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -57,7 +58,13 @@ export default function ProfilePage() {
     : [];
 
   const openEdit = () => {
-    setSchoolForm({ name: school?.name || "", logo: school?.logo || "" });
+    setSchoolForm({
+      name: school?.name || "",
+      logo: school?.logo || "",
+      watermark: school?.watermark || "",
+      address: school?.address || "",
+      phone: school?.phone || "",
+    });
     setEditOpen(true);
   };
 
@@ -76,14 +83,52 @@ export default function ProfilePage() {
     }
   };
 
+  const onWatermark = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingWm(true);
+    try {
+      const url = await uploadImageFile(file, "schools");
+      setSchoolForm((f) => ({ ...f, watermark: url }));
+    } catch (err) {
+      toast.error(err?.response?.data?.error || err.message || "Watermark upload failed");
+    } finally {
+      setUploadingWm(false);
+    }
+  };
+
   const saveSchool = async () => {
     if (!schoolForm.name.trim()) { toast.error("School name is required"); return; }
     setSaving(true);
     try {
-      const res = await apiClient.put("/schools", { name: schoolForm.name.trim(), logo: schoolForm.logo || null });
+      const res = await apiClient.put("/schools", {
+        name: schoolForm.name.trim(),
+        logo: schoolForm.logo || null,
+        watermark: schoolForm.watermark || null,
+        address: schoolForm.address || null,
+        phone: schoolForm.phone || null,
+      });
       if (res.data.success) {
         // Reflect immediately in this page's view.
         setUser((u) => ({ ...u, school: { ...(u.school || {}), ...res.data.data } }));
+        // Sync the persisted auth user so printed bills/receipts (which read
+        // school identity from localStorage) pick up the change without re-login.
+        try {
+          const auth = JSON.parse(localStorage.getItem("erp_auth") || "{}");
+          if (auth.user) {
+            const d = res.data.data || {};
+            auth.user = {
+              ...auth.user,
+              schoolName: d.name ?? auth.user.schoolName,
+              schoolLogo: d.logo ?? auth.user.schoolLogo,
+              schoolWatermark: d.watermark ?? auth.user.schoolWatermark,
+              schoolAddress: d.address ?? auth.user.schoolAddress,
+              schoolPhone: d.phone ?? auth.user.schoolPhone,
+            };
+            localStorage.setItem("erp_auth", JSON.stringify(auth));
+          }
+        } catch { /* non-fatal */ }
         toast.success("School updated");
         setEditOpen(false);
       } else {
@@ -123,7 +168,17 @@ export default function ProfilePage() {
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">School</p>
                 <h3 className="font-bold text-slate-800 text-lg truncate">{school?.name || "—"}</h3>
+                <div className="mt-1 space-y-0.5 text-[12px] text-slate-500">
+                  <p className="truncate"><span className="text-slate-400">Address:</span> {school?.address || "—"}</p>
+                  <p className="truncate"><span className="text-slate-400">Phone:</span> {school?.phone || "—"}</p>
+                </div>
               </div>
+              {school?.watermark && (
+                <div className="hidden sm:flex flex-col items-center gap-1 mr-2">
+                  <img src={school.watermark} alt="Watermark" className="w-12 h-12 rounded-lg object-contain border border-slate-200 bg-white opacity-70" />
+                  <span className="text-[9px] text-slate-400 uppercase tracking-wide">Watermark</span>
+                </div>
+              )}
               {canEditSchool && (
                 <Button variant="secondary" size="sm" icon={<Pencil size={14} />} onClick={openEdit}>Edit</Button>
               )}
@@ -182,7 +237,36 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Watermark logo upload — appears faintly behind printed bills/receipts */}
+          <div className="flex items-center gap-4">
+            <div className="relative w-24 h-24 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
+              {schoolForm.watermark ? (
+                <>
+                  <img src={schoolForm.watermark} alt="Watermark" className="w-full h-full object-contain opacity-70" />
+                  <button type="button" onClick={() => setSchoolForm((f) => ({ ...f, watermark: "" }))}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-slate-600 shadow hover:bg-white">
+                    <X size={12} />
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-slate-400">
+                  <Camera size={22} />
+                  <span className="text-[9px]">{uploadingWm ? "Uploading…" : "No watermark"}</span>
+                </div>
+              )}
+            </div>
+            <div>
+              <label className={`inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg cursor-pointer ${uploadingWm ? "bg-slate-100 text-slate-400 cursor-wait" : "bg-slate-700 text-white hover:bg-slate-800"}`}>
+                <Camera size={13} /> {uploadingWm ? "Uploading…" : "Upload Watermark"}
+                <input type="file" accept="image/*" onChange={onWatermark} disabled={uploadingWm} className="hidden" />
+              </label>
+              <p className="text-[11px] text-slate-400 mt-2">Shown faintly behind fee receipts & demand bills. Falls back to the logo if empty.</p>
+            </div>
+          </div>
+
           <Input label="School Name" value={schoolForm.name} onChange={(e) => setSchoolForm((f) => ({ ...f, name: e.target.value }))} placeholder="Enter school name" />
+          <Input label="Phone Number" value={schoolForm.phone} onChange={(e) => setSchoolForm((f) => ({ ...f, phone: e.target.value }))} placeholder="e.g. 9504265816" />
+          <Input label="Address" value={schoolForm.address} onChange={(e) => setSchoolForm((f) => ({ ...f, address: e.target.value }))} placeholder="Street, city, pincode" />
 
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>

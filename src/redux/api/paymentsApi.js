@@ -54,6 +54,10 @@ export const paymentsApi = baseApi.injectEndpoints({
       query: (classId) => ({ url: "/payments/export", params: { classId } }),
       transformResponse: unwrap,
     }),
+    getFeeDetails: build.query({
+      query: (classId) => ({ url: "/payments/fee-details", params: { classId } }),
+      transformResponse: unwrap,
+    }),
     bulkDiscount: build.mutation({
       query: (body) => ({ url: "/payments/bulk-discount", method: "POST", body }),
       transformResponse: unwrap,
@@ -96,6 +100,7 @@ export const {
   useDeleteInstallmentPaymentMutation,
   useRevertReceiptMutation,
   useLazyExportClassFeesQuery,
+  useGetFeeDetailsQuery,
   useBulkDiscountMutation,
   useBulkExtraMutation,
   useGetLateFeeRulesQuery,

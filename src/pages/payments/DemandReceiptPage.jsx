@@ -9,14 +9,15 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, Input, Badge } from "../../components/ui";
-import { FileText, Search, CreditCard, FileDown } from "lucide-react";
+import { FileText, Search, CreditCard, FileDown, Printer } from "lucide-react";
 import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/attendanceApi";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useLazyExportClassFeesQuery } from "../../redux/api/paymentsApi";
 import { academicMonths } from "../fee-management/_feeShared";
-import { printTable } from "../../utils/printPdf";
+import { printTable, printBill } from "../../utils/printPdf";
 
 const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
+const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
 export default function DemandReceiptPage() {
   usePageTitle("Demand Fee Receipt");
@@ -51,6 +52,23 @@ export default function DemandReceiptPage() {
       if (studentId) data = data.filter((r) => r.studentId === studentId);
       setRows(data);
     } catch (e) { toast.error(e?.data?.error || "Failed to generate"); }
+  };
+
+  // Per-student demand bill in the compact bill format (with logo watermark).
+  const printDemandBill = (r) => {
+    const now = new Date();
+    printBill({
+      billType: "Demand Bill",
+      billNo: `DB-${(r.regId || r.rollNumber || "").toString().slice(-6).toUpperCase()}-${now.getDate()}${now.getMonth() + 1}`,
+      date: dueDate || fmtDate(now),
+      month: selMonths.length ? selMonths[0] : now.toLocaleDateString("en-GB", { month: "long" }),
+      year: (session && years.find((y) => y.id === session)?.name) || String(now.getFullYear()),
+      party: { name: r.name, className, batch: r.section, idNo: r.regId || r.rollNumber },
+      rows: [[`Fee Dues${selMonths.length ? ` (${monthLabel})` : ""}`, Number(r.due) || 0]],
+      total: Number(r.due) || 0,
+      totalLabel: "Grand Total",
+      note: "Kindly pay fee before 10th of the Month.",
+    });
   };
 
   const downloadReceipt = () => {
@@ -130,8 +148,12 @@ export default function DemandReceiptPage() {
                     <td className="px-4 py-2.5 text-slate-500 text-[11px] max-w-[220px] truncate" title={monthLabel}>{monthLabel}</td>
                     <td className="px-4 py-2.5"><Badge variant={Number(r.due) > 0 ? "danger" : "success"}>{money(r.due)}</Badge></td>
                     <td className="px-4 py-2.5">
-                      <Button size="xs" icon={<CreditCard size={12} />} disabled={Number(r.due) <= 0}
-                        onClick={() => navigate(`/payments/student-fee?id=${r.studentId}`)}>Pay Now</Button>
+                      <div className="flex gap-1.5">
+                        <Button size="xs" icon={<CreditCard size={12} />} disabled={Number(r.due) <= 0}
+                          onClick={() => navigate(`/payments/student-fee?id=${r.studentId}`)}>Pay Now</Button>
+                        <Button size="xs" variant="secondary" icon={<Printer size={12} />} title="Print demand bill"
+                          onClick={() => printDemandBill(r)}>Bill</Button>
+                      </div>
                     </td>
                     <td className="px-4 py-2.5"><input type="checkbox" className="accent-indigo-600 w-4 h-4" title="Send reminder (coming soon)" /></td>
                   </tr>

@@ -16,7 +16,7 @@ import {
   useCollectPaymentMutation, useAdjustInstallmentMutation,
   useDeleteInstallmentPaymentMutation, useRevertReceiptMutation,
 } from "../../redux/api/paymentsApi";
-import { printRecord } from "../../utils/printPdf";
+import { printBill } from "../../utils/printPdf";
 
 const MONTHLY_LIKE = ["Monthly", "Quarterly"];
 const FINANCE_ACCOUNTS = ["Cash", "SBI Bank", "Paytm/PayPhone", "Primary Account", "All UPI", "Cheque"];
@@ -124,15 +124,49 @@ export default function StudentFeePaymentPage() {
     catch (e) { toast.error(e?.data?.error || "Failed"); }
   };
 
+  // Paid fee receipt — rendered in the compact bill format with logo watermark.
   const printReceipt = (rc) => {
     if (!rc) return;
-    printRecord({
-      title: "Fee Receipt",
-      subtitle: [rc.student?.name, rc.receiptNo, `${rc.student?.className || ""}-${rc.student?.sectionName || ""}`].filter(Boolean).join("  ·  "),
-      sections: [
-        { heading: "Student", rows: [["Name", rc.student?.name], ["Roll No", rc.student?.rollNumber], ["Reg Id", rc.student?.registrationNo], ["Father", rc.student?.fatherName]] },
-        { heading: "Payment", rows: [...rc.lines.map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, money(l.amount)]), ["TOTAL PAID", money(rc.total)], ["Account", rc.account || "Cash"]] },
-      ],
+    const now = new Date();
+    printBill({
+      billType: "Fee Receipt",
+      billNo: rc.receiptNo,
+      date: fmtDate(now),
+      month: now.toLocaleDateString("en-GB", { month: "long" }),
+      year: String(now.getFullYear()),
+      party: {
+        name: rc.student?.name,
+        className: rc.student?.className,
+        batch: rc.student?.sectionName,
+        idNo: rc.student?.registrationNo || rc.student?.rollNumber,
+      },
+      rows: rc.lines.map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, Number(l.amount) || 0]),
+      total: Number(rc.total) || 0,
+      totalLabel: "Total Paid",
+      note: `Received with thanks via ${rc.account || "Cash"}.`,
+    });
+  };
+
+  // Outstanding demand bill for the current student (all due installments).
+  const downloadDemandBill = () => {
+    if (!dueRows.length) { toast.error("No outstanding dues for this student"); return; }
+    const now = new Date();
+    printBill({
+      billType: "Demand Bill",
+      billNo: `DB-${(st?.rollNumber || studentId || "").toString().slice(-6).toUpperCase()}-${now.getDate()}${now.getMonth() + 1}`,
+      date: fmtDate(now),
+      month: now.toLocaleDateString("en-GB", { month: "long" }),
+      year: String(now.getFullYear()),
+      party: {
+        name: st?.name,
+        className: st?.className,
+        batch: st?.sectionName,
+        idNo: st?.registrationNo || st?.rollNumber,
+      },
+      rows: dueRows.map((r) => [`${r.name}${r.month ? ` (${r.monthLabel})` : ""}`, Number(r.due) || 0]),
+      total: Number(inst?.totals?.due) || dueRows.reduce((s, r) => s + Number(r.due || 0), 0),
+      totalLabel: "Grand Total",
+      note: "Kindly pay fee before 10th of the Month.",
     });
   };
 
@@ -232,7 +266,10 @@ export default function StudentFeePaymentPage() {
       {/* Class fee payment details (installments) */}
       {studentId && (
         <Card noPadding title={st ? `${st.name} — Class Fee Payment Details` : "Class Fee Payment Details"}
-          action={<Button size="sm" icon={<CreditCard size={14} />} disabled={!selectedRows.length} onClick={openPay}>Cash/Offline Payment</Button>}>
+          action={<div className="flex gap-2">
+            <Button size="sm" variant="secondary" icon={<FileDown size={14} />} disabled={!dueRows.length} onClick={downloadDemandBill}>Demand Bill</Button>
+            <Button size="sm" icon={<CreditCard size={14} />} disabled={!selectedRows.length} onClick={openPay}>Cash/Offline Payment</Button>
+          </div>}>
           {isFetching ? (
             <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
           ) : !rows.length ? (
