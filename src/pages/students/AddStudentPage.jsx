@@ -66,7 +66,7 @@ function mapStudentToForm(s) {
     aadharNumber: s.aadharNumber || "", penNumber: s.penNumber || "", apaarNo: s.apaarNo || "",
     smartCardNo: s.smartCardNo || "", height: s.height || "", weight: s.weight || "", remarks: s.remarks || "",
     enabled: s.user?.isActive ?? true, photo: s.photo || "",
-    session: EMPTY.session, feePlan: s.feePlan || "REGULAR",
+    session: s.session || EMPTY.session, feePlan: s.feePlan || "REGULAR",
     classId: s.section?.class?.id || "", sectionName: s.section?.name || "",
     rollNumber: s.rollNumber || "", admissionNumber: s.admissionNumber || "",
     admissionDate: iso(s.admissionDate), registrationNo: s.registrationNo || "",
@@ -224,7 +224,10 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
     const payload = {
       firstName,
       lastName,
-      email: form.email || `${form.rollNumber.toLowerCase()}@student.local`,
+      // Send the email only if the admin actually entered one — never fabricate
+      // a synthetic "<roll>@student.local" address. Send null (not undefined) when
+      // blank so an edit can CLEAR an existing email; null is stored as no email.
+      email: form.email?.trim() || null,
       // On create, fall back to the default login password. On edit, only send a
       // password when the admin typed a new one (handled below).
       password: form.password || "Student@123",
@@ -237,6 +240,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
       admissionNumber: form.admissionNumber || undefined,
       registrationNo: form.registrationNo || undefined,
       feePlan: form.feePlan || undefined,
+      session: form.session || undefined,
       admissionDate: form.admissionDate || undefined,
       bloodGroup: form.bloodGroup || undefined,
       category: form.category || undefined,

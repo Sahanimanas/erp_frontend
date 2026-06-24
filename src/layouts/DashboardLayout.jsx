@@ -67,7 +67,7 @@ export default function DashboardLayout() {
         </header>
 
         <main
-          className="flex-1 overflow-y-auto p-4 lg:p-6"
+          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
           id="main-content"
         >
           <div className="animate-[fadeSlideIn_0.2s_ease-out] w-full">

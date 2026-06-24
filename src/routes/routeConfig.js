@@ -362,18 +362,26 @@ export const routeConfig = [
     ],
   },
 
-  // ── Exam Master ───────────────────────────────────────────────────────────
+  // ── Exam Management ───────────────────────────────────────────────────────
   {
     key: "exams",
-    label: "Exam Master",
-    path: "/exams",
+    label: "Exam Management",
+    path: "/exam-management",
     icon: "FileText",
     roles: ALL_STAFF,
     children: [
-      { key: "exams-list",    label: "Exam List",     path: "/exams/list",        icon: "List",        lazy: lazy("exams/ExamListPage"),       roles: ALL_STAFF },
-      { key: "exams-create",  label: "Create Exam",   path: "/exams/create",      icon: "Plus",        lazy: lazy("exams/CreateExamPage"),     roles: ADMIN_ONLY },
-      { key: "exams-results", label: "Results",       path: "/exams/results",     icon: "BarChart2",   lazy: lazy("exams/ExamResultsPage"),    roles: ALL_STAFF },
-      { key: "exams-report",  label: "Report Cards",  path: "/exams/report-card", icon: "FileText",    lazy: lazy("exams/ReportCardPage"),     roles: ALL_STAFF },
+      { key: "exam-grading",       label: "Setup Exam Grading",      path: "/exam-management/setup-grading",      icon: "Award",         lazy: lazy("exam-management/SetupExamGradingPage"),     roles: ADMIN_ONLY },
+      { key: "exam-manage",        label: "Manage Exam",             path: "/exam-management/manage-exam",         icon: "ClipboardList", lazy: lazy("exam-management/ManageExamPage"),           roles: ADMIN_ONLY },
+      { key: "exam-manage-sched",  label: "Manage Exam Schedule",    path: "/exam-management/manage-schedule",     icon: "CalendarClock", lazy: lazy("exam-management/ManageExamSchedulePage"),   roles: ADMIN_ONLY },
+      { key: "exam-view-sched",    label: "View Exam Schedule",      path: "/exam-management/view-schedule",       icon: "CalendarDays",  lazy: lazy("exam-management/ViewExamSchedulePage"),     roles: ALL_STAFF },
+      { key: "exam-publish-sched", label: "Publish Exam Schedule",   path: "/exam-management/publish-schedule",    icon: "Send",          lazy: lazy("exam-management/PublishExamSchedulePage"),  roles: ADMIN_ONLY },
+      { key: "exam-hall-ticket",   label: "Exam Hall Ticket",        path: "/exam-management/hall-ticket",         icon: "Ticket",        lazy: lazy("exam-management/ExamHallTicketPage"),       roles: ALL_STAFF },
+      { key: "exam-attend-card",   label: "Exam Attendance Card",    path: "/exam-management/attendance-card",     icon: "ClipboardCheck",        lazy: lazy("exam-management/ExamAttendanceCardPage"),   roles: ALL_STAFF },
+      { key: "exam-student-attend",label: "Student Exam Attendance", path: "/exam-management/student-attendance",  icon: "UserCheck",     lazy: lazy("exam-management/StudentExamAttendancePage"),roles: ALL_STAFF },
+      { key: "exam-view-attend",   label: "View Exam Attendance",    path: "/exam-management/view-attendance",     icon: "Eye",           lazy: lazy("exam-management/ViewExamAttendancePage"),   roles: ALL_STAFF },
+      { key: "exam-hall-plan",     label: "Exam Hall Plan",          path: "/exam-management/hall-plan",           icon: "LayoutGrid",    lazy: lazy("exam-management/ExamHallPlanPage"),         roles: ADMIN_ONLY },
+      { key: "exam-hall-detail",   label: "Exam Hall Detail",        path: "/exam-management/hall-detail",         icon: "Building2",     lazy: lazy("exam-management/ExamHallDetailPage"),       roles: ALL_STAFF },
+      { key: "exam-sitting-plan",  label: "Exam Sitting Plan",       path: "/exam-management/sitting-plan",        icon: "Armchair",      lazy: lazy("exam-management/ExamSittingPlanPage"),      roles: ALL_STAFF },
     ],
   },
 
@@ -418,6 +426,7 @@ export const routeConfig = [
       { key: "attend-student-dl",   label: "Download Student Attendance",path: "/attendance/student/download",  icon: "Download",     lazy: lazy("attendance/DownloadStudentAttendancePage"),   roles: ALL_STAFF },
       { key: "attend-student-all",  label: "All Student Daily Attendance",path: "/attendance/student/daily",    icon: "CalendarCheck",lazy: lazy("attendance/AllStudentDailyAttendancePage"),   roles: ALL_STAFF },
       { key: "attend-smartcard",    label: "Smart Card Attendance",      path: "/attendance/smart-card",        icon: "CreditCard",   lazy: lazy("attendance/SmartCardAttendancePage"),         roles: ADMIN_ONLY },
+      { key: "attend-biometric",    label: "Biometric Devices",          path: "/attendance/biometric",         icon: "Fingerprint",  lazy: lazy("attendance/BiometricAttendancePage"),         roles: ADMIN_ONLY },
       { key: "attend-monthly",      label: "Attendance Monthly Report",  path: "/attendance/report",            icon: "Calendar",     lazy: lazy("attendance/MonthlyReportPage"),               roles: ALL_STAFF },
       { key: "attend-teacher",      label: "Teacher Attendance",         path: "/attendance/teacher",           icon: "Briefcase",    lazy: lazy("attendance/TeacherAttendancePage"),           roles: ADMIN_ONLY, hidden: true },
     ],
@@ -474,6 +483,20 @@ export const routeConfig = [
     children: [
       { key: "events-list", label: "Event List",  path: "/events/list", icon: "List",  lazy: lazy("communication/EventListPage"), roles: ALL_STAFF },
       { key: "events-add",  label: "Add Event",   path: "/events/add",  icon: "Plus",  lazy: lazy("communication/AddEventPage"),  roles: ADMIN_ONLY },
+    ],
+  },
+
+  // ── WhatsApp ──────────────────────────────────────────────────────────────
+  // Link the school's own number once (Baileys / WhatsApp Web) and send text
+  // or media to recipients from that same number.
+  {
+    key: "whatsapp",
+    label: "WhatsApp",
+    path: "/whatsapp",
+    icon: "MessageCircle",
+    roles: ADMIN_ONLY,
+    children: [
+      { key: "whatsapp-send", label: "Send & Connect", path: "/whatsapp/send", icon: "Send", lazy: lazy("communication/WhatsAppPage"), roles: ADMIN_ONLY },
     ],
   },
 
