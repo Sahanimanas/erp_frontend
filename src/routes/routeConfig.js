@@ -388,6 +388,7 @@ export const routeConfig = [
   // ── Online Exam ───────────────────────────────────────────────────────────
   {
     key: "online-exam",
+    hidden: true,
     label: "Online Exam",
     path: "/online-exam",
     icon: "Globe",
@@ -401,6 +402,7 @@ export const routeConfig = [
   // ── AI Exam ───────────────────────────────────────────────────────────────
   {
     key: "ai-exam",
+    hidden: true,
     label: "AI Exam",
     path: "/ai-exam",
     icon: "Cpu",
@@ -449,6 +451,7 @@ export const routeConfig = [
   // ── QR Attendance ─────────────────────────────────────────────────────────
   {
     key: "qr-attend",
+    hidden: true,
     label: "QR Code Attendance",
     path: "/qr-attendance",
     icon: "QrCode",
