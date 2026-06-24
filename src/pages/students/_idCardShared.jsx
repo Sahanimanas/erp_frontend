@@ -20,6 +20,7 @@ export function makeDefaultCfg(schoolName) {
     footerColor: "#6366f1",
     footerTextColor: "#ffffff",
     bodyColor: "#ffffff",
+    showName: true,
     showLogo: true,
     watermark: true,
     watermarkOpacity: 0.08,
@@ -100,11 +101,18 @@ export function IdCardFace({ cfg, student, face = "front", logo, scale = 1 }) {
     f.phone && ["Phone", student?.user?.phone || "—"],
   ].filter(Boolean);
 
+  const nameShown = cfg.showName !== false;
   const Header = (
     <div className="px-3 py-2.5 text-center shrink-0" style={{ backgroundColor: cfg.headerColor, color: cfg.headerTextColor }}>
       <div className="flex items-center justify-center gap-2">
-        {cfg.showLogo && logo && <img src={logo} alt="" className="rounded object-cover bg-white" style={{ width: t.logoSize, height: t.logoSize }} />}
-        <p className="font-extrabold leading-tight tracking-tight" style={{ fontSize: t.headerSize }}>{cfg.headerText}</p>
+        {cfg.showLogo && logo && (
+          // Logo-only header → stretch the logo across the full header width (height = Logo Size).
+          // With the name shown, keep it as a square sitting next to the text.
+          nameShown
+            ? <img src={logo} alt="" className="rounded object-cover bg-white" style={{ width: t.logoSize, height: t.logoSize }} />
+            : <img src={logo} alt="" className="w-full object-contain" style={{ height: t.logoSize }} />
+        )}
+        {nameShown && <p className="font-extrabold leading-tight tracking-tight" style={{ fontSize: t.headerSize }}>{cfg.headerText}</p>}
       </div>
       {cfg.subHeader && <p className="font-semibold mt-0.5 tracking-wider whitespace-pre-line" style={{ fontSize: t.subHeaderSize, color: t.subHeaderColor }}>{cfg.subHeader}</p>}
     </div>

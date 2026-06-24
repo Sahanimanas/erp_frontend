@@ -27,7 +27,10 @@ export default function StudentIdPrintPage() {
   const rows = data?.data ?? [];
 
   const cfg = templates.find((t) => t.id === templateId)?.cfg || null;
-  const gridCols = cfg?.orientation === "horizontal" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-2 md:grid-cols-4";
+
+  // Group students into fixed pages of 4 so printing never splits a card across sheets.
+  const pages = [];
+  for (let i = 0; i < rows.length; i += 4) pages.push(rows.slice(i, i + 4));
 
   // No templates designed yet → point the admin to the editor.
   if (!templates.length) {
@@ -46,11 +49,25 @@ export default function StudentIdPrintPage() {
       <style>{`
         /* Keep background colors/images (header, footer, accents, watermark, barcode)
            when printing — browsers strip them by default. */
-        .id-grid, .id-grid * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .id-page, .id-page * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         @media print {
-          .no-print { display:none !important; }
-          .id-grid { gap:8px !important; }
-          body { background:#fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          /* Zero page margin makes browsers drop their auto date/title/URL/page-number
+             headers & footers — then we re-add breathing room via padding below. */
+          @page { size: A4; margin: 0; }
+          /* Hide the app shell (dark topbar + sidebar) and the on-page controls so
+             only the ID cards print. */
+          header, aside, .no-print { display:none !important; }
+          body { background:#fff; margin:0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          /* Each group is exactly one A4 sheet (4 cards, 2×2) with a hard break after it,
+             so no card ever bleeds onto the next page. */
+          .id-page {
+            height:100vh !important; box-sizing:border-box !important; overflow:hidden !important;
+            padding:10mm !important; gap:10mm !important;
+            justify-content:center !important; align-content:flex-start !important;
+            break-after:page !important; page-break-after:always !important;
+            break-inside:avoid !important; page-break-inside:avoid !important;
+          }
+          .id-page:last-child { break-after:auto !important; page-break-after:auto !important; }
         }
       `}</style>
       <div className="no-print">
@@ -93,8 +110,12 @@ export default function StudentIdPrintPage() {
       ) : rows.length === 0 ? (
         <EmptyState icon="🪪" title="No students" description="No students in this class." />
       ) : (
-        <div className={`id-grid grid gap-3 ${gridCols}`}>
-          {rows.map((r) => <IdCardFace key={r.id} cfg={cfg} student={r} face="front" logo={user?.schoolLogo} />)}
+        <div className="space-y-3">
+          {pages.map((pg, i) => (
+            <div key={i} className="id-page flex flex-wrap justify-center content-start gap-3">
+              {pg.map((r) => <IdCardFace key={r.id} cfg={cfg} student={r} face="front" logo={user?.schoolLogo} />)}
+            </div>
+          ))}
         </div>
       )}
     </div>

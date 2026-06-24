@@ -53,7 +53,7 @@ export default function MonthlyReportPage() {
     <div>
       <PageHeader title="Monthly Report" subtitle="Student attendance by section" icon={<Calendar size={18} />} />
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
-      <Card className="mb-5">
+      <Card className="mb-5 p-5">
         <div className="flex flex-wrap items-end gap-3">
           <Select label="Section" value={sectionId} onChange={e => setSectionId(e.target.value)} options={sectionOptions} className="w-48" />
           <Select label="Month" value={month} onChange={e => setMonth(Number(e.target.value))} options={monthOptions} className="w-40" />

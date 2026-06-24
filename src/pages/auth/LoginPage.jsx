@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { loginSuccess } from "../../redux/slices/authSlice";
-import { Eye, EyeOff, GraduationCap, Lock, User, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Lock, User, ArrowRight } from "lucide-react";
 import apiClient from "../../services/axios";
 
 export default function LoginPage() {
@@ -96,20 +96,20 @@ export default function LoginPage() {
 
       {/* ── Welcome text — upper middle, close to the form ───────────────── */}
       <header className="relative z-10 w-full text-center mb-6">
-        {brandLogo ? (
-          <img src={brandLogo} alt={brandName} className="inline-block w-16 h-16 rounded-2xl object-cover bg-white shadow-lg shadow-indigo-500/20 mb-4" />
-        ) : (
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30 mb-4">
-            <GraduationCap size={30} className="text-white" />
-          </div>
-        )}
         <p className="text-indigo-300/80 text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase">Welcome to</p>
-        <h1 className="text-3xl sm:text-5xl font-extrabold mt-2 bg-gradient-to-r from-indigo-300 via-violet-300 to-pink-300 bg-clip-text text-transparent">
-          {brandName}
-        </h1>
-        <p className="text-slate-400 text-sm mt-3 max-w-md mx-auto">
-          Complete School Management System for modern institutions
-        </p>
+        {/* Show the school's logo in place of its name. Fall back to the name
+            (or platform icon) when a school has not uploaded a logo. */}
+        {brandLogo ? (
+          <img
+            src={brandLogo}
+            alt={brandName}
+            className="mx-auto mt-4 block max-h-24 w-auto rounded-2xl bg-white object-contain p-2 shadow-lg shadow-indigo-500/20"
+          />
+        ) : (
+          <h1 className="text-3xl sm:text-5xl font-extrabold mt-2 bg-gradient-to-r from-indigo-300 via-violet-300 to-pink-300 bg-clip-text text-transparent">
+            {brandName}
+          </h1>
+        )}
       </header>
 
       {/* ── Login form — bigger, centered right under the heading ────────── */}

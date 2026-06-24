@@ -203,6 +203,10 @@ export default function IdCardEditorPage() {
                 <ColorField label="Header Color" value={cfg.headerColor} onChange={(v) => set("headerColor", v)} />
                 <ColorField label="Header Text" value={cfg.headerTextColor} onChange={(v) => set("headerTextColor", v)} />
               </div>
+              <label className="flex items-center gap-2 text-[13px] text-slate-700">
+                <input type="checkbox" checked={cfg.showName !== false} onChange={(e) => set("showName", e.target.checked)} className="accent-indigo-600 w-4 h-4" />
+                Show school name in header
+              </label>
               {user?.schoolLogo && (
                 <label className="flex items-center gap-2 text-[13px] text-slate-700">
                   <input type="checkbox" checked={cfg.showLogo} onChange={(e) => set("showLogo", e.target.checked)} className="accent-indigo-600 w-4 h-4" />
@@ -225,7 +229,7 @@ export default function IdCardEditorPage() {
             <div className="p-4 grid grid-cols-2 gap-3">
               <NumField label="Photo Size" value={cfg.photoSize} onChange={(v) => set("photoSize", v)} min={48} max={200} />
               <NumField label="Header Size" value={cfg.headerSize} onChange={(v) => set("headerSize", v)} />
-              <NumField label="Logo Size" value={cfg.logoSize} onChange={(v) => set("logoSize", v)} />
+              <NumField label="Logo Size" value={cfg.logoSize} onChange={(v) => set("logoSize", v)} min={16} max={160} />
               <NumField label="Sub-header Size" value={cfg.subHeaderSize} onChange={(v) => set("subHeaderSize", v)} />
               <ColorField label="Sub-header Color" value={cfg.subHeaderColor} onChange={(v) => set("subHeaderColor", v)} />
               <NumField label="Name Size" value={cfg.nameSize} onChange={(v) => set("nameSize", v)} />
