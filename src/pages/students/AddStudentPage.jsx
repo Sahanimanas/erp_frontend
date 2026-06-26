@@ -211,8 +211,24 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
   const submit = async (e) => {
     e.preventDefault();
     if (isView) return; // read-only profile view never submits
-    if (!form.name.trim() || !form.classId || !form.sectionName || !form.rollNumber || !form.dateOfBirth) {
-      toast.error("Name, class, section, roll number and date of birth are required");
+    // Validate each required field individually so the toast names the exact
+    // empty field — Class/Section/Roll live in the Admission card lower down the
+    // page, so a generic message left the admin hunting for what was missing.
+    const required = [
+      { ok: form.name.trim(), label: "Name", field: "name" },
+      { ok: form.dateOfBirth, label: "Date of Birth", field: "dateOfBirth" },
+      { ok: form.classId, label: "Class", field: "classId" },
+      { ok: form.sectionName, label: "Section", field: "sectionName" },
+      { ok: form.rollNumber, label: "Roll Number", field: "rollNumber" },
+    ];
+    const missing = required.find((r) => !r.ok);
+    if (missing) {
+      toast.error(`${missing.label} is required`);
+      const el = document.getElementById(`student-${missing.field}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus({ preventScroll: true });
+      }
       return;
     }
     const parts = form.name.trim().split(/\s+/);
@@ -405,8 +421,8 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
 
           {/* Fields */}
           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Name *" value={form.name} onChange={set("name")} placeholder="Enter Name" />
-            <Input label="Date of Birth *" type="date" value={form.dateOfBirth} onChange={set("dateOfBirth")} />
+            <Input id="student-name" label="Name *" value={form.name} onChange={set("name")} placeholder="Enter Name" />
+            <Input id="student-dateOfBirth" label="Date of Birth *" type="date" value={form.dateOfBirth} onChange={set("dateOfBirth")} />
             <Input label="Phone *" value={form.phone} onChange={set("phone")} placeholder="Enter Phone" />
             <Input label="Email" type="email" value={form.email} onChange={set("email")} placeholder="auto from roll no if blank" />
             <Select label="Gender" value={form.gender} onChange={set("gender")} options={GENDERS.map((g) => ({ value: g, label: g || "Select..." }))} />
@@ -460,14 +476,14 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
             options={[...new Set([...sessionOptions, form.session].filter(Boolean))].map((s) => ({ value: s, label: s }))} />
           <Select label="Fee Plan *" value={form.feePlan} onChange={set("feePlan")}
             options={FEE_PLANS.map((p) => ({ value: p, label: p }))} />
-          <Select label="Class *" value={form.classId} onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value, sectionName: "" }))}
+          <Select id="student-classId" label="Class *" value={form.classId} onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value, sectionName: "" }))}
             options={[{ value: "", label: "Select..." }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
-          <Select label="Section *" value={form.sectionName} onChange={set("sectionName")}
+          <Select id="student-sectionName" label="Section *" value={form.sectionName} onChange={set("sectionName")}
             options={[{ value: "", label: "Select Section" }, ...SECTIONS_AZ.map((s) => ({ value: s, label: s }))]} />
           <Input label="Admission No" value={form.admissionNumber} onChange={set("admissionNumber")} placeholder="Enter Admission No" />
           <Input label="Joining Date" type="date" value={form.admissionDate} onChange={set("admissionDate")} />
           <Input label="Registration No" value={form.registrationNo} onChange={set("registrationNo")} placeholder="Registration No" />
-          <Input label="Roll Number *" value={form.rollNumber} onChange={set("rollNumber")} placeholder="Class Roll No" />
+          <Input id="student-rollNumber" label="Roll Number *" value={form.rollNumber} onChange={set("rollNumber")} placeholder="Class Roll No" />
           <Input label="Login Password" value={form.password} onChange={set("password")} />
         </div>
       </Card>
