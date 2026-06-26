@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import { selectUser } from "../../redux/slices/authSlice";
 import { usePageTitle } from "../../hooks";
-import { WelcomeBanner, StatCard, Card, ProgressBar, DateRangeFilter, Button } from "../../components/ui";
+import { WelcomeBanner, StatCard, Card, ProgressBar, DateRangeFilter, Button, Modal } from "../../components/ui";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Users, GraduationCap, UserCheck, BookOpen, AlertCircle, Clock } from "lucide-react";
 import apiClient from "../../services/axios";
@@ -31,6 +31,7 @@ function SchoolDashboard() {
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
   const [dateRange,setDateRange]=useState({from:"",to:""});
+  const [selectedActivity,setSelectedActivity]=useState(null);
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
@@ -190,24 +191,57 @@ function SchoolDashboard() {
           </Card>
         </div>
       </div>
-      <Card title="Recent Activities">
+      <Card title="Recent Activities" subtitle="Latest admissions & fee payments — click a row for full details">
         <div className="divide-y divide-slate-50">
           {dashboardData.activities && dashboardData.activities.length > 0 ? (
             dashboardData.activities.map((a,i)=>(
-              <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/60 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0 text-sm">📋</div>
+              <button
+                key={i}
+                type="button"
+                onClick={()=>setSelectedActivity(a)}
+                className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50/60 transition-colors cursor-pointer"
+              >
+                <div className={`w-8 h-8 rounded-lg ${a.bg || "bg-indigo-50"} flex items-center justify-center flex-shrink-0 text-sm`}>{a.icon || "📋"}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-semibold text-slate-700">{a.title}</p>
-                  <p className="text-[11px] text-slate-400">{a.detail}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{a.detail}</p>
                 </div>
                 <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock size={10}/>{a.time}</span>
-              </div>
+              </button>
             ))
           ) : (
             <div className="p-4 text-center text-slate-400">No recent activities</div>
           )}
         </div>
       </Card>
+
+      {/* Activity detail panel — opens when a Recent Activities row is clicked. */}
+      <Modal
+        open={!!selectedActivity}
+        onClose={()=>setSelectedActivity(null)}
+        title={selectedActivity?.title || "Activity"}
+        size="md"
+      >
+        {selectedActivity && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl ${selectedActivity.bg || "bg-indigo-50"} flex items-center justify-center text-lg`}>{selectedActivity.icon || "📋"}</div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">{selectedActivity.detail}</p>
+                <p className="text-[11px] text-slate-400 flex items-center gap-1"><Clock size={10}/>{selectedActivity.time}</p>
+              </div>
+            </div>
+            <dl className="divide-y divide-slate-100 border border-slate-100 rounded-lg overflow-hidden">
+              {(selectedActivity.details || []).map((d,i)=>(
+                <div key={i} className="flex items-start gap-3 px-4 py-2.5 odd:bg-slate-50/40">
+                  <dt className="text-[12px] text-slate-500 w-36 flex-shrink-0">{d.label}</dt>
+                  <dd className="text-[12px] font-medium text-slate-700 break-words">{d.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
