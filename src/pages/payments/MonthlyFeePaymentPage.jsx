@@ -10,7 +10,7 @@ import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, DataTable, Badge } from "../../components/ui";
 import { CalendarClock, Download, Search, CreditCard } from "lucide-react";
 import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/attendanceApi";
-import { useLazyExportClassFeesQuery } from "../../redux/api/paymentsApi";
+import { useLazyGetMonthlyDuesQuery } from "../../redux/api/paymentsApi";
 import { academicMonths } from "../fee-management/_feeShared";
 import { exportRows, autoColumns } from "../../utils/exportExcel";
 
@@ -26,12 +26,12 @@ export default function MonthlyFeePaymentPage() {
 
   const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
-  const [fetchExport, { isFetching }] = useLazyExportClassFeesQuery();
+  const [fetchDues, { isFetching }] = useLazyGetMonthlyDuesQuery();
   const months = academicMonths();
 
   const run = async () => {
     if (!classId) { toast.error("Select a class"); return; }
-    try { setRows((await fetchExport(classId).unwrap()) || []); }
+    try { setRows((await fetchDues({ classId, month }).unwrap()) || []); }
     catch (e) { toast.error(e?.data?.error || "Failed"); }
   };
 
@@ -41,9 +41,11 @@ export default function MonthlyFeePaymentPage() {
     { key: "fatherName", label: "Father Name", render: (v) => v || "—" },
     { key: "phone", label: "Phone Number", render: (v) => <span className="font-mono text-[11px]">{v || "—"}</span> },
     { key: "month", label: "Month Name", sortable: false, render: () => month || "—" },
-    { key: "due", label: "Due Amount", render: (v) => <Badge variant={Number(v) > 0 ? "danger" : "success"}>{money(v)}</Badge> },
+    { key: "previousDue", label: "Previous Due", render: (v) => <span className={Number(v) > 0 ? "text-amber-600 font-semibold" : "text-slate-400"}>{money(v)}</span> },
+    { key: "currentDue", label: month ? `${month} Fee` : "Current Due", render: (v) => <Badge variant={Number(v) > 0 ? "danger" : "success"}>{money(v)}</Badge> },
+    { key: "totalDue", label: "Total Due", render: (v) => <span className="font-bold text-slate-800">{money(v)}</span> },
     { key: "actions", label: "Pay Now", sortable: false, render: (_v, r) => (
-        <Button size="xs" icon={<CreditCard size={12} />} disabled={Number(r.due) <= 0}
+        <Button size="xs" icon={<CreditCard size={12} />} disabled={Number(r.totalDue ?? r.due) <= 0}
           onClick={() => navigate(`/payments/student-fee?id=${r.studentId}`)}>Pay Now</Button>
       ) },
   ];

@@ -12,7 +12,7 @@ import { PageHeader, Card, Button, Select, Input, Badge } from "../../components
 import { FileText, Search, CreditCard, FileDown, Printer } from "lucide-react";
 import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/attendanceApi";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
-import { useLazyExportClassFeesQuery } from "../../redux/api/paymentsApi";
+import { useLazyGetMonthlyDuesQuery } from "../../redux/api/paymentsApi";
 import { academicMonths } from "../fee-management/_feeShared";
 import { printTable, printBill } from "../../utils/printPdf";
 
@@ -38,34 +38,48 @@ export default function DemandReceiptPage() {
   const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
   const { data: studentList } = useGetStudentsQuery({ classId, limit: 500 }, { skip: !classId });
-  const [fetchExport, { isFetching }] = useLazyExportClassFeesQuery();
+  const [fetchDues, { isFetching }] = useLazyGetMonthlyDuesQuery();
 
   const students = studentList?.data ?? [];
   const className = classes.find((c) => c.id === classId)?.name;
   const monthLabel = selMonths.length ? selMonths.join("; ") : "All Months";
   const toggleMonth = (m) => setSelMonths((s) => (s.includes(m) ? s.filter((x) => x !== m) : [...s, m]));
+  // The dues are scoped to a single month boundary: the latest selected month.
+  // Everything due before it is "previous due"; that month's configured fees
+  // are the "current due". No month selected → whole outstanding ledger.
+  const scopeMonth = selMonths.length ? months.filter((m) => selMonths.includes(m)).slice(-1)[0] : "";
 
   const generate = async () => {
     if (!classId) { toast.error("Select a class"); return; }
     try {
-      let data = (await fetchExport(classId).unwrap()) || [];
+      let data = (await fetchDues({ classId, month: scopeMonth }).unwrap()) || [];
       if (studentId) data = data.filter((r) => r.studentId === studentId);
       setRows(data);
     } catch (e) { toast.error(e?.data?.error || "Failed to generate"); }
   };
 
   // Per-student demand bill in the compact bill format (with logo watermark).
+  // Itemises Previous Dues + each of the selected month's configured fees so the
+  // grand total matches the student's full outstanding demand.
   const printDemandBill = (r) => {
     const now = new Date();
+    const prev = Number(r.previousDue) || 0;
+    const lines = Array.isArray(r.lines) ? r.lines : [];
+    const billRows = [
+      ["Prev. Dues", prev],
+      ...(lines.length
+        ? lines.map((l) => [`${l.name}${l.month && l.month !== "Only Once" ? ` (${l.month})` : ""}`, Number(l.amount) || 0])
+        : [[`Current Dues${scopeMonth ? ` (${scopeMonth})` : ""}`, Number(r.currentDue) || 0]]),
+    ];
     printBill({
       billType: "Demand Bill",
       billNo: `DB-${(r.regId || r.rollNumber || "").toString().slice(-6).toUpperCase()}-${now.getDate()}${now.getMonth() + 1}`,
       date: dueDate || fmtDate(now),
-      month: selMonths.length ? selMonths[0] : now.toLocaleDateString("en-GB", { month: "long" }),
+      month: scopeMonth || now.toLocaleDateString("en-GB", { month: "long" }),
       year: (session && years.find((y) => y.id === session)?.name) || String(now.getFullYear()),
       party: { name: r.name, className, batch: r.section, idNo: r.regId || r.rollNumber },
-      rows: [[`Fee Dues${selMonths.length ? ` (${monthLabel})` : ""}`, Number(r.due) || 0]],
-      total: Number(r.due) || 0,
+      rows: billRows,
+      total: Number(r.totalDue ?? r.due) || 0,
       totalLabel: "Grand Total",
       note: "Kindly pay fee before 10th of the Month.",
     });
@@ -76,9 +90,9 @@ export default function DemandReceiptPage() {
     printTable({
       title: `${className || "Class"} — Demand Fee Receipt`,
       subtitle: [session && years.find((y) => y.id === session)?.name, monthLabel, dueDate && `Due ${dueDate}`].filter(Boolean).join("  ·  "),
-      columns: ["Reg ID", "Student Name", "Father Name", "Phone", "Month", "Due Amount"],
-      rows: rows.map((r) => [r.regId, r.name, r.fatherName, r.phone, monthLabel, money(r.due)]),
-      footer: `Total Demand: ${money(rows.reduce((s, r) => s + Number(r.due || 0), 0))}`,
+      columns: ["Reg ID", "Student Name", "Father Name", "Phone", "Month", "Prev. Due", "Current Due", "Total Due"],
+      rows: rows.map((r) => [r.regId, r.name, r.fatherName, r.phone, monthLabel, money(r.previousDue), money(r.currentDue), money(r.totalDue ?? r.due)]),
+      footer: `Total Demand: ${money(rows.reduce((s, r) => s + (Number(r.totalDue ?? r.due) || 0), 0))}`,
     });
   };
 
@@ -132,13 +146,13 @@ export default function DemandReceiptPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[820px]">
               <thead><tr className="bg-slate-50 border-b border-slate-100">
-                {["Reg ID", "Student Name", "Father Name", "Phone Number", "Month Name", "Due Amount", "Pay Now", "Send Reminder"].map((h) => (
+                {["Reg ID", "Student Name", "Father Name", "Phone Number", "Month Name", "Prev. Due", "Current Due", "Total Due", "Pay Now", "Send Reminder"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                 ))}
               </tr></thead>
               <tbody className="divide-y divide-slate-50">
                 {rows.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-10 text-center text-xs text-slate-400">No students / dues for this class.</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-10 text-center text-xs text-slate-400">No students / dues for this class.</td></tr>
                 ) : rows.map((r) => (
                   <tr key={r.studentId || r.rollNumber} className="hover:bg-slate-50/70">
                     <td className="px-4 py-2.5 font-mono text-[11px] text-indigo-600">{r.regId || "—"}</td>
@@ -146,7 +160,9 @@ export default function DemandReceiptPage() {
                     <td className="px-4 py-2.5 text-slate-600 text-[12px]">{r.fatherName || "—"}</td>
                     <td className="px-4 py-2.5 font-mono text-[11px]">{r.phone || "—"}</td>
                     <td className="px-4 py-2.5 text-slate-500 text-[11px] max-w-[220px] truncate" title={monthLabel}>{monthLabel}</td>
-                    <td className="px-4 py-2.5"><Badge variant={Number(r.due) > 0 ? "danger" : "success"}>{money(r.due)}</Badge></td>
+                    <td className="px-4 py-2.5 text-[12px]"><span className={Number(r.previousDue) > 0 ? "text-amber-600 font-semibold" : "text-slate-400"}>{money(r.previousDue)}</span></td>
+                    <td className="px-4 py-2.5"><Badge variant={Number(r.currentDue) > 0 ? "danger" : "success"}>{money(r.currentDue)}</Badge></td>
+                    <td className="px-4 py-2.5 font-bold text-slate-800 text-[12px]">{money(r.totalDue ?? r.due)}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-1.5">
                         <Button size="xs" icon={<CreditCard size={12} />} disabled={Number(r.due) <= 0}
