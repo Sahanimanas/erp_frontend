@@ -527,7 +527,6 @@ export const routeConfig = [
     roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT],
     children: [
       { key: "fm-class-type",     label: "Class Fee Type",      path: "/fee-management/class-fee-type",     icon: "Receipt",   lazy: lazy("fee-management/ClassFeeTypePage"),      roles: ADMIN_ONLY },
-      { key: "fm-transport-type", label: "Transport Fee Type",  path: "/fee-management/transport-fee-type", icon: "Bus",       lazy: lazy("fee-management/TransportFeeTypePage"),  roles: ADMIN_ONLY },
       { key: "fm-manage",         label: "Manage Class Fee",    path: "/fee-management/manage-class-fee",   icon: "Wallet",    lazy: lazy("fee-management/ManageClassFeePage"),    roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
       { key: "fm-structure",      label: "Class Fee Structure", path: "/fee-management/class-fee-structure",icon: "FileText",  lazy: lazy("fee-management/ClassFeeStructurePage"), roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
       { key: "fm-route-fee",      label: "Transport Fee Manage",path: "/fee-management/transport-route-fee",icon: "Bus",       lazy: lazy("fee-management/TransportRouteFeePage"), roles: ADMIN_ONLY },

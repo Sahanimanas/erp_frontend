@@ -55,6 +55,8 @@ export function FeeTypeManager({ title, subtitle, icon, isTransport }) {
   };
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const toggleMonth = (m) => setForm((f) => ({ ...f, months: f.months.includes(m) ? f.months.filter((x) => x !== m) : [...f.months, m] }));
+  const allMonthsSelected = months.length > 0 && months.every((m) => form.months.includes(m));
+  const toggleAllMonths = () => setForm((f) => ({ ...f, months: allMonthsSelected ? [] : [...months] }));
 
   const submit = async () => {
     if (!form.name.trim()) { toast.error("Name is required"); return; }
@@ -120,7 +122,13 @@ export function FeeTypeManager({ title, subtitle, icon, isTransport }) {
 
           {MONTHLY_LIKE.includes(form.frequency) && (
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-2">Month / Year *</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[11px] font-semibold text-slate-600">Month / Year *</label>
+                <button type="button" onClick={toggleAllMonths}
+                  className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700">
+                  {allMonthsSelected ? "Clear all" : "Select all months"}
+                </button>
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {months.map((m) => (
                   <button key={m} type="button" onClick={() => toggleMonth(m)}

@@ -8,13 +8,13 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Select, Input, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, Select, Input, Badge, Modal, Pagination } from "../../components/ui";
 import { FileText, Search, CreditCard, FileDown, Printer } from "lucide-react";
 import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/attendanceApi";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useLazyGetMonthlyDuesQuery } from "../../redux/api/paymentsApi";
 import { academicMonths } from "../fee-management/_feeShared";
-import { printTable, printBill } from "../../utils/printPdf";
+import { printBill, printBills } from "../../utils/printPdf";
 
 const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
@@ -27,13 +27,19 @@ export default function DemandReceiptPage() {
   const [session, setSession] = useState("");
   const [classId, setClassId] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [perPage, setPerPage] = useState("10");
+  const [perPage, setPerPage] = useState("10"); // table rows per page
   const [studentId, setStudentId] = useState(""); // optional student filter
   const [selMonths, setSelMonths] = useState([]);
   const [tillMonth, setTillMonth] = useState("");
   const [combined, setCombined] = useState(false);
   const [prevYearDue, setPrevYearDue] = useState(true);
   const [rows, setRows] = useState(null);
+  const [page, setPage] = useState(1); // table pagination
+  // Print-range modal (which students to print bills for).
+  const [printOpen, setPrintOpen] = useState(false);
+  const [rangeFrom, setRangeFrom] = useState("1");
+  const [rangeTo, setRangeTo] = useState("");
+  const [billsPerPage, setBillsPerPage] = useState("6"); // demand bills per printed sheet
 
   const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
@@ -42,12 +48,18 @@ export default function DemandReceiptPage() {
 
   const students = studentList?.data ?? [];
   const className = classes.find((c) => c.id === classId)?.name;
-  const monthLabel = selMonths.length ? selMonths.join("; ") : "All Months";
   const toggleMonth = (m) => setSelMonths((s) => (s.includes(m) ? s.filter((x) => x !== m) : [...s, m]));
-  // The dues are scoped to a single month boundary: the latest selected month.
-  // Everything due before it is "previous due"; that month's configured fees
-  // are the "current due". No month selected → whole outstanding ledger.
-  const scopeMonth = selMonths.length ? months.filter((m) => selMonths.includes(m)).slice(-1)[0] : "";
+  // Dues are scoped to a single month boundary. "Till Month" wins when set —
+  // it means "everything due up to and including this month" (cumulative).
+  // Otherwise fall back to the latest selected chip. Everything due before the
+  // boundary is "previous due"; that month's configured fees are the "current
+  // due". Nothing chosen → the whole outstanding ledger.
+  const scopeMonth = tillMonth || (selMonths.length ? months.filter((m) => selMonths.includes(m)).slice(-1)[0] : "");
+  const monthLabel = tillMonth ? `Up to ${tillMonth}` : (selMonths.length ? selMonths.join("; ") : "All Months");
+
+  // Client-side table pagination ("No of demand per page" = page size).
+  const pageSize = Math.max(1, Number(perPage) || 10);
+  const pagedRows = rows ? rows.slice((page - 1) * pageSize, page * pageSize) : [];
 
   const generate = async () => {
     if (!classId) { toast.error("Select a class"); return; }
@@ -55,13 +67,15 @@ export default function DemandReceiptPage() {
       let data = (await fetchDues({ classId, month: scopeMonth }).unwrap()) || [];
       if (studentId) data = data.filter((r) => r.studentId === studentId);
       setRows(data);
+      setPage(1);
     } catch (e) { toast.error(e?.data?.error || "Failed to generate"); }
   };
 
-  // Per-student demand bill in the compact bill format (with logo watermark).
-  // Itemises Previous Dues + each of the selected month's configured fees so the
-  // grand total matches the student's full outstanding demand.
-  const printDemandBill = (r) => {
+  // Build ONE student's demand bill object (compact bill format). Itemises
+  // Previous Dues + each of the scoped month's configured fees so the grand
+  // total matches the student's full outstanding demand. Shared by the single
+  // "Bill" button and the multi-bill (6-per-page) print.
+  const buildBillFor = (r) => {
     const now = new Date();
     const prev = Number(r.previousDue) || 0;
     const lines = Array.isArray(r.lines) ? r.lines : [];
@@ -71,7 +85,7 @@ export default function DemandReceiptPage() {
         ? lines.map((l) => [`${l.name}${l.month && l.month !== "Only Once" ? ` (${l.month})` : ""}`, Number(l.amount) || 0])
         : [[`Current Dues${scopeMonth ? ` (${scopeMonth})` : ""}`, Number(r.currentDue) || 0]]),
     ];
-    printBill({
+    return {
       billType: "Demand Bill",
       billNo: `DB-${(r.regId || r.rollNumber || "").toString().slice(-6).toUpperCase()}-${now.getDate()}${now.getMonth() + 1}`,
       date: dueDate || fmtDate(now),
@@ -82,18 +96,29 @@ export default function DemandReceiptPage() {
       total: Number(r.totalDue ?? r.due) || 0,
       totalLabel: "Grand Total",
       note: "Kindly pay fee before 10th of the Month.",
-    });
+    };
   };
 
+  const printDemandBill = (r) => printBill(buildBillFor(r));
+
+  // "Download Receipt" → ask which students + how many per sheet, then print the
+  // demand bills in a grid (default 6 per page, like ID cards).
   const downloadReceipt = () => {
     if (!rows?.length) { toast.error("Generate the demand first"); return; }
-    printTable({
-      title: `${className || "Class"} — Demand Fee Receipt`,
-      subtitle: [session && years.find((y) => y.id === session)?.name, monthLabel, dueDate && `Due ${dueDate}`].filter(Boolean).join("  ·  "),
-      columns: ["Reg ID", "Student Name", "Father Name", "Phone", "Month", "Prev. Due", "Current Due", "Total Due"],
-      rows: rows.map((r) => [r.regId, r.name, r.fatherName, r.phone, monthLabel, money(r.previousDue), money(r.currentDue), money(r.totalDue ?? r.due)]),
-      footer: `Total Demand: ${money(rows.reduce((s, r) => s + (Number(r.totalDue ?? r.due) || 0), 0))}`,
-    });
+    setRangeFrom("1");
+    setRangeTo(String(rows.length));
+    setPrintOpen(true);
+  };
+
+  const doPrintBills = () => {
+    const total = rows?.length || 0;
+    const from = Math.max(1, Math.min(total, Number(rangeFrom) || 1));
+    const to = Math.max(from, Math.min(total, Number(rangeTo) || total));
+    const per = Math.max(1, Number(billsPerPage) || 6);
+    const slice = rows.slice(from - 1, to);
+    if (!slice.length) { toast.error("No students in that range"); return; }
+    printBills({ bills: slice.map(buildBillFor), perPage: per });
+    setPrintOpen(false);
   };
 
   return (
@@ -108,7 +133,7 @@ export default function DemandReceiptPage() {
             <Select label="Class *" value={classId} onChange={(e) => { setClassId(e.target.value); setStudentId(""); }}
               options={[{ value: "", label: "Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
             <Input label="Due Date *" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-            <Input label="No of demand per page" type="number" min="1" value={perPage} onChange={(e) => setPerPage(e.target.value)} />
+            <Input label="No of demand per page" type="number" min="1" value={perPage} onChange={(e) => { setPerPage(e.target.value); setPage(1); }} />
             <Select label="Student Filter" value={studentId} onChange={(e) => setStudentId(e.target.value)}
               options={[{ value: "", label: classId ? "All Students" : "Pick a class first" },
                 ...students.map((s) => ({ value: s.id, label: `${s.user?.firstName} ${s.user?.lastName} [${s.registrationNo || s.rollNumber}]` }))]} />
@@ -153,7 +178,7 @@ export default function DemandReceiptPage() {
               <tbody className="divide-y divide-slate-50">
                 {rows.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-xs text-slate-400">No students / dues for this class.</td></tr>
-                ) : rows.map((r) => (
+                ) : pagedRows.map((r) => (
                   <tr key={r.studentId || r.rollNumber} className="hover:bg-slate-50/70">
                     <td className="px-4 py-2.5 font-mono text-[11px] text-indigo-600">{r.regId || "—"}</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-800 text-[12px]">{r.name}</td>
@@ -177,8 +202,50 @@ export default function DemandReceiptPage() {
               </tbody>
             </table>
           </div>
+          {rows.length > 0 && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-slate-100">
+              <span className="text-[11px] text-slate-500">
+                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, rows.length)} of {rows.length}
+              </span>
+              <Pagination page={page} total={rows.length} pageSize={pageSize} onPageChange={setPage} />
+            </div>
+          )}
         </Card>
       )}
+
+      {/* Print-range chooser — bills printed in a grid (default 6 per sheet). */}
+      <Modal open={printOpen} onClose={() => setPrintOpen(false)} title="Print Demand Bills" size="md">
+        <div className="space-y-4">
+          <p className="text-[12px] text-slate-500">
+            {rows?.length || 0} student(s) generated. Choose which students to print and how many bills per page.
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <Input label="From #" type="number" min="1" max={rows?.length || 1} value={rangeFrom} onChange={(e) => setRangeFrom(e.target.value)} />
+            <Input label="To #" type="number" min="1" max={rows?.length || 1} value={rangeTo} onChange={(e) => setRangeTo(e.target.value)} />
+            <Input label="Bills / page" type="number" min="1" max="12" value={billsPerPage} onChange={(e) => setBillsPerPage(e.target.value)} />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { label: "All", from: 1, to: rows?.length || 1 },
+              { label: "First 6", from: 1, to: Math.min(6, rows?.length || 1) },
+              { label: "First 30", from: 1, to: Math.min(30, rows?.length || 1) },
+            ].map((q) => (
+              <button key={q.label} type="button" onClick={() => { setRangeFrom(String(q.from)); setRangeTo(String(q.to)); }}
+                className="px-2.5 py-1 rounded-md text-[11px] font-semibold border bg-white text-slate-500 border-slate-200 hover:border-indigo-300">
+                {q.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-400">
+            Printing students {Math.max(1, Number(rangeFrom) || 1)}–{Math.min(rows?.length || 0, Number(rangeTo) || (rows?.length || 0))}
+            {" · "}{Math.max(1, Number(perPage) || 6)} bills per page.
+          </p>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="secondary" onClick={() => setPrintOpen(false)}>Cancel</Button>
+            <Button icon={<Printer size={14} />} onClick={doPrintBills}>Print Bills</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

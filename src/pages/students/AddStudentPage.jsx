@@ -14,6 +14,8 @@ import { UserPlus, Save, Camera, X, Plus, Trash2, Upload, FileText, FileDown, Sw
 import { useCreateStudentMutation, useUpdateStudentMutation, useGetStudentQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
 import { useGetSessionsQuery } from "../../redux/api/academicApi";
+import { useGetRoutesQuery } from "../../redux/api/feeMgmtApi";
+import { academicMonths } from "../fee-management/_feeShared";
 import { uploadImageFile, uploadDocumentFile } from "../../services/upload";
 import { printRecord } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
@@ -40,7 +42,7 @@ const EMPTY = {
   session: SESSIONS[SESSIONS.length - 1], feePlan: "REGULAR", classId: "", sectionName: "",
   rollNumber: "", admissionNumber: "", admissionDate: "", registrationNo: "",
   hostelAllotted: false, hostelName: "", hostelRoomNo: "",
-  transportAllotted: false, transportRoute: "", busNo: "",
+  transportAllotted: false, transportRoute: "", busNo: "", transportMonths: [],
   fatherName: "", motherName: "", fatherOccupation: "", motherOccupation: "",
   fatherQualification: "", motherQualification: "", fatherAadhar: "", motherAadhar: "",
   guardianName: "", guardianPhone: "", guardianEmail: "",
@@ -72,6 +74,7 @@ function mapStudentToForm(s) {
     admissionDate: iso(s.admissionDate), registrationNo: s.registrationNo || "",
     hostelAllotted: s.hostelAllotted || false, hostelName: s.hostelName || "", hostelRoomNo: s.hostelRoomNo || "",
     transportAllotted: s.transportAllotted || false, transportRoute: s.transportRoute || "", busNo: s.busNo || "",
+    transportMonths: Array.isArray(s.transportMonths) ? s.transportMonths : [],
     fatherName: s.fatherName || "", motherName: s.motherName || "",
     fatherOccupation: s.fatherOccupation || "", motherOccupation: s.motherOccupation || "",
     fatherQualification: s.fatherQualification || "", motherQualification: s.motherQualification || "",
@@ -100,6 +103,10 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
   const [uploading, setUploading] = useState(false);
 
   const { data: classes = [] } = useGetClassesQuery();
+  // Transport routes (with monthly fee) feed the route dropdown; the chosen
+  // route's fee × selected months is billed through the fee ledger.
+  const { data: routes = [] } = useGetRoutesQuery();
+  const TRANSPORT_MONTHS = academicMonths();
   // Sessions configured under Settings → Sessions feed this dropdown; fall back to
   // the computed Apr–Mar defaults when none have been set up yet.
   const { data: sessionList = [] } = useGetSessionsQuery();
@@ -126,6 +133,20 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setChk = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.checked }));
+
+  // Digit-only sanitizers. Phone: strip non-digits and any country code (+91 /
+  // leading 0) by keeping the last 10 digits. Aadhar: digits only, max 16.
+  const onlyDigits = (s) => String(s).replace(/\D/g, "");
+  const fmtPhone = (s) => { const d = onlyDigits(s); return d.length > 10 ? d.slice(-10) : d; };
+  const fmtAadhar = (s) => onlyDigits(s).slice(0, 16);
+  const setFmt = (k, fmt) => (e) => setForm((f) => ({ ...f, [k]: fmt(e.target.value) }));
+
+  // ── transport months ────────────────────────────────────────────────────────
+  const selectedRoute = routes.find((r) => r.name === form.transportRoute);
+  const routeFee = Number(selectedRoute?.fee || 0);
+  const allTransportMonths = TRANSPORT_MONTHS.length > 0 && TRANSPORT_MONTHS.every((m) => form.transportMonths.includes(m));
+  const toggleTransportMonth = (m) => setForm((f) => ({ ...f, transportMonths: f.transportMonths.includes(m) ? f.transportMonths.filter((x) => x !== m) : [...f.transportMonths, m] }));
+  const toggleAllTransportMonths = () => setForm((f) => ({ ...f, transportMonths: allTransportMonths ? [] : [...TRANSPORT_MONTHS] }));
 
   // ── photo ──────────────────────────────────────────────────────────────────
   const onPhoto = async (e) => {
@@ -293,6 +314,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
       transportAllotted: form.transportAllotted,
       transportRoute: form.transportRoute || undefined,
       busNo: form.busNo || undefined,
+      transportMonths: form.transportAllotted ? form.transportMonths : [],
     };
 
     try {
@@ -423,12 +445,12 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input id="student-name" label="Name *" value={form.name} onChange={set("name")} placeholder="Enter Name" />
             <Input id="student-dateOfBirth" label="Date of Birth *" type="date" value={form.dateOfBirth} onChange={set("dateOfBirth")} />
-            <Input label="Phone *" value={form.phone} onChange={set("phone")} placeholder="Enter Phone" />
+            <Input label="Phone *" value={form.phone} onChange={setFmt("phone", fmtPhone)} inputMode="numeric" maxLength={10} placeholder="10-digit number" />
             <Input label="Email" type="email" value={form.email} onChange={set("email")} placeholder="auto from roll no if blank" />
             <Select label="Gender" value={form.gender} onChange={set("gender")} options={GENDERS.map((g) => ({ value: g, label: g || "Select..." }))} />
             <Select label="Blood Group" value={form.bloodGroup} onChange={set("bloodGroup")} options={BLOOD.map((b) => ({ value: b, label: b || "Select..." }))} />
             <Input label="Smart Card Number" value={form.smartCardNo} onChange={set("smartCardNo")} placeholder="Enter Smart Card Number" />
-            <Input label="Aadhar Number" value={form.aadharNumber} onChange={set("aadharNumber")} placeholder="Enter Aadhar Number" />
+            <Input label="Aadhar Number" value={form.aadharNumber} onChange={setFmt("aadharNumber", fmtAadhar)} inputMode="numeric" maxLength={16} placeholder="Enter Aadhar Number" />
             <Input label="Religion" value={form.religion} onChange={set("religion")} placeholder="Enter Religion" />
             <Select label="Student Category" value={form.category} onChange={set("category")} options={CATEGORIES.map((c) => ({ value: c, label: c || "Select..." }))} />
             <Input label="Student Caste" value={form.caste} onChange={set("caste")} placeholder="Enter Student Caste" />
@@ -436,8 +458,8 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
             <Input label="Weight (In Kg Eg: 33.5)" value={form.weight} onChange={set("weight")} placeholder="Enter Student Weight" />
             <Input label="Student P.E.N" value={form.penNumber} onChange={set("penNumber")} placeholder="Enter Student P.E.N" />
             <Input label="Student APAAR No" value={form.apaarNo} onChange={set("apaarNo")} placeholder="Enter Student APAAR" />
-            <Input label="Father's Aadhar Number" value={form.fatherAadhar} onChange={set("fatherAadhar")} placeholder="Enter Father's Aadhar Number" />
-            <Input label="Mother's Aadhar Number" value={form.motherAadhar} onChange={set("motherAadhar")} placeholder="Enter Mother's Aadhar Number" />
+            <Input label="Father's Aadhar Number" value={form.fatherAadhar} onChange={setFmt("fatherAadhar", fmtAadhar)} inputMode="numeric" maxLength={16} placeholder="Enter Father's Aadhar Number" />
+            <Input label="Mother's Aadhar Number" value={form.motherAadhar} onChange={setFmt("motherAadhar", fmtAadhar)} inputMode="numeric" maxLength={16} placeholder="Enter Mother's Aadhar Number" />
             <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer mt-6">
               <input type="checkbox" checked={form.enabled} onChange={setChk("enabled")} className="accent-emerald-600 w-4 h-4" />
               Enabled
@@ -502,13 +524,49 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
 
       {/* ── Transport Information ─────────────────────────────────────────── */}
       <Card title="Transport Information">
-        <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-            <input type="checkbox" checked={form.transportAllotted} onChange={setChk("transportAllotted")} className="accent-indigo-600 w-4 h-4" />
-            Transport Required
-          </label>
-          <Input label="Transport Route Name" value={form.transportRoute} onChange={set("transportRoute")} placeholder="Transport Route Name" disabled={!form.transportAllotted} />
-          <Input label="Bus No" value={form.busNo} onChange={set("busNo")} placeholder="Bus Number" disabled={!form.transportAllotted} />
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              <input type="checkbox" checked={form.transportAllotted} onChange={setChk("transportAllotted")} className="accent-indigo-600 w-4 h-4" />
+              Transport Required
+            </label>
+            <Select label="Transport Route" value={form.transportRoute} onChange={set("transportRoute")} disabled={!form.transportAllotted}
+              options={[{ value: "", label: routes.length ? "Select Route" : "No routes — add under Fee Management" },
+                ...routes.map((r) => ({ value: r.name, label: `${r.name} — ₹${Number(r.fee || 0).toLocaleString("en-IN")}/mo` }))]} />
+            <Input label="Bus No" value={form.busNo} onChange={set("busNo")} placeholder="Bus Number" disabled={!form.transportAllotted} />
+          </div>
+
+          {form.transportAllotted && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-semibold text-slate-600">
+                  Transport Months <span className="text-slate-400 font-normal">— pick the months the student uses transport</span>
+                </label>
+                <button type="button" onClick={toggleAllTransportMonths} className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700">
+                  {allTransportMonths ? "Clear all" : "Select all"}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {TRANSPORT_MONTHS.map((m) => (
+                  <button key={m} type="button" onClick={() => toggleTransportMonth(m)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${form.transportMonths.includes(m) ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"}`}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+              {form.transportRoute && form.transportMonths.length > 0 ? (
+                <p className="text-[12px] text-slate-600 mt-2">
+                  {form.transportMonths.length} month(s) × ₹{routeFee.toLocaleString("en-IN")} ={" "}
+                  <span className="font-bold text-slate-800">₹{(routeFee * form.transportMonths.length).toLocaleString("en-IN")}</span>
+                  {" "}transport fee — billed ₹{routeFee.toLocaleString("en-IN")} per selected month, unpaid months roll into dues.
+                </p>
+              ) : (
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {form.transportRoute ? "Select the months transport applies, or no transport fee is billed." : "Pick a route first."}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 
@@ -522,7 +580,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
           <Select label="Father Qualification" value={form.fatherQualification} onChange={set("fatherQualification")} options={QUALIFICATIONS.map((q) => ({ value: q, label: q || "Select..." }))} />
           <Select label="Mother Qualification" value={form.motherQualification} onChange={set("motherQualification")} options={QUALIFICATIONS.map((q) => ({ value: q, label: q || "Select..." }))} />
           <Input label="Guardian Name" value={form.guardianName} onChange={set("guardianName")} placeholder="Enter Guardian Name" />
-          <Input label="Guardian Phone" value={form.guardianPhone} onChange={set("guardianPhone")} placeholder="Enter Guardian Phone" />
+          <Input label="Guardian Phone" value={form.guardianPhone} onChange={setFmt("guardianPhone", fmtPhone)} inputMode="numeric" maxLength={10} placeholder="10-digit number" />
           <Input label="Guardian Email" value={form.guardianEmail} onChange={set("guardianEmail")} placeholder="Enter Guardian Email" />
           <div className="grid grid-cols-2 gap-4">
             <Input label="City" value={form.city} onChange={set("city")} placeholder="Enter City" />

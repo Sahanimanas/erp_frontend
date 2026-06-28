@@ -170,6 +170,102 @@ export function printBill({
   return true;
 }
 
+/**
+ * printBills — print MANY compact demand bills laid out in a grid, `perPage`
+ * to a sheet (default 6, like ID cards), with a page break after each sheet.
+ * Each entry is the same shape printBill() takes.
+ *
+ *   printBills({ bills: [{ billType, billNo, date, month, year, party, rows, total, note }, ...], perPage: 6 })
+ */
+export function printBills({ bills = [], perPage = 6, school = getSchool() } = {}) {
+  if (!bills.length) { alert("No bills to print."); return false; }
+  const win = window.open("", "_blank", "width=900,height=1100");
+  if (!win) { alert("Please allow pop-ups for this site to save as PDF."); return false; }
+
+  const metaCol = (pairs) =>
+    pairs
+      .filter(([, v]) => v !== null && v !== undefined && v !== "")
+      .map(([l, v]) => `<div class="mrow"><span class="mk">${esc(l)}</span><span class="mv">${esc(v)}</span></div>`)
+      .join("");
+
+  const billCard = (b) => {
+    const left = [["Bill No", b.billNo], ["Name", b.party?.name], ["Class", b.party?.className], ["Batch", b.party?.batch]];
+    const right = [["Date", b.date], ["Month", b.month], ["Year", b.year], ["ID No", b.party?.idNo]];
+    const body = (b.rows || []).map(([d, a]) => `<tr><td class="d">${esc(d)}</td><td class="a">${amt(a)}</td></tr>`).join("");
+    return `<div class="bill">
+      ${(school.watermark || school.logo) ? `<div class="wm"><img src="${esc(school.watermark || school.logo)}" alt="" /></div>` : ""}
+      <div class="content">
+        <div class="phone">${esc(school.phone || "")}</div>
+        <h1 class="sname">${esc(school.name || "School")}</h1>
+        ${school.address ? `<div class="addr">${esc(school.address)}</div>` : ""}
+        <div class="btype">${esc(b.billType || "Demand Bill")}</div>
+        <div class="meta"><div>${metaCol(left)}</div><div>${metaCol(right)}</div></div>
+        <table>
+          <thead><tr><th class="d">Description</th><th class="a">Amount</th></tr></thead>
+          <tbody>${body}<tr class="total"><td class="d">${esc(b.totalLabel || "Grand Total")}</td><td class="a">${amt(b.total)}</td></tr></tbody>
+        </table>
+        ${b.note ? `<div class="note">Note : ${esc(b.note)}</div>` : ""}
+      </div>
+    </div>`;
+  };
+
+  // Chunk the bills into sheets of `perPage`; each sheet is a grid that breaks.
+  const cols = perPage <= 2 ? 1 : 2;
+  const pages = [];
+  for (let i = 0; i < bills.length; i += perPage) pages.push(bills.slice(i, i + perPage));
+  const pagesHtml = pages
+    .map((pg) => `<div class="page" style="grid-template-columns: repeat(${cols}, 1fr);">${pg.map(billCard).join("")}</div>`)
+    .join("");
+
+  win.document.write(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Demand Bills (${bills.length})</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #111827; margin: 0; padding: 6mm; background: #f3f4f6; }
+  .page { display: grid; gap: 5mm; page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .bill { position: relative; background: #fff; border: 1.5px solid #111827; padding: 7px 9px 9px; overflow: hidden; break-inside: avoid; }
+  .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .wm img { width: 70%; max-width: 200px; opacity: 0.06; filter: grayscale(100%); }
+  .content { position: relative; z-index: 1; }
+  .phone { text-align: right; font-size: 9px; font-weight: 600; min-height: 11px; }
+  .sname { text-align: center; font-size: 15px; font-weight: 800; letter-spacing: .5px; margin: 0; text-transform: uppercase; }
+  .addr { text-align: center; font-size: 9px; color: #374151; margin-top: 1px; }
+  .btype { text-align: center; font-size: 10px; font-weight: 600; color: #374151; margin: 4px 0 6px; }
+  .meta { display: flex; border: 1.2px solid #111827; }
+  .meta > div { flex: 1; padding: 4px 6px; }
+  .meta > div + div { border-left: 1.2px solid #111827; }
+  .mrow { display: flex; gap: 5px; font-size: 9.5px; padding: 1px 0; }
+  .mk { width: 42px; font-weight: 700; }
+  .mv { flex: 1; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; border: 1.2px solid #111827; border-top: 0; }
+  th { background: #f3f4f6; font-size: 10px; font-weight: 700; padding: 4px 6px; border-bottom: 1.2px solid #111827; }
+  th.d, td.d { text-align: left; border-right: 1.2px solid #111827; }
+  th.a, td.a { text-align: right; width: 40%; }
+  td { padding: 3px 6px; font-size: 9.5px; }
+  tr.total td { border-top: 1.2px solid #111827; font-size: 11.5px; font-weight: 800; padding: 5px 6px; }
+  tr.total td.d { text-align: center; }
+  .note { font-size: 8.5px; color: #374151; border: 1.2px solid #111827; border-top: 0; padding: 3px 6px; }
+  @page { size: A4 portrait; margin: 8mm; }
+  @media print {
+    body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  ${pagesHtml}
+  <script>
+    window.onload = function () { setTimeout(function () { window.focus(); window.print(); }, 350); };
+  </script>
+</body>
+</html>`);
+  win.document.close();
+  return true;
+}
+
 export function printRecord({ title = "Record", subtitle = "", photo = "", sections = [], school = getSchoolName() }) {
   const win = window.open("", "_blank", "width=900,height=1000");
   if (!win) {
