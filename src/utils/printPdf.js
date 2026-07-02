@@ -225,9 +225,12 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #111827; margin: 0; padding: 6mm; background: #f3f4f6; }
-  .page { display: grid; gap: 5mm; page-break-after: always; }
+  /* Fill the printable A4 height (297mm − 2×10mm top/bottom margin ≈ 277mm) and
+     center the rows so the top and bottom whitespace is always equal — for both
+     4-per-page and 6-per-page layouts — instead of clustering at the top. */
+  .page { display: grid; gap: 6mm; height: 276mm; align-content: center; page-break-after: always; }
   .page:last-child { page-break-after: auto; }
-  .bill { position: relative; background: #fff; border: 1.5px solid #111827; padding: 7px 9px 9px; overflow: hidden; break-inside: avoid; }
+  .bill { position: relative; background: #fff; border: 1.5px solid #111827; padding: 10px 14px 12px; overflow: hidden; break-inside: avoid; }
   .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .wm img { width: 70%; max-width: 200px; opacity: 0.06; filter: grayscale(100%); }
   .content { position: relative; z-index: 1; }
@@ -249,7 +252,7 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   tr.total td { border-top: 1.2px solid #111827; font-size: 11.5px; font-weight: 800; padding: 5px 6px; }
   tr.total td.d { text-align: center; }
   .note { font-size: 8.5px; color: #374151; border: 1.2px solid #111827; border-top: 0; padding: 3px 6px; }
-  @page { size: A4 portrait; margin: 8mm; }
+  @page { size: A4 portrait; margin: 10mm 6mm; }
   @media print {
     body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
