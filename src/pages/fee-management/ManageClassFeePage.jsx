@@ -19,7 +19,7 @@ export default function ManageClassFeePage() {
 
   const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
-  const { data: rows = [], isFetching } = useGetClassStructureQuery({ classId, includeTransport: true }, { skip: !classId });
+  const { data: rows = [], isFetching } = useGetClassStructureQuery({ classId, includeTransport: true, academicYearId: session }, { skip: !classId || !session });
   const [save, { isLoading }] = useSaveClassStructureMutation();
 
   useEffect(() => {
@@ -31,9 +31,10 @@ export default function ManageClassFeePage() {
   const set = (id, patch) => setRowsState((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
 
   const submit = async () => {
+    if (!session) { toast.error("Select a session first"); return; }
     const items = rows.map((r) => ({ feeTypeId: r.feeTypeId, ...rowsState[r.feeTypeId] }));
     try {
-      const res = await save({ classId, items }).unwrap();
+      const res = await save({ classId, items, academicYearId: session }).unwrap();
       toast.success(`Saved ${res.saved} fee row(s)`);
     } catch (e) { toast.error(e?.data?.error || "Failed to save"); }
   };
@@ -43,7 +44,7 @@ export default function ManageClassFeePage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Manage Class Fee" subtitle="Set fee amounts per class" icon={<Wallet size={18} />}>
-        <Button variant="success" icon={<Save size={14} />} loading={isLoading} disabled={!classId || !rows.length} onClick={submit}>Save Fee Structure</Button>
+        <Button variant="success" icon={<Save size={14} />} loading={isLoading} disabled={!classId || !session || !rows.length} onClick={submit}>Save Fee Structure</Button>
       </PageHeader>
 
       <Card title="Search Course Fee">
@@ -58,8 +59,8 @@ export default function ManageClassFeePage() {
       </Card>
 
       <Card noPadding title={className ? `${className} Class Fee List Structure` : "Class Fee List Structure"}>
-        {!classId ? (
-          <EmptyState icon="💰" title="Pick a class" description="Select a class to configure its fee structure." />
+        {!session || !classId ? (
+          <EmptyState icon="💰" title="Pick session & class" description="Select a session and class to configure its fee structure." />
         ) : isFetching ? (
           <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
         ) : rows.length === 0 ? (

@@ -47,7 +47,7 @@ export default function ClassFeeStructurePage() {
 
   const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
-  const { data: rows = [], isFetching } = useGetClassStructureQuery({ classId, includeTransport: true }, { skip: !classId });
+  const { data: rows = [], isFetching } = useGetClassStructureQuery({ classId, includeTransport: true, academicYearId: session }, { skip: !classId || !session });
 
   const className = classes.find((c) => c.id === classId)?.name;
   const sessionName = years.find((y) => y.id === session)?.name || "";
@@ -83,8 +83,8 @@ export default function ClassFeeStructurePage() {
       <Card noPadding title={className ? `${className} Class Fee Structure` : "Class Fee Structure"}
         action={<Button size="sm" icon={<FileDown size={13} />} disabled={!display.length} onClick={downloadPdf}>Download as PDF</Button>}>
 
-        {!classId ? (
-          <EmptyState icon="📄" title="Pick a class" description="Select a class to view its fee structure." />
+        {!session || !classId ? (
+          <EmptyState icon="📄" title="Pick session & class" description="Select a session and class to view its fee structure." />
         ) : isFetching ? (
           <div className="p-4 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
         ) : display.length === 0 ? (
