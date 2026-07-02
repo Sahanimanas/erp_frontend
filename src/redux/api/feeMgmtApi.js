@@ -29,7 +29,7 @@ export const feeMgmtApi = baseApi.injectEndpoints({
     }),
 
     getClassStructure: build.query({
-      query: ({ classId, includeTransport }) => ({ url: "/fee-management/structure", params: { classId, ...(includeTransport ? { includeTransport: true } : {}) } }),
+      query: ({ classId, includeTransport, academicYearId }) => ({ url: "/fee-management/structure", params: { classId, ...(includeTransport ? { includeTransport: true } : {}), ...(academicYearId ? { academicYearId } : {}) } }),
       transformResponse: unwrap,
       providesTags: ["FeeStructure"],
     }),
