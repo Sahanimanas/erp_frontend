@@ -72,6 +72,13 @@ export default function StudentListPage() {
       }
     }
   };
+  // Parent names come from the Student scalar fields, falling back to the
+  // linked parents relation (relationship is free text, so match loosely).
+  const parentName = (s, rel) => {
+    const p = s.parents?.find(p => p.relationship?.toLowerCase().includes(rel))?.user;
+    return p ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : '';
+  };
+
   // Format student data for display
   const displayStudents = students.map(s => ({
     id: s.id,
@@ -79,6 +86,8 @@ export default function StudentListPage() {
     name: `${s.user?.firstName || ''} ${s.user?.lastName || ''}`,
     class: s.section?.class?.name || '',
     section: s.section?.name || '',
+    father: s.fatherName || parentName(s, 'father') || '-',
+    mother: s.motherName || parentName(s, 'mother') || '-',
     dob: s.dateOfBirth ? new Date(s.dateOfBirth).toLocaleDateString('en-IN') : '-',
     gender: s.gender || '-',
     blood: s.bloodGroup || '-',
@@ -101,6 +110,8 @@ export default function StudentListPage() {
     { label: "Roll No", get: (r) => r.roll },
     { label: "Name", get: (r) => r.name },
     { label: "Class", get: (r) => `${r.class}/${r.section}` },
+    { label: "Father Name", get: (r) => r.father },
+    { label: "Mother Name", get: (r) => r.mother },
     { label: "Date of Birth", get: (r) => r.dob },
     { label: "Gender", get: (r) => r.gender },
     { label: "Blood Group", get: (r) => r.blood },
@@ -111,6 +122,8 @@ export default function StudentListPage() {
     {key:"roll",label:"Roll No",render:v=><span className="font-mono text-[11px] text-indigo-600 font-semibold">{v}</span>},
     {key:"name",label:"Student",render:(v,r)=><div className="flex items-center gap-2.5"><Avatar name={v} size="sm"/><div><p className="font-semibold text-slate-800 text-[12px]">{v}</p><p className="text-[10px] text-slate-400">{r.gender} · {r.blood}</p></div></div>},
     {key:"class",label:"Class",render:(v,r)=><span className="font-medium">{v}/{r.section}</span>},
+    {key:"father",label:"Father Name"},
+    {key:"mother",label:"Mother Name"},
     {key:"dob",label:"D.O.B."},
     {key:"phone",label:"Phone"},
     {key:"fees",label:"Fee Status",render:v=><Badge variant={FEE_BADGE[v] || "default"}>{v.charAt(0).toUpperCase()+v.slice(1)}</Badge>},
