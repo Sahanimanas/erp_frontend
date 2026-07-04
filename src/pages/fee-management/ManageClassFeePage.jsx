@@ -19,7 +19,15 @@ export default function ManageClassFeePage() {
 
   const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
-  const { data: rows = [], isFetching } = useGetClassStructureQuery({ classId, includeTransport: true }, { skip: !classId });
+  // Each session keeps its own fee amounts, so the structure is fetched (and
+  // saved) for the selected session. Default to the school's active session.
+  useEffect(() => {
+    if (!session && years.length) setSession((years.find((y) => y.isActive) || years[0]).id);
+  }, [years, session]);
+  const { data: rows = [], isFetching } = useGetClassStructureQuery(
+    { classId, includeTransport: true, academicYearId: session },
+    { skip: !classId || !session }
+  );
   const [save, { isLoading }] = useSaveClassStructureMutation();
 
   useEffect(() => {
@@ -33,7 +41,7 @@ export default function ManageClassFeePage() {
   const submit = async () => {
     const items = rows.map((r) => ({ feeTypeId: r.feeTypeId, ...rowsState[r.feeTypeId] }));
     try {
-      const res = await save({ classId, items }).unwrap();
+      const res = await save({ classId, items, academicYearId: session }).unwrap();
       toast.success(`Saved ${res.saved} fee row(s)`);
     } catch (e) { toast.error(e?.data?.error || "Failed to save"); }
   };

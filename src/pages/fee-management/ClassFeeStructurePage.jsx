@@ -4,7 +4,7 @@
  * collection schedule (one row per month for Monthly/Quarterly, "Only Once" for
  * Session/One-time), with a grand Total Fee Amount and a PDF download.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, EmptyState, Skeleton } from "../../components/ui";
 import { FileText, FileDown } from "lucide-react";
@@ -47,7 +47,14 @@ export default function ClassFeeStructurePage() {
 
   const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
-  const { data: rows = [], isFetching } = useGetClassStructureQuery({ classId, includeTransport: true }, { skip: !classId });
+  // View the structure of the selected session (defaults to the active one).
+  useEffect(() => {
+    if (!session && years.length) setSession((years.find((y) => y.isActive) || years[0]).id);
+  }, [years, session]);
+  const { data: rows = [], isFetching } = useGetClassStructureQuery(
+    { classId, includeTransport: true, academicYearId: session },
+    { skip: !classId || !session }
+  );
 
   const className = classes.find((c) => c.id === classId)?.name;
   const sessionName = years.find((y) => y.id === session)?.name || "";
