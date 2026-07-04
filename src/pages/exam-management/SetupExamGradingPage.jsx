@@ -1,92 +1,91 @@
-import { useState } from "react";
+/**
+ * Exam Management → Setup Exam Grading
+ * School-wide grade bands (A+/A/B…) with % ranges; used to grade exam results.
+ */
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, DataTable, SearchInput, Input, Select, Textarea, Badge } from "../../components/ui";
-import { Award, Plus } from "lucide-react";
+import { PageHeader, Card, Button, EmptyState, Skeleton } from "../../components/ui";
+import { Award, Plus, Save, Trash2 } from "lucide-react";
+import { useGetGradesQuery, useSaveGradesMutation, useDeleteGradeMutation } from "../../redux/api/examMgmtApi";
 
-const SEED = [
-  { idx: 1, name: "A",   created: "24 Feb, 2020 12:45", from: 90.0, to: 100.0,  enabled: true },
-  { idx: 1, name: "3rd", created: "17 Jun, 2026 17:39", from: 33.0, to: 100.0,  enabled: true },
-  { idx: 2, name: "B",   created: "24 Feb, 2020 12:46", from: 80.0, to: 89.99,  enabled: true },
-  { idx: 3, name: "C",   created: "06 Mar, 2021 11:32", from: 70.0, to: 79.99,  enabled: true },
-  { idx: 4, name: "D",   created: "27 Mar, 2021 23:24", from: 60.0, to: 69.99,  enabled: true },
-  { idx: 5, name: "E",   created: "27 Mar, 2021 23:25", from: 50.0, to: 59.99,  enabled: true },
-  { idx: 6, name: "F",   created: "27 Mar, 2021 23:25", from: 0.0,  to: 49.99,  enabled: true },
-];
+const NEW_ROW = { id: null, grade: "", minPercent: 0, maxPercent: 0, gradePoint: "", remarks: "" };
 
 export default function SetupExamGradingPage() {
   usePageTitle("Setup Exam Grading");
-  const [rows, setRows] = useState(SEED);
-  const [search, setSearch] = useState("");
-  const [form, setForm] = useState({ name: "", from: "", to: "", seq: "", remarks: "", enabled: true });
+  const { data: grades = [], isFetching } = useGetGradesQuery();
+  const [saveGrades, { isLoading: saving }] = useSaveGradesMutation();
+  const [deleteGrade] = useDeleteGradeMutation();
+  const [rows, setRows] = useState([]);
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  useEffect(() => {
+    setRows(grades.map((g) => ({ id: g.id, grade: g.grade, minPercent: g.minPercent, maxPercent: g.maxPercent, gradePoint: g.gradePoint ?? "", remarks: g.remarks ?? "" })));
+  }, [grades]);
 
-  const submit = () => {
-    if (!form.name || form.from === "" || form.to === "") return;
-    setRows((r) => [
-      ...r,
-      {
-        idx: form.seq || r.length + 1,
-        name: form.name,
-        created: "22 Jun, 2026 00:00",
-        from: Number(form.from),
-        to: Number(form.to),
-        enabled: form.enabled,
-      },
-    ]);
-    setForm({ name: "", from: "", to: "", seq: "", remarks: "", enabled: true });
+  const set = (i, patch) => setRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
+
+  const submit = async () => {
+    const items = rows.filter((r) => r.grade.trim());
+    if (!items.length) { toast.error("Add at least one grade row"); return; }
+    for (const r of items) {
+      if (Number(r.minPercent) > Number(r.maxPercent)) {
+        toast.error(`Grade ${r.grade}: Percent From must be ≤ Percent Upto`);
+        return;
+      }
+    }
+    try {
+      const res = await saveGrades(items).unwrap();
+      toast.success(`Saved ${res.saved} grade(s)`);
+    } catch (e) { toast.error(e?.data?.error || "Failed to save grading"); }
   };
 
-  const filtered = rows.filter((r) => !search || r.name.toLowerCase().includes(search.toLowerCase()));
+  const remove = async (i) => {
+    const row = rows[i];
+    if (!row.id) { setRows((r) => r.filter((_, idx) => idx !== i)); return; }
+    if (!confirm(`Delete grade "${row.grade}"?`)) return;
+    try { await deleteGrade(row.id).unwrap(); toast.success("Grade deleted"); }
+    catch (e) { toast.error(e?.data?.error || "Failed to delete grade"); }
+  };
 
-  const COLUMNS = [
-    { key: "idx", label: "Index" },
-    { key: "name", label: "Grade Name", render: (v) => <span className="font-semibold text-slate-800">{v}</span> },
-    { key: "created", label: "Create Date" },
-    { key: "from", label: "From Percentage", render: (v) => v.toFixed(1) },
-    { key: "to", label: "To Percentage", render: (v) => v.toFixed(2) },
-    { key: "enabled", label: "Enabled", render: (v) => <Badge variant={v ? "success" : "default"}>{v ? "Yes" : "No"}</Badge> },
-  ];
+  const cell = "px-2 py-1 text-[12px] border border-slate-200 rounded-md focus:outline-none focus:border-indigo-400";
 
   return (
-    <div>
-      <PageHeader title="Setup Exam Grading" subtitle="Configure grade bands used across report cards" icon={<Award size={18} />} />
+    <div className="space-y-4">
+      <PageHeader title="Setup Exam Grading" subtitle="Define grade bands used for exam results" icon={<Award size={18} />}>
+        <Button variant="secondary" size="sm" icon={<Plus size={13} />} onClick={() => setRows((r) => [...r, { ...NEW_ROW }])}>Add Grade</Button>
+        <Button variant="success" size="sm" icon={<Save size={13} />} loading={saving} disabled={!rows.length} onClick={submit}>Save Grading</Button>
+      </PageHeader>
 
-      <div className="mb-4 rounded-lg bg-amber-400/90 px-4 py-3 text-sm font-semibold text-amber-950">
-        Please Enter Exam Grading Details Carefully !!
-      </div>
-
-      <Card className="mb-5">
-        <h3 className="mb-4 text-base font-semibold text-slate-700">Setup Exam Grading Configuration</h3>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Input label="Name *" placeholder="Enter Grade Name" value={form.name} onChange={set("name")} />
-          <Input label="From Percentage *" type="number" placeholder="example : 5" value={form.from} onChange={set("from")} />
-          <Input label="To Percentage *" type="number" placeholder="example : 50.1" value={form.to} onChange={set("to")} />
-          <Select
-            label="Sequence Index *"
-            value={form.seq}
-            onChange={set("seq")}
-            options={[{ value: "", label: "Select..." }, ...Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))]}
-          />
-        </div>
-        <div className="mt-4">
-          <Textarea label="Report Card Remarks" value={form.remarks} onChange={set("remarks")} />
-        </div>
-        <div className="mt-4 flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
-            <input type="checkbox" className="h-4 w-4 rounded accent-emerald-500" checked={form.enabled} onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))} />
-            Enabled
-          </label>
-          <Button icon={<Plus size={13} />} onClick={submit}>Submit</Button>
-        </div>
-      </Card>
-
-      <Card noPadding>
-        <div className="flex items-center justify-between border-b border-slate-100 p-4">
-          <h3 className="text-base font-semibold text-slate-700">All Exam Grading Setup List</h3>
-          <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="w-52" />
-        </div>
-        <DataTable columns={COLUMNS} data={filtered} />
+      <Card noPadding title="Grade Scale">
+        {isFetching ? (
+          <div className="p-4 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
+        ) : rows.length === 0 ? (
+          <EmptyState icon="🏅" title="No grades configured" description='Click "Add Grade" to define bands like A+ (91–100), A (81–90)…' />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[680px]">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  {["Grade", "Percent From (%)", "Percent Upto (%)", "Grade Point", "Remarks", ""].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {rows.map((r, i) => (
+                  <tr key={r.id ?? `new-${i}`} className="hover:bg-slate-50/70">
+                    <td className="px-4 py-2"><input value={r.grade} onChange={(e) => set(i, { grade: e.target.value })} placeholder="A+" className={`${cell} w-20 font-semibold`} /></td>
+                    <td className="px-4 py-2"><input type="number" min="0" max="100" value={r.minPercent} onChange={(e) => set(i, { minPercent: e.target.value })} className={`${cell} w-24`} /></td>
+                    <td className="px-4 py-2"><input type="number" min="0" max="100" value={r.maxPercent} onChange={(e) => set(i, { maxPercent: e.target.value })} className={`${cell} w-24`} /></td>
+                    <td className="px-4 py-2"><input type="number" step="0.1" value={r.gradePoint} onChange={(e) => set(i, { gradePoint: e.target.value })} placeholder="10" className={`${cell} w-20`} /></td>
+                    <td className="px-4 py-2"><input value={r.remarks} onChange={(e) => set(i, { remarks: e.target.value })} placeholder="Outstanding" className={`${cell} w-full min-w-[160px]`} /></td>
+                    <td className="px-4 py-2"><button title="Delete" onClick={() => remove(i)} className="p-1.5 rounded-md hover:bg-red-50 text-red-500"><Trash2 size={13} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

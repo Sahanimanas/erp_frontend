@@ -118,6 +118,8 @@ export const baseApi = createApi({
     "FeeType", "FeeStructure", "TransportRoute",
     // Payments
     "Ledger", "PaymentHistory", "LateFeeRule",
+    // Exam management
+    "Grading", "ExamSchedule", "ExamHall", "ExamSeat", "ExamAttendance",
   ],
 
   // No endpoints here — all injected via injectEndpoints() in individual service files

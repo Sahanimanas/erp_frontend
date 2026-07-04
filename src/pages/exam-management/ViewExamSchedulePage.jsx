@@ -1,44 +1,66 @@
+/**
+ * Exam Management → View Exam Schedule
+ * Read-only schedule for a session → exam (optionally one class), printable.
+ */
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, DataTable, Select, ExportButton } from "../../components/ui";
-import { CalendarDays } from "lucide-react";
-
-const SEED = [
-  { id: 1, subject: "Mathematics", date: "10 Sep 2025", day: "Wednesday", time: "09:00 AM - 12:00 PM", room: "Room 101" },
-  { id: 2, subject: "Science",     date: "12 Sep 2025", day: "Friday",    time: "09:00 AM - 12:00 PM", room: "Room 102" },
-  { id: 3, subject: "English",     date: "14 Sep 2025", day: "Sunday",    time: "09:00 AM - 11:30 AM", room: "Room 103" },
-  { id: 4, subject: "Social Studies", date: "16 Sep 2025", day: "Tuesday", time: "09:00 AM - 11:30 AM", room: "Room 101" },
-];
+import { PageHeader, Card, Button, DataTable, Select } from "../../components/ui";
+import { CalendarDays, FileDown, Trash2 } from "lucide-react";
+import { useGetExamScheduleQuery, useDeleteScheduleItemMutation } from "../../redux/api/examMgmtApi";
+import { useSessionExams, useOrderedClasses, sessionOptions, examOptions, classOptions, fmtDate } from "./_examShared";
+import { printTable } from "../../utils/printPdf";
 
 export default function ViewExamSchedulePage() {
   usePageTitle("View Exam Schedule");
-  const [rows] = useState(SEED);
+  const { years, session, setSession, sessionName, exams, examId, setExamId, exam } = useSessionExams();
+  const classes = useOrderedClasses();
+  const [classId, setClassId] = useState("");
+  const { data: rows = [], isFetching } = useGetExamScheduleQuery({ examId, classId: classId || undefined }, { skip: !examId });
+  const [deleteItem] = useDeleteScheduleItemMutation();
+
+  const remove = async (r) => {
+    if (!confirm(`Remove ${r.subject?.name} (${r.class?.name}) from the schedule?`)) return;
+    try { await deleteItem(r.id).unwrap(); toast.success("Paper removed"); }
+    catch (e) { toast.error(e?.data?.error || "Failed to remove"); }
+  };
 
   const COLUMNS = [
-    { key: "subject", label: "Subject", render: (v) => <span className="font-semibold text-slate-800">{v}</span> },
-    { key: "date", label: "Date" },
-    { key: "day", label: "Day" },
-    { key: "time", label: "Time" },
-    { key: "room", label: "Room" },
-  ];
-  const EXPORT_COLUMNS = [
-    { label: "Subject", get: (r) => r.subject },
-    { label: "Date", get: (r) => r.date },
-    { label: "Day", get: (r) => r.day },
-    { label: "Time", get: (r) => r.time },
-    { label: "Room", get: (r) => r.room },
+    { key: "class", label: "Class", sortable: false, render: (v) => <span className="font-medium">{v?.name}</span> },
+    { key: "subject", label: "Subject", sortable: false, render: (v) => <span className="font-semibold text-slate-800">{v?.name}</span> },
+    { key: "examDate", label: "Date", render: (v) => fmtDate(v) },
+    { key: "startTime", label: "Time", render: (v, r) => `${v} - ${r.endTime}` },
+    { key: "room", label: "Room", render: (v) => v || "-" },
+    { key: "maxMarks", label: "Max Marks" },
+    { key: "minMarks", label: "Pass Marks" },
+    { key: "id", label: "", sortable: false, render: (_, r) => <button title="Remove paper" onClick={() => remove(r)} className="p-1.5 rounded-md hover:bg-red-50 text-red-500"><Trash2 size={13} /></button> },
   ];
 
+  const downloadPdf = () => printTable({
+    title: `${exam?.name || "Exam"} Schedule`,
+    subtitle: [sessionName && `Session ${sessionName}`, classId && classes.find((c) => c.id === classId)?.name && `Class ${classes.find((c) => c.id === classId).name}`].filter(Boolean).join("  ·  "),
+    columns: ["Class", "Subject", "Date", "Time", "Room", "Max Marks", "Pass Marks"],
+    rows: rows.map((r) => [r.class?.name, r.subject?.name, fmtDate(r.examDate), `${r.startTime} - ${r.endTime}`, r.room || "-", r.maxMarks, r.minMarks]),
+  });
+
   return (
-    <div>
-      <PageHeader title="View Exam Schedule" subtitle="Read-only timetable for a selected exam and class" icon={<CalendarDays size={18} />} />
+    <div className="space-y-4">
+      <PageHeader title="View Exam Schedule" subtitle="Full paper schedule of an exam" icon={<CalendarDays size={18} />}>
+        <Button size="sm" icon={<FileDown size={13} />} disabled={!rows.length} onClick={downloadPdf}>Download PDF</Button>
+      </PageHeader>
+
       <Card noPadding>
         <div className="flex flex-wrap gap-2 border-b border-slate-100 p-4">
-          <Select className="w-44" options={[{ value: "", label: "Select Exam" }, { value: "hy", label: "Half Yearly" }, { value: "annual", label: "Annual" }]} />
-          <Select className="w-36" options={[{ value: "", label: "All Classes" }, ...Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `Class ${i + 1}` }))]} />
-          <ExportButton filename="exam-schedule.csv" rows={rows} columns={EXPORT_COLUMNS} />
+          <Select value={session} onChange={(e) => { setSession(e.target.value); setExamId(""); }} options={sessionOptions(years)} className="w-44" />
+          <Select value={examId} onChange={(e) => setExamId(e.target.value)} options={examOptions(exams)} className="w-56" />
+          <Select value={classId} onChange={(e) => setClassId(e.target.value)} options={classOptions(classes, "All Classes")} className="w-40" />
         </div>
-        <DataTable columns={COLUMNS} data={rows} />
+        <DataTable
+          columns={COLUMNS}
+          data={rows}
+          loading={isFetching}
+          emptyText={examId ? "No papers scheduled yet. Build the schedule under Manage Exam Schedule." : "Pick a session and exam to view its schedule."}
+        />
       </Card>
     </div>
   );
