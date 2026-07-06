@@ -120,6 +120,8 @@ export const baseApi = createApi({
     "Ledger", "PaymentHistory", "LateFeeRule",
     // Exam management
     "Grading", "ExamSchedule", "ExamHall", "ExamSeat", "ExamAttendance",
+    // Subjects / timetable
+    "Periods", "Timetable",
   ],
 
   // No endpoints here — all injected via injectEndpoints() in individual service files

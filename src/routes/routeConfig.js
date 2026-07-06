@@ -84,6 +84,8 @@ export const MODULE_PRIVILEGE = {
   exams:          "Exam Management",
   "online-exam":  "Exam Management",
   "ai-exam":      "Exam Management",
+  subjects:       "Subject Management",
+  timetable:      "Time Table Management",
   reports:        "Reports",
   transport:      "Transport Management",
   "bulk-comm":    "Communication",
@@ -359,6 +361,33 @@ export const routeConfig = [
     children: [
       { key: "hw-list",  label: "Homework List",  path: "/homework/list",  icon: "List",  lazy: lazy("teachers/HomeworkListPage"),  roles: ALL_STAFF },
       { key: "hw-add",   label: "Add Homework",   path: "/homework/add",   icon: "Plus",  lazy: lazy("teachers/AddHomeworkPage"),   roles: [ROLES.TEACHER, ...ADMIN_ONLY] },
+    ],
+  },
+
+  // ── Subject Management ──────────────────────────────────────────────────
+  {
+    key: "subjects",
+    label: "Subject Management",
+    path: "/subjects",
+    icon: "BookOpen",
+    roles: ALL_STAFF,
+    children: [
+      { key: "subj-list",   label: "Subjects",                 path: "/subjects/list",   icon: "BookOpen", lazy: lazy("subjects/SubjectListPage"),     roles: ADMIN_ONLY },
+      { key: "subj-assign", label: "Assign Subjects to Class", path: "/subjects/assign", icon: "Layers",   lazy: lazy("subjects/ClassSubjectMapPage"), roles: ADMIN_ONLY },
+    ],
+  },
+
+  // ── Time Table Management ───────────────────────────────────────────────
+  {
+    key: "timetable",
+    label: "Time Table Management",
+    path: "/timetable",
+    icon: "CalendarRange",
+    roles: ALL_STAFF,
+    children: [
+      { key: "tt-periods", label: "Periods",           path: "/timetable/periods", icon: "Clock",         lazy: lazy("timetable/PeriodsPage"),         roles: ADMIN_ONLY },
+      { key: "tt-manage",  label: "Manage Time Table", path: "/timetable/manage",  icon: "CalendarRange", lazy: lazy("timetable/ManageTimetablePage"), roles: ADMIN_ONLY },
+      { key: "tt-view",    label: "View Time Table",   path: "/timetable/view",    icon: "CalendarDays",  lazy: lazy("timetable/ViewTimetablePage"),   roles: ALL_STAFF },
     ],
   },
 
