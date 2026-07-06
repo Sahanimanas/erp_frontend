@@ -31,6 +31,7 @@ export default function StudentFeePaymentPage() {
   const [params] = useSearchParams();
   const [mode, setMode] = useState("code");
   const [search, setSearch] = useState("");
+  const [father, setFather] = useState("");
   const [classId, setClassId] = useState("");
   const [studentId, setStudentId] = useState(params.get("id") || "");
   const [selected, setSelected] = useState({}); // rowKey -> true
@@ -40,8 +41,8 @@ export default function StudentFeePaymentPage() {
 
   const { data: classes = [] } = useGetClassesQuery();
   const { data: studentList, isFetching: searching } = useGetStudentsQuery(
-    { ...(mode === "code" ? { search } : { classId }), limit: 50 },
-    { skip: mode === "code" ? !search : !classId }
+    { ...(mode === "code" ? { ...(search && { search }) } : { classId }), ...(father && { fatherName: father }), limit: 50 },
+    { skip: mode === "code" ? !search && !father : !classId }
   );
   const { data: ledger } = useGetLedgerQuery(studentId, { skip: !studentId });
   const { data: inst, isFetching } = useGetInstallmentsQuery(studentId, { skip: !studentId });
@@ -203,14 +204,15 @@ export default function StudentFeePaymentPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             {mode === "code" ? (
-              <div className="md:col-span-2"><SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Registration / name / roll / phone / father / mother…" /></div>
+              <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Registration / name / roll / phone…" />
             ) : (
               <Select label="Class" value={classId} onChange={(e) => setClassId(e.target.value)}
                 options={[{ value: "", label: "Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
             )}
+            <Input label="Father Name" value={father} onChange={(e) => setFather(e.target.value)} placeholder="Search by father name…" />
             <Select label="Student" value={studentId} onChange={(e) => { setStudentId(e.target.value); setSelected({}); }}
-              options={[{ value: "", label: searching ? "Searching…" : students.length ? "Select Student" : (mode === "code" ? search : classId) ? "No students found" : "Search first" },
-                ...students.map((s) => ({ value: s.id, label: `${s.rollNumber} · ${s.user?.firstName} ${s.user?.lastName}` }))]} />
+              options={[{ value: "", label: searching ? "Searching…" : students.length ? "Select Student" : (mode === "code" ? search || father : classId) ? "No students found" : "Search first" },
+                ...students.map((s) => ({ value: s.id, label: `${s.rollNumber} · ${s.user?.firstName} ${s.user?.lastName}${s.fatherName ? ` (${s.fatherName})` : ""}` }))]} />
           </div>
         </div>
       </Card>
