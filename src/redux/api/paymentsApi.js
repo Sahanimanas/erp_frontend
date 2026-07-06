@@ -58,6 +58,11 @@ export const paymentsApi = baseApi.injectEndpoints({
       query: (classId) => ({ url: "/payments/fee-details", params: { classId } }),
       transformResponse: unwrap,
     }),
+    getClassFeeSummary: build.query({
+      query: ({ academicYearId } = {}) => ({ url: "/payments/class-summary", params: academicYearId ? { academicYearId } : {} }),
+      transformResponse: unwrap,
+      providesTags: ["Ledger"],
+    }),
     getMonthlyDues: build.query({
       query: ({ classId, month }) => ({ url: "/payments/monthly-dues", params: { classId, ...(month ? { month } : {}) } }),
       transformResponse: unwrap,
@@ -105,6 +110,7 @@ export const {
   useRevertReceiptMutation,
   useLazyExportClassFeesQuery,
   useGetFeeDetailsQuery,
+  useGetClassFeeSummaryQuery,
   useLazyGetMonthlyDuesQuery,
   useBulkDiscountMutation,
   useBulkExtraMutation,
