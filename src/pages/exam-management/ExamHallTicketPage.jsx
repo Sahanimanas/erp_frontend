@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, DataTable, Select, SearchInput, Badge } from "../../components/ui";
+import { PageHeader, Card, Button, DataTable, Select, SearchInput } from "../../components/ui";
 import { Ticket, Printer } from "lucide-react";
 import { useGetHallTicketsQuery } from "../../redux/api/examMgmtApi";
 import { useSessionExams, useOrderedClasses, sessionOptions, examOptions, classOptions, printHallTickets } from "./_examShared";
@@ -27,8 +27,7 @@ export default function ExamHallTicketPage() {
     { key: "rollNumber", label: "Roll No" },
     { key: "name", label: "Student", render: (v) => <span className="font-semibold text-slate-800">{v}</span> },
     { key: "className", label: "Class", render: (v, r) => `${v || ""}${r.sectionName ? `/${r.sectionName}` : ""}` },
-    { key: "hall", label: "Hall", render: (v) => v || <Badge variant="warning">Not allocated</Badge> },
-    { key: "seatNo", label: "Seat", render: (v) => v || "-" },
+    { key: "fatherName", label: "Father Name", render: (v) => v || "-" },
     { key: "id", label: "Actions", sortable: false, render: (_, r) => <Button size="xs" icon={<Printer size={11} />} onClick={() => printMany([r])}>Print Ticket</Button> },
   ];
 

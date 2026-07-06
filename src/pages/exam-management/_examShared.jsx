@@ -84,8 +84,6 @@ export function printHallTickets({ exam = {}, students = [], schedule = [], scho
       <div><span>Roll No</span><b>${esc(st.rollNumber)}</b></div>
       <div><span>Class</span><b>${esc(st.className || "")}${st.sectionName ? `/${esc(st.sectionName)}` : ""}</b></div>
       <div><span>Father</span><b>${esc(st.fatherName || "-")}</b></div>
-      <div><span>Hall</span><b>${esc(st.hall || "Not allocated")}</b></div>
-      <div><span>Seat No</span><b>${esc(st.seatNo || "-")}</b></div>
     </div>
     <table>
       <thead><tr><th>Subject</th><th>Date</th><th>Time</th><th>Room</th><th class="c">Max</th><th class="sig">Invigilator</th></tr></thead>
