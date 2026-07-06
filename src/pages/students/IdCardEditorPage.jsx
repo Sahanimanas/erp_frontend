@@ -27,6 +27,10 @@ const FIELDS = [
   { key: "blood", label: "Blood Group" },
   { key: "gender", label: "Gender" },
   { key: "phone", label: "Phone" },
+  { key: "father", label: "Father Name" },
+  { key: "mother", label: "Mother Name" },
+  { key: "guardian", label: "Guardian Name" },
+  { key: "address", label: "Address" },
   { key: "barcode", label: "Barcode" },
 ];
 
@@ -35,6 +39,8 @@ const SAMPLE = {
   section: { name: "A", class: { name: "10" } },
   rollNumber: "10A01", admissionNumber: "ADM0001", gender: "Male",
   bloodGroup: "O+", dateOfBirth: "2010-01-01", photo: "",
+  fatherName: "Father Name", motherName: "Mother Name",
+  guardianName: "Guardian Name", address: "123, Sample Street, City",
 };
 
 // Browser-only id (this file never runs in the workflow sandbox).

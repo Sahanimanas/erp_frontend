@@ -36,7 +36,7 @@ export function makeDefaultCfg(schoolName) {
     footerSize: 14,
     logoSize: 28,
     photoSize: 96,
-    fields: { photo: true, name: true, klass: true, roll: true, admission: true, dob: true, blood: true, gender: false, phone: false, barcode: true },
+    fields: { photo: true, name: true, klass: true, roll: true, admission: true, dob: true, blood: true, gender: false, phone: false, father: false, mother: false, guardian: false, address: false, barcode: true },
     backText: "This card is the property of the school. If found, please return it to the school office.",
   };
 }
@@ -99,6 +99,10 @@ export function IdCardFace({ cfg, student, face = "front", logo, scale = 1 }) {
     f.blood && ["Blood", student?.bloodGroup || "—"],
     f.gender && ["Gender", student?.gender || "—"],
     f.phone && ["Phone", student?.user?.phone || "—"],
+    f.father && ["Father", student?.fatherName || "—"],
+    f.mother && ["Mother", student?.motherName || "—"],
+    f.guardian && ["Guardian", student?.guardianName || "—"],
+    f.address && ["Address", student?.address || "—"],
   ].filter(Boolean);
 
   const nameShown = cfg.showName !== false;
