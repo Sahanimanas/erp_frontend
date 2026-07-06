@@ -171,7 +171,7 @@ export default function SearchStudentPage() {
     { key: "transportAllotted", label: "Transport", sortValue: (r) => (r.transportAllotted ? 1 : 0), render: (v, r) => v ? <Badge variant="success">{r.busNo || "Yes"}</Badge> : <span className="text-slate-400">No</span> },
     { key: "status", label: "Status", sortValue: (r) => (r.user?.isActive === false ? "Inactive" : "Active"), render: (_v, r) => <Badge variant={r.user?.isActive === false ? "default" : "success"}>{r.user?.isActive === false ? "Inactive" : "Active"}</Badge> },
     { key: "actions", label: "", sortable: false, render: (_v, r) => (
-        <button onClick={() => navigate(`/students/profile?id=${r.id}`)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"><Eye size={14} /></button>
+        <button title="View profile" onClick={() => navigate(`/students/add?id=${r.id}&view=1`, { state: { student: r } })} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"><Eye size={14} /></button>
       ) },
   ];
 
