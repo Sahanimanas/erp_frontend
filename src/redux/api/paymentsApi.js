@@ -58,6 +58,10 @@ export const paymentsApi = baseApi.injectEndpoints({
       query: (classId) => ({ url: "/payments/fee-details", params: { classId } }),
       transformResponse: unwrap,
     }),
+    sendReceiptWhatsApp: build.mutation({
+      query: (receiptNo) => ({ url: `/payments/receipts/${receiptNo}/whatsapp`, method: "POST" }),
+      transformResponse: unwrap,
+    }),
     getClassFeeSummary: build.query({
       query: ({ academicYearId } = {}) => ({ url: "/payments/class-summary", params: academicYearId ? { academicYearId } : {} }),
       transformResponse: unwrap,
@@ -110,6 +114,7 @@ export const {
   useRevertReceiptMutation,
   useLazyExportClassFeesQuery,
   useGetFeeDetailsQuery,
+  useSendReceiptWhatsAppMutation,
   useGetClassFeeSummaryQuery,
   useLazyGetMonthlyDuesQuery,
   useBulkDiscountMutation,

@@ -101,7 +101,116 @@ export default function WhatsAppPage() {
         />
         <SendPanel connected={connected} flash={flash} />
       </div>
+
+      <TemplatesPanel flash={flash} />
     </div>
+  );
+}
+
+// ─── Message templates (placeholders + auto-send events) ─────────────────────
+const TEMPLATE_EVENTS = [
+  { value: "MANUAL", label: "Manual only", badge: "default" },
+  { value: "STUDENT_CREATED", label: "Auto — new student created", badge: "info" },
+  { value: "PAYMENT_RECEIVED", label: "Auto — payment received", badge: "success" },
+];
+const PLACEHOLDERS = "{{name}} {{className}} {{rollNumber}} {{fatherName}} {{school}} {{phone}} — payment only: {{receiptNo}} {{total}} {{lines}} {{date}}";
+const BLANK_TPL = { name: "", event: "MANUAL", enabled: true, body: "" };
+
+function TemplatesPanel({ flash }) {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // null | {id?, ...form}
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await apiClient.get("/whatsapp/templates");
+      setTemplates(data.data || []);
+    } catch { /* panel stays empty */ }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const save = async () => {
+    if (!editing.name.trim() || !editing.body.trim()) return flash("error", "Template name and message are required");
+    setSaving(true);
+    try {
+      await apiClient.post("/whatsapp/templates", editing);
+      flash("success", "Template saved");
+      setEditing(null);
+      load();
+    } catch (e) { flash("error", e.response?.data?.error || "Failed to save template"); }
+    finally { setSaving(false); }
+  };
+
+  const remove = async (t) => {
+    if (!window.confirm(`Delete template "${t.name}"?`)) return;
+    try { await apiClient.delete(`/whatsapp/templates/${t.id}`); flash("success", "Template deleted"); load(); }
+    catch (e) { flash("error", e.response?.data?.error || "Failed to delete"); }
+  };
+
+  const toggleEnabled = async (t) => {
+    try { await apiClient.post("/whatsapp/templates", { ...t, enabled: !t.enabled }); load(); }
+    catch (e) { flash("error", e.response?.data?.error || "Failed to update"); }
+  };
+
+  const eventMeta = (v) => TEMPLATE_EVENTS.find((e) => e.value === v) || TEMPLATE_EVENTS[0];
+
+  return (
+    <Card className="mt-5 p-5 sm:p-6">
+      <div className="mb-1 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-slate-700">Message Templates</h3>
+        <Button size="sm" onClick={() => setEditing({ ...BLANK_TPL })}>+ Add Template</Button>
+      </div>
+      <p className="mb-4 text-xs text-slate-500">
+        Reusable messages with placeholders. Templates bound to an <b>Auto</b> event are sent automatically —
+        e.g. a welcome message when a student is created, or the receipt when a payment is recorded.
+      </p>
+
+      {loading ? (
+        <p className="py-6 text-center text-sm text-slate-400">Loading templates…</p>
+      ) : templates.length === 0 ? (
+        <p className="py-6 text-center text-sm text-slate-400">No templates yet — add a welcome or receipt template.</p>
+      ) : (
+        <div className="space-y-2">
+          {templates.map((t) => (
+            <div key={t.id} className="flex items-start gap-3 rounded-lg border border-slate-200 px-4 py-3">
+              <label className="mt-0.5 flex items-center" title={t.enabled ? "Enabled" : "Disabled"}>
+                <input type="checkbox" checked={t.enabled} onChange={() => toggleEnabled(t)} className="accent-emerald-600 w-4 h-4" />
+              </label>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`font-semibold text-[13px] ${t.enabled ? "text-slate-800" : "text-slate-400 line-through"}`}>{t.name}</span>
+                  <Badge variant={eventMeta(t.event).badge}>{eventMeta(t.event).label}</Badge>
+                </div>
+                <p className="mt-0.5 truncate text-[11.5px] text-slate-500 whitespace-pre-line line-clamp-2">{t.body}</p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Button size="xs" variant="secondary" onClick={() => setEditing({ id: t.id, name: t.name, event: t.event, enabled: t.enabled, body: t.body })}>Edit</Button>
+                <Button size="xs" variant="danger" onClick={() => remove(t)}>Delete</Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input label="Template Name *" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Payment receipt" />
+            <Select label="When to send" value={editing.event} onChange={(e) => setEditing({ ...editing, event: e.target.value })}
+              options={TEMPLATE_EVENTS.map((ev) => ({ value: ev.value, label: ev.label }))} />
+          </div>
+          <Textarea label="Message *" rows={5} value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })}
+            placeholder={"Dear {{name}}, welcome to {{school}}!"} />
+          <p className="text-[11px] text-slate-500">Placeholders: <span className="font-mono">{PLACEHOLDERS}</span></p>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={saving} onClick={save}>{saving ? "Saving…" : editing.id ? "Update Template" : "Save Template"}</Button>
+            <Button size="sm" variant="secondary" onClick={() => setEditing(null)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 

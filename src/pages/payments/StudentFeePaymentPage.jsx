@@ -8,13 +8,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, Input, SearchInput, Badge, Modal, EmptyState, Skeleton, Avatar, Textarea } from "../../components/ui";
-import { CreditCard, User, FileDown, Trash2, Pencil, Plus, Undo2 } from "lucide-react";
+import { CreditCard, User, FileDown, Trash2, Pencil, Plus, Undo2, MessageCircle } from "lucide-react";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
 import {
   useGetLedgerQuery, useGetInstallmentsQuery, useGetPaymentHistoryQuery,
   useCollectPaymentMutation, useAdjustInstallmentMutation,
   useDeleteInstallmentPaymentMutation, useRevertReceiptMutation,
+  useSendReceiptWhatsAppMutation,
 } from "../../redux/api/paymentsApi";
 import { printBill } from "../../utils/printPdf";
 
@@ -51,6 +52,14 @@ export default function StudentFeePaymentPage() {
   const [adjust] = useAdjustInstallmentMutation();
   const [deletePayment] = useDeleteInstallmentPaymentMutation();
   const [revert] = useRevertReceiptMutation();
+  const [sendWhatsApp, { isLoading: sendingWa }] = useSendReceiptWhatsAppMutation();
+
+  const onWhatsApp = async (receiptNo) => {
+    try {
+      const res = await sendWhatsApp(receiptNo).unwrap();
+      toast.success(`Receipt sent on WhatsApp to ${res.to}`);
+    } catch (e) { toast.error(e?.data?.error || "WhatsApp send failed"); }
+  };
 
   const students = studentList?.data ?? [];
   const st = inst?.student || ledger?.student;
@@ -358,6 +367,7 @@ export default function StudentFeePaymentPage() {
                         className="text-indigo-600 text-[12px] hover:underline">Download</button>
                     </td>
                     <td className="px-4 py-2.5">
+                      <button onClick={() => onWhatsApp(r.receiptNo)} title="Send receipt on WhatsApp" className="p-1 rounded text-emerald-600 hover:bg-emerald-50 mr-1"><MessageCircle size={14} /></button>
                       <button onClick={() => onRevert(r.receiptNo)} title="Revert payment" className="p-1 rounded text-red-500 hover:bg-red-50"><Undo2 size={14} /></button>
                     </td>
                   </tr>
@@ -413,6 +423,7 @@ export default function StudentFeePaymentPage() {
               <span>Total Paid</span><span className="text-emerald-600">{money(receipt.total)}</span>
             </div>
             <div className="flex justify-end gap-2 pt-2">
+              <Button variant="success" icon={<MessageCircle size={14} />} loading={sendingWa} onClick={() => onWhatsApp(receipt.receiptNo)}>Send WhatsApp</Button>
               <Button variant="secondary" icon={<FileDown size={14} />} onClick={() => printReceipt(receipt)}>Save as PDF</Button>
               <Button onClick={() => setReceipt(null)}>Done</Button>
             </div>

@@ -12,10 +12,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, Input, SearchInput, Badge, Modal, EmptyState, Skeleton, Avatar, Textarea } from "../../components/ui";
-import { Wallet, User, FileDown } from "lucide-react";
+import { Wallet, User, FileDown, MessageCircle } from "lucide-react";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
-import { useGetLedgerQuery, useGetInstallmentsQuery, useCollectPaymentMutation } from "../../redux/api/paymentsApi";
+import { useGetLedgerQuery, useGetInstallmentsQuery, useCollectPaymentMutation, useSendReceiptWhatsAppMutation } from "../../redux/api/paymentsApi";
 import { printRecord } from "../../utils/printPdf";
 
 const FINANCE_ACCOUNTS = ["Cash", "SBI Bank", "Paytm/PayPhone", "Primary Account", "All UPI", "Cheque"];
@@ -82,6 +82,14 @@ export default function QuickCollectPage() {
   const { data: ledger } = useGetLedgerQuery(studentId, { skip: !studentId });
   const { data: inst, isFetching } = useGetInstallmentsQuery(studentId, { skip: !studentId });
   const [collect, { isLoading: collecting }] = useCollectPaymentMutation();
+  const [sendWhatsApp, { isLoading: sendingWa }] = useSendReceiptWhatsAppMutation();
+
+  const onWhatsApp = async (receiptNo) => {
+    try {
+      const res = await sendWhatsApp(receiptNo).unwrap();
+      toast.success(`Receipt sent on WhatsApp to ${res.to}`);
+    } catch (e) { toast.error(e?.data?.error || "WhatsApp send failed"); }
+  };
 
   const students = studentList?.data ?? [];
   const st = inst?.student || ledger?.student;
@@ -310,6 +318,7 @@ export default function QuickCollectPage() {
               <span>Total Paid</span><span className="text-emerald-600">{money(receipt.total)}</span>
             </div>
             <div className="flex justify-end gap-2 pt-2">
+              <Button variant="success" icon={<MessageCircle size={14} />} loading={sendingWa} onClick={() => onWhatsApp(receipt.receiptNo)}>Send WhatsApp</Button>
               <Button variant="secondary" icon={<FileDown size={14} />} onClick={() => printReceipt(receipt)}>Save as PDF</Button>
               <Button onClick={() => setReceipt(null)}>Done</Button>
             </div>
