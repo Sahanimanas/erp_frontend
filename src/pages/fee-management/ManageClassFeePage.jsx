@@ -10,6 +10,8 @@ import { Wallet, Save } from "lucide-react";
 import { useGetClassStructureQuery, useSaveClassStructureMutation } from "../../redux/api/feeMgmtApi";
 import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/attendanceApi";
 
+const EMPTY_ROWS = []; // stable identity for "no data yet"
+
 export default function ManageClassFeePage() {
   usePageTitle("Manage Class Fee");
   const [session, setSession] = useState("");
@@ -24,17 +26,21 @@ export default function ManageClassFeePage() {
   useEffect(() => {
     if (!session && years.length) setSession((years.find((y) => y.isActive) || years[0]).id);
   }, [years, session]);
-  const { data: rows = [], isFetching } = useGetClassStructureQuery(
+  const { data: rowsData, isFetching } = useGetClassStructureQuery(
     { classId, includeTransport: true, academicYearId: session },
     { skip: !classId || !session }
   );
+  const rows = rowsData ?? EMPTY_ROWS;
   const [save, { isLoading }] = useSaveClassStructureMutation();
 
+  // Guard on real data — a defaulted [] is a new array each render and would
+  // re-run this effect endlessly, wiping unsaved amount edits.
   useEffect(() => {
+    if (!rowsData) return;
     const seed = {};
-    rows.forEach((r) => { seed[r.feeTypeId] = { amount: r.amount || 0, enabled: r.enabled }; });
+    rowsData.forEach((r) => { seed[r.feeTypeId] = { amount: r.amount || 0, enabled: r.enabled }; });
     setRowsState(seed);
-  }, [rows]);
+  }, [rowsData]);
 
   const set = (id, patch) => setRowsState((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
 

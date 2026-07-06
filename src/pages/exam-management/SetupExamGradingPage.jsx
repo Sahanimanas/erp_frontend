@@ -13,12 +13,16 @@ const NEW_ROW = { id: null, grade: "", minPercent: 0, maxPercent: 0, gradePoint:
 
 export default function SetupExamGradingPage() {
   usePageTitle("Setup Exam Grading");
-  const { data: grades = [], isFetching } = useGetGradesQuery();
+  const { data: grades, isFetching, isError, error } = useGetGradesQuery();
   const [saveGrades, { isLoading: saving }] = useSaveGradesMutation();
   const [deleteGrade] = useDeleteGradeMutation();
   const [rows, setRows] = useState([]);
 
+  // Seed only from REAL data. Guarding on `grades` matters: a defaulted `[]`
+  // is a fresh array every render, which would re-run this effect endlessly
+  // and wipe unsaved rows (the "Add Grade does nothing" bug).
   useEffect(() => {
+    if (!grades) return;
     setRows(grades.map((g) => ({ id: g.id, grade: g.grade, minPercent: g.minPercent, maxPercent: g.maxPercent, gradePoint: g.gradePoint ?? "", remarks: g.remarks ?? "" })));
   }, [grades]);
 
@@ -56,6 +60,11 @@ export default function SetupExamGradingPage() {
         <Button variant="success" size="sm" icon={<Save size={13} />} loading={saving} disabled={!rows.length} onClick={submit}>Save Grading</Button>
       </PageHeader>
 
+      {isError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
+          Failed to load grading: {error?.data?.error || error?.error || "server unreachable"}
+        </div>
+      )}
       <Card noPadding title="Grade Scale">
         {isFetching ? (
           <div className="p-4 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>

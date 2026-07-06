@@ -14,6 +14,8 @@ import {
   useGetSubjectsQuery, useGetClassSubjectMapQuery, useAssignSubjectMutation, useUnassignSubjectMutation,
 } from "../../redux/api/academicApi";
 
+const EMPTY_MAP = []; // stable identity for "no data yet"
+
 export default function ClassSubjectMapPage() {
   usePageTitle("Assign Subjects");
   const [classId, setClassId] = useState("");
@@ -22,7 +24,11 @@ export default function ClassSubjectMapPage() {
 
   const { data: classes = [] } = useGetClassesQuery();
   const { data: subjects = [], isLoading: loadingSubjects } = useGetSubjectsQuery();
-  const { data: mapped = [], isLoading: loadingMap, isFetching: fetchingMap } = useGetClassSubjectMapQuery(classId, { skip: !classId });
+  // No `= []` default here: a fresh fallback array every render would make
+  // savedIds a new Set per render and the seeding effect below would loop,
+  // discarding the user's unsaved ticks.
+  const { data: mappedData, isLoading: loadingMap, isFetching: fetchingMap } = useGetClassSubjectMapQuery(classId, { skip: !classId });
+  const mapped = mappedData ?? EMPTY_MAP;
   const [assign] = useAssignSubjectMutation();
   const [unassign] = useUnassignSubjectMutation();
 
@@ -54,9 +60,11 @@ export default function ClassSubjectMapPage() {
         ...toAdd.map((s) => assign({ classId, subjectId: s.id }).unwrap()),
         ...toRemove.map((s) => unassign({ classId, subjectId: s.id }).unwrap()),
       ]);
-      const failed = results.filter((r) => r.status === "rejected").length;
-      if (failed) toast.error(`${failed} change(s) failed — the list shows the saved state`);
-      else toast.success(`Saved: ${toAdd.length} assigned, ${toRemove.length} removed`);
+      const rejected = results.filter((r) => r.status === "rejected");
+      if (rejected.length) {
+        const reason = rejected[0].reason?.data?.error || rejected[0].reason?.error || "request failed";
+        toast.error(`${rejected.length} change(s) failed: ${reason}`);
+      } else toast.success(`Saved: ${toAdd.length} assigned, ${toRemove.length} removed`);
     } finally { setSaving(false); }
   };
 

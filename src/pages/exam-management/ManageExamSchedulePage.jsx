@@ -25,7 +25,7 @@ export default function ManageExamSchedulePage() {
 
   const { data: classSubjects = [] } = useGetClassSubjectsQuery(classId, { skip: !classId });
   const { data: allSubjects = [] } = useGetAllSubjectsQuery(undefined, { skip: !classId || classSubjects.length > 0 });
-  const { data: schedule = [], isFetching } = useGetExamScheduleQuery({ examId, classId }, { skip: !examId || !classId });
+  const { data: schedule, isFetching } = useGetExamScheduleQuery({ examId, classId }, { skip: !examId || !classId });
   const [save, { isLoading: saving }] = useSaveExamScheduleMutation();
 
   // The subjects the schedule grid is built from: mapped class subjects when
@@ -36,7 +36,9 @@ export default function ManageExamSchedulePage() {
   }, [classSubjects, allSubjects]);
 
   // Seed grid state from the saved schedule whenever exam/class change.
+  // Guard on real data — a defaulted [] would re-seed on every render.
   useEffect(() => {
+    if (!schedule) return;
     const seed = {};
     schedule.forEach((s) => {
       seed[s.subjectId] = {
