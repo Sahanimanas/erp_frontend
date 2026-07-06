@@ -14,9 +14,11 @@ import {
 } from "../../redux/api/examMgmtApi";
 import { useSessionExams, useOrderedClasses, sessionOptions, examOptions, classOptions } from "./_examShared";
 
+const toInputDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+
 export default function ManageExamSchedulePage() {
   usePageTitle("Manage Exam Schedule");
-  const { years, session, setSession, exams, examId, setExamId } = useSessionExams();
+  const { years, session, setSession, exams, examId, setExamId, exam } = useSessionExams();
   const classes = useOrderedClasses();
   const [classId, setClassId] = useState("");
   const [rowsState, setRowsState] = useState({}); // subjectId -> {examDate, startTime, endTime, room, maxMarks, minMarks}
@@ -77,7 +79,7 @@ export default function ManageExamSchedulePage() {
         </div>
       </Card>
 
-      <Card noPadding title="Paper Schedule">
+      <Card noPadding title={exam ? `Paper Schedule — dates allowed ${new Date(exam.startDate).toLocaleDateString("en-GB")} to ${new Date(exam.endDate).toLocaleDateString("en-GB")}` : "Paper Schedule"}>
         {!ready ? (
           <EmptyState icon="🗓️" title="Pick session, exam and class" description="Choose an exam and class to build its paper schedule." />
         ) : isFetching ? (
@@ -100,7 +102,7 @@ export default function ManageExamSchedulePage() {
                   return (
                     <tr key={sub.id} className="hover:bg-slate-50/70">
                       <td className="px-4 py-2 font-semibold text-slate-800 text-[12.5px]">{sub.name}{sub.code ? <span className="text-slate-400 font-normal"> · {sub.code}</span> : null}</td>
-                      <td className="px-4 py-2"><input type="date" value={st.examDate || ""} onChange={(e) => set(sub.id, { examDate: e.target.value })} className={`${cell} w-36`} /></td>
+                      <td className="px-4 py-2"><input type="date" value={st.examDate || ""} min={toInputDate(exam?.startDate)} max={toInputDate(exam?.endDate)} onChange={(e) => set(sub.id, { examDate: e.target.value })} className={`${cell} w-36`} /></td>
                       <td className="px-4 py-2"><input type="time" value={st.startTime || "09:00"} onChange={(e) => set(sub.id, { startTime: e.target.value })} className={`${cell} w-28`} /></td>
                       <td className="px-4 py-2"><input type="time" value={st.endTime || "12:00"} onChange={(e) => set(sub.id, { endTime: e.target.value })} className={`${cell} w-28`} /></td>
                       <td className="px-4 py-2"><input value={st.room || ""} onChange={(e) => set(sub.id, { room: e.target.value })} placeholder="Room 101" className={`${cell} w-28`} /></td>
