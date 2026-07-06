@@ -17,7 +17,7 @@ import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { useGetRoutesQuery } from "../../redux/api/feeMgmtApi";
 import { academicMonths } from "../fee-management/_feeShared";
 import { uploadImageFile, uploadDocumentFile } from "../../services/upload";
-import { printRecord } from "../../utils/printPdf";
+import { printRecord, printCurrentPage } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
 
 const BLOOD = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -348,7 +348,13 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
     }
   };
 
-  const savePdf = () => {
+  // Print the form exactly as shown on screen (browser dialog → Save as PDF);
+  // long forms flow across multiple pages automatically.
+  const savePdf = () => printCurrentPage();
+
+  // Kept for reference: the old summarised record layout.
+  // eslint-disable-next-line no-unused-vars
+  const savePdfSummary = () => {
     const className = classes.find((c) => c.id === form.classId)?.name || "";
     printRecord({
       title: "Student Admission Form",
@@ -388,7 +394,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4 w-full">
+    <form onSubmit={submit} className="space-y-4 w-full print-area">
       <PageHeader title={pageTitle} subtitle={pageSubtitle} icon={<UserPlus size={18} />}>
         <Button type="button" variant="secondary" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
         {isView ? (

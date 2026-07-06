@@ -269,6 +269,24 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   return true;
 }
 
+/**
+ * printCurrentPage — print the page exactly as it looks on screen (the user
+ * picks "Save as PDF" in the browser dialog). The region to print must carry
+ * the `print-area` class; index.css hides everything else while body has the
+ * `printing` class. Long content flows across multiple pages automatically.
+ */
+export function printCurrentPage() {
+  document.body.classList.add("printing");
+  const cleanup = () => {
+    document.body.classList.remove("printing");
+    window.removeEventListener("afterprint", cleanup);
+  };
+  window.addEventListener("afterprint", cleanup);
+  // Fallback: some browsers skip afterprint when the dialog is cancelled.
+  setTimeout(cleanup, 60000);
+  window.print();
+}
+
 export function printRecord({ title = "Record", subtitle = "", photo = "", sections = [], school = getSchoolName() }) {
   const win = window.open("", "_blank", "width=900,height=1000");
   if (!win) {

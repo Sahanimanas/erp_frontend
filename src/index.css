@@ -40,3 +40,33 @@ table { border-collapse: collapse; }
 table th,
 table td { border: 1px solid #e5e7eb; }
 table thead th { background-color: #f8fafc; }
+
+/* ── Print the current page as-is (Save as PDF) ──────────────────────────── */
+/* printCurrentPage() adds body.printing + the target region carries
+   .print-area: everything else is hidden, the region flows from the top-left
+   and paginates naturally across as many pages as it needs. */
+@media print {
+  body.printing * { visibility: hidden; }
+  body.printing .print-area,
+  body.printing .print-area * { visibility: visible; }
+  body.printing .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 12px;
+  }
+  /* Buttons are actions, not data — drop them from the printout. */
+  body.printing .print-area button { display: none !important; }
+  /* Read-only (disabled) form fields must print as crisp black text. */
+  body.printing .print-area fieldset:disabled { opacity: 1 !important; }
+  body.printing .print-area input,
+  body.printing .print-area select,
+  body.printing .print-area textarea {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a;
+    opacity: 1 !important;
+    background: #fff !important;
+  }
+}
