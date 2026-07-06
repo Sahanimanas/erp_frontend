@@ -27,7 +27,7 @@ export default function StudentFeeDetailsPage() {
 
   const className = classes.find((c) => c.id === classId)?.name;
   const filtered = rows.filter(
-    (r) => !search || `${r.name} ${r.rollNumber} ${r.regId}`.toLowerCase().includes(search.toLowerCase())
+    (r) => !search || `${r.name} ${r.rollNumber} ${r.regId} ${r.fatherName || ""} ${r.motherName || ""}`.toLowerCase().includes(search.toLowerCase())
   );
   const curMonth = rows[0]?.currentMonth;
 
@@ -53,7 +53,7 @@ export default function StudentFeeDetailsPage() {
           <Select label="Class" value={classId} onChange={(e) => setClassId(e.target.value)}
             options={[{ value: "", label: "Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
           <div className="md:col-span-2">
-            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name / roll / reg id…" />
+            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name / roll / reg id / father / mother…" />
           </div>
         </div>
       </Card>

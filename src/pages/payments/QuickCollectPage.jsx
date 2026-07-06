@@ -74,7 +74,7 @@ export default function QuickCollectPage() {
   const [receipt, setReceipt] = useState(null);
 
   const { data: classes = [] } = useGetClassesQuery();
-  const { data: studentList } = useGetStudentsQuery(
+  const { data: studentList, isFetching: searching } = useGetStudentsQuery(
     { ...(mode === "code" ? { search } : { classId }), limit: 50 },
     { skip: mode === "code" ? !search : !classId }
   );
@@ -161,13 +161,13 @@ export default function QuickCollectPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             {mode === "code" ? (
-              <div className="md:col-span-2"><SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Registration / name / phone…" /></div>
+              <div className="md:col-span-2"><SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Registration / name / roll / phone / father / mother…" /></div>
             ) : (
               <Select label="Class" value={classId} onChange={(e) => setClassId(e.target.value)}
                 options={[{ value: "", label: "Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
             )}
             <Select label="Student" value={studentId} onChange={(e) => { setStudentId(e.target.value); setAmount(""); }}
-              options={[{ value: "", label: students.length ? "Select Student" : "Search first" },
+              options={[{ value: "", label: searching ? "Searching…" : students.length ? "Select Student" : (mode === "code" ? search : classId) ? "No students found" : "Search first" },
                 ...students.map((s) => ({ value: s.id, label: `${s.rollNumber} · ${s.user?.firstName} ${s.user?.lastName}` }))]} />
           </div>
         </div>

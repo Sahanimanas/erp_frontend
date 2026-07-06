@@ -201,7 +201,7 @@ export default function StudentListPage() {
       <Card noPadding>
         {(error || fetchError) && <div className="bg-red-50 border border-red-200 text-red-700 p-3 m-4 rounded-lg text-sm">{error || fetchError}</div>}
         <div className="flex gap-2 flex-wrap p-4 border-b border-slate-100 items-end">
-          <SearchInput value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search by name or roll..." className="w-52"/>
+          <SearchInput value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search name / roll / father / mother..." className="w-52"/>
           <Select value={cls} onChange={e=>{setCls(e.target.value);setSection("");setPage(1);}} options={classFilterOpts} className="w-44"/>
           <Select value={section} onChange={e=>{setSection(e.target.value);setPage(1);}} options={sectionFilterOpts} className="w-36" disabled={!cls}/>
           <DateRangeFilter from={dateRange.from} to={dateRange.to} onChange={setDateRange} label="Admission" />
