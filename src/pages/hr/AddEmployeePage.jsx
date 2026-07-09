@@ -152,14 +152,14 @@ export default function AddEmployeePage() {
   };
 
   return (
-    <div>
+    <div className="space-y-5">
       <PageHeader title="Add Employee" subtitle="Create a staff record" icon={<UserPlus size={18} />}>
         <Button size="sm" variant="outline" icon={<FileDown size={14} />} onClick={savePdf}>Save as PDF</Button>
         <Button size="sm" variant="secondary" onClick={() => navigate("/employee/list")}>Employee List</Button>
       </PageHeader>
 
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
-      {success && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 mb-4 rounded-lg text-sm">{success}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">{error}</div>}
+      {success && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-lg text-sm">{success}</div>}
 
       <form onSubmit={submit} className="space-y-5">
         <Card title="Basic Details">

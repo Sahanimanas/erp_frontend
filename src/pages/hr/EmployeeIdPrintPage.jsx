@@ -47,7 +47,7 @@ export default function EmployeeIdPrintPage() {
   // No templates designed yet → point the admin to the editor.
   if (!templates.length) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <PageHeader title="Employee ID Print" subtitle="Generate printable staff ID cards" icon={<IdCard size={18} />} />
         <EmptyState icon="🪪" title="No ID card templates yet"
           description="Design a template in the Employee ID Card Editor first — it will appear here for printing."
@@ -57,7 +57,7 @@ export default function EmployeeIdPrintPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <style>{`
         /* Keep background colors/images (header, footer, accents, watermark, barcode)
            when printing — browsers strip them by default. */

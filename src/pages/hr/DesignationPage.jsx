@@ -9,18 +9,12 @@ import { PageHeader, Card, Button, Input, Select, DataTable, Badge, ExportButton
 import { BadgeCheck, Save, Trash2, Pencil } from "lucide-react";
 import apiClient from "../../services/axios";
 
-// Privilege modules (mirror the reference "Privileges Details" checklist).
-const PRIVILEGES = [
-  "Home", "Employee", "Course Management", "Time Table", "Student", "Exam Management",
-  "Attendance", "Employee Leave", "Exam & Holiday", "Configuration", "Communication",
-  "Exam Result Management", "Fees Management", "Transport Management", "Payment", "Reports",
-  "Finance", "Photo Attendance", "Employee Salary", "Admission",
-];
-
 export default function DesignationPage() {
   usePageTitle("Designation");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [privileges, setPrivileges] = useState([]);   // module list from backend
+  const [privLoading, setPrivLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: "", type: "Others", permissions: [] });
   const [saving, setSaving] = useState(false);
@@ -34,13 +28,24 @@ export default function DesignationPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  // Privilege modules are owned by the backend (single source of truth).
+  useEffect(() => {
+    (async () => {
+      setPrivLoading(true);
+      try {
+        const res = await apiClient.get("/employees/designation-modules");
+        if (res.data.success) setPrivileges(res.data.data || []);
+      } catch { /* ignore */ } finally { setPrivLoading(false); }
+    })();
+  }, []);
+
   const togglePriv = (p) => setForm((f) => ({ ...f, permissions: f.permissions.includes(p) ? f.permissions.filter((x) => x !== p) : [...f.permissions, p] }));
   const reset = () => { setForm({ name: "", type: "Others", permissions: [] }); setEditingId(null); };
 
   const submit = async () => {
     if (!form.name.trim()) { toast.error("Designation name is required"); return; }
     // "Admin" grants all privileges.
-    const permissions = form.type === "Admin" ? PRIVILEGES : form.permissions;
+    const permissions = form.type === "Admin" ? privileges : form.permissions;
     setSaving(true);
     try {
       if (editingId) await apiClient.patch(`/employees/designations/${editingId}`, { name: form.name, permissions });
@@ -51,7 +56,7 @@ export default function DesignationPage() {
     finally { setSaving(false); }
   };
 
-  const edit = (r) => { setEditingId(r.id); setForm({ name: r.name, type: (r.permissions?.length >= PRIVILEGES.length ? "Admin" : "Others"), permissions: r.permissions || [] }); };
+  const edit = (r) => { setEditingId(r.id); setForm({ name: r.name, type: (privileges.length > 0 && r.permissions?.length >= privileges.length ? "Admin" : "Others"), permissions: r.permissions || [] }); };
   const remove = async (r) => {
     try { await apiClient.delete(`/employees/designations/${r.id}`); toast.success("Deleted"); load(); }
     catch (e) { toast.error(e.response?.data?.error || "Failed to delete"); }
@@ -76,7 +81,7 @@ export default function DesignationPage() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader title="Employee Designation" subtitle="Designations & their access privileges" icon={<BadgeCheck size={18} />} />
       <Card title={editingId ? "Edit Designation" : "Add Designation"}>
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -86,15 +91,30 @@ export default function DesignationPage() {
         </div>
         {form.type === "Others" && (
           <div className="px-5 pb-2">
-            <p className="text-[11px] font-semibold text-slate-600 mb-2">Privileges Details</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {PRIVILEGES.map((p) => (
-                <label key={p} className="flex items-center gap-2 text-[12px] text-slate-600 cursor-pointer">
-                  <input type="checkbox" checked={form.permissions.includes(p)} onChange={() => togglePriv(p)} className="accent-indigo-600" />
-                  {p}
-                </label>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] font-semibold text-slate-600">Privileges Details</p>
+              {!privLoading && privileges.length > 0 && (
+                <button type="button"
+                  onClick={() => setForm((f) => ({ ...f, permissions: f.permissions.length === privileges.length ? [] : [...privileges] }))}
+                  className="text-[11px] font-semibold text-indigo-600 hover:underline">
+                  {form.permissions.length === privileges.length ? "Clear all" : "Select all"}
+                </button>
+              )}
             </div>
+            {privLoading ? (
+              <p className="text-[12px] text-slate-400">Loading modules…</p>
+            ) : privileges.length === 0 ? (
+              <p className="text-[12px] text-slate-400">No modules available.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                {privileges.map((p) => (
+                  <label key={p} className="flex items-center gap-2 text-[12px] text-slate-600 cursor-pointer">
+                    <input type="checkbox" checked={form.permissions.includes(p)} onChange={() => togglePriv(p)} className="accent-indigo-600" />
+                    {p}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         )}
         <div className="px-5 py-4 flex justify-end gap-2">

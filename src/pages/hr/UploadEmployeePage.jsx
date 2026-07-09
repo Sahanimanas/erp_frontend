@@ -115,7 +115,7 @@ export default function UploadEmployeePage() {
   const previewCols = rows.length ? Object.keys(rows[0]) : [];
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto">
+    <div className="space-y-5 max-w-6xl mx-auto">
       <PageHeader title="Upload Employee" subtitle="Bulk-import staff from an Excel (.xlsx) or CSV file" icon={<Upload size={18} />} />
       <Card title="Upload Employee">
         <div className="p-5 space-y-3">

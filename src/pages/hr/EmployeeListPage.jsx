@@ -16,13 +16,13 @@ import { uploadImageFile } from "../../services/upload";
 import toast from "react-hot-toast";
 
 const STATUS_BADGE = { ACTIVE: "success", INACTIVE: "default", ON_LEAVE: "warning" };
+// Values must match the backend UserRole enum (staff roles only).
 const ROLE_OPTIONS = [
   { value: "", label: "All Roles" },
-  { value: "ADMIN", label: "Admin" },
+  { value: "SCHOOL_ADMIN", label: "Admin" },
+  { value: "PRINCIPAL", label: "Principal" },
   { value: "TEACHER", label: "Teacher" },
   { value: "ACCOUNTANT", label: "Accountant" },
-  { value: "LIBRARIAN", label: "Librarian" },
-  { value: "RECEPTIONIST", label: "Receptionist" },
 ];
 const DEPT_OPTIONS = [{ value: "", label: "All Departments" }]; // Will be populated from API
 
@@ -148,7 +148,7 @@ export default function EmployeeListPage() {
     designation: e.designation?.name || '-',
     department: e.department?.name || '-',
     dateOfJoining: e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '-',
-    status: e.isActive ? (e.onLeave ? 'ON_LEAVE' : 'ACTIVE') : 'INACTIVE',
+    status: e.user?.isActive === false ? 'INACTIVE' : 'ACTIVE',
     createdAt: e.createdAt,
     original: e,
   }));
@@ -181,7 +181,7 @@ export default function EmployeeListPage() {
       designation: e.designation?.name || '-',
       department: e.department?.name || '-',
       dateOfJoining: e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '-',
-      status: e.isActive ? (e.onLeave ? 'ON_LEAVE' : 'ACTIVE') : 'INACTIVE',
+      status: e.user?.isActive === false ? 'INACTIVE' : 'ACTIVE',
       createdAt: e.createdAt, original: e,
     }));
     return filterByDateRange(mapped, (r) => r.original.dateOfJoining || r.createdAt, dateRange.from, dateRange.to);

@@ -67,11 +67,13 @@ export default function LeavePage() {
   ];
 
   return (
-    <div>
+    <div className="space-y-5">
       <PageHeader title="Leave Management" subtitle="Staff leave records" icon={<CalendarDays size={18} />} />
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
-      <Card className="mb-5">
-        <Select label="Employee" value={employeeId} onChange={e => setEmployeeId(e.target.value)} options={empOptions} className="max-w-sm" />
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">{error}</div>}
+      <Card>
+        <div className="p-5">
+          <Select label="Employee" value={employeeId} onChange={e => setEmployeeId(e.target.value)} options={empOptions} className="max-w-sm" />
+        </div>
       </Card>
       <Card title="Leave Applications" noPadding action={<ExportButton filename="leave-applications.csv" rows={leaves} columns={exportColumns} />}>
         <div className="overflow-x-auto">

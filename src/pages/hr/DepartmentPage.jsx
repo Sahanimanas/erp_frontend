@@ -54,7 +54,7 @@ export default function DepartmentPage() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader title="Department Details" subtitle="Manage staff departments" icon={<Building size={18} />} />
       <Card title="Add Department">
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
