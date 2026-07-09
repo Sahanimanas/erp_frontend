@@ -39,6 +39,8 @@ export default function StudentFeePaymentPage() {
   const [payOpen, setPayOpen] = useState(false);
   const [payForm, setPayForm] = useState({ account: "Cash", bankName: "", txnNo: "", details: "", remarks: "", date: "" });
   const [receipt, setReceipt] = useState(null);
+  const [waConfirm, setWaConfirm] = useState(null);
+  const [sendingReceiptNo, setSendingReceiptNo] = useState("");
 
   const { data: classes = [] } = useGetClassesQuery();
   const { data: studentList, isFetching: searching } = useGetStudentsQuery(
@@ -52,13 +54,24 @@ export default function StudentFeePaymentPage() {
   const [adjust] = useAdjustInstallmentMutation();
   const [deletePayment] = useDeleteInstallmentPaymentMutation();
   const [revert] = useRevertReceiptMutation();
-  const [sendWhatsApp, { isLoading: sendingWa }] = useSendReceiptWhatsAppMutation();
+  const [sendWhatsApp] = useSendReceiptWhatsAppMutation();
 
-  const onWhatsApp = async (receiptNo) => {
+  const onWhatsApp = async (receiptNo, { closeConfirm = false } = {}) => {
+    if (!receiptNo || sendingReceiptNo) return;
+    setSendingReceiptNo(receiptNo);
     try {
       const res = await sendWhatsApp(receiptNo).unwrap();
       toast.success(`Receipt sent on WhatsApp to ${res.to}`);
-    } catch (e) { toast.error(e?.data?.error || "WhatsApp send failed"); }
+      if (closeConfirm) setWaConfirm(null);
+    } catch (e) {
+      toast.error(e?.data?.error || "WhatsApp send failed");
+    } finally {
+      setSendingReceiptNo("");
+    }
+  };
+
+  const closeWaConfirm = () => {
+    if (!sendingReceiptNo) setWaConfirm(null);
   };
 
   const students = studentList?.data ?? [];
@@ -367,7 +380,18 @@ export default function StudentFeePaymentPage() {
                         className="text-indigo-600 text-[12px] hover:underline">Download</button>
                     </td>
                     <td className="px-4 py-2.5">
-                      <button onClick={() => onWhatsApp(r.receiptNo)} title="Send receipt on WhatsApp" className="p-1 rounded text-emerald-600 hover:bg-emerald-50 mr-1"><MessageCircle size={14} /></button>
+                      <button
+                        onClick={() => setWaConfirm(r)}
+                        disabled={!!sendingReceiptNo}
+                        title="Send receipt on WhatsApp"
+                        className="p-1 rounded text-emerald-600 hover:bg-emerald-50 mr-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {sendingReceiptNo === r.receiptNo ? (
+                          <span className="block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <MessageCircle size={14} />
+                        )}
+                      </button>
                       <button onClick={() => onRevert(r.receiptNo)} title="Revert payment" className="p-1 rounded text-red-500 hover:bg-red-50"><Undo2 size={14} /></button>
                     </td>
                   </tr>
@@ -377,6 +401,48 @@ export default function StudentFeePaymentPage() {
           </div>
         </Card>
       )}
+
+      {/* WhatsApp receipt confirmation modal */}
+      <Modal open={!!waConfirm} onClose={closeWaConfirm} title="Send Receipt on WhatsApp" size="sm">
+        {waConfirm && (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <MessageCircle size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold text-slate-800">Send this paid receipt?</p>
+                  <p className="text-[12px] text-slate-500 mt-1">
+                    Receipt <b>{waConfirm.receiptNo}</b> for <b>{money(waConfirm.total)}</b> will be sent to {st?.phone ? <b>{st.phone}</b> : "the student's saved phone number"}.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-[12px]">
+              <div>
+                <p className="text-slate-400">Student</p>
+                <p className="font-semibold text-slate-700 truncate">{st?.name || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-slate-400">Payment Date</p>
+                <p className="font-semibold text-slate-700">{fmtDateTime(waConfirm.paidDate)}</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" disabled={!!sendingReceiptNo} onClick={closeWaConfirm}>Cancel</Button>
+              <Button
+                variant="success"
+                icon={<MessageCircle size={14} />}
+                loading={sendingReceiptNo === waConfirm.receiptNo}
+                onClick={() => onWhatsApp(waConfirm.receiptNo, { closeConfirm: true })}
+              >
+                Send Now
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Cash / Offline Payment modal */}
       <Modal open={payOpen} onClose={() => setPayOpen(false)} title="Cash/Offline Payment Details" size="lg">
@@ -423,7 +489,15 @@ export default function StudentFeePaymentPage() {
               <span>Total Paid</span><span className="text-emerald-600">{money(receipt.total)}</span>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="success" icon={<MessageCircle size={14} />} loading={sendingWa} onClick={() => onWhatsApp(receipt.receiptNo)}>Send WhatsApp</Button>
+              <Button
+                variant="success"
+                icon={<MessageCircle size={14} />}
+                loading={sendingReceiptNo === receipt.receiptNo}
+                disabled={!!sendingReceiptNo && sendingReceiptNo !== receipt.receiptNo}
+                onClick={() => onWhatsApp(receipt.receiptNo)}
+              >
+                Send WhatsApp
+              </Button>
               <Button variant="secondary" icon={<FileDown size={14} />} onClick={() => printReceipt(receipt)}>Save as PDF</Button>
               <Button onClick={() => setReceipt(null)}>Done</Button>
             </div>
