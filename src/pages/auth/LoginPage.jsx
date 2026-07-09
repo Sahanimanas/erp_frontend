@@ -67,6 +67,7 @@ export default function LoginPage() {
             schoolName: user.schoolName ?? null,
             schoolLogo: user.schoolLogo ?? null,
             schoolWatermark: user.schoolWatermark ?? null,
+            schoolUpiQr: user.schoolUpiQr ?? null,
             schoolAddress: user.schoolAddress ?? null,
             schoolPhone: user.schoolPhone ?? null,
             schoolEmail: user.schoolEmail ?? null,

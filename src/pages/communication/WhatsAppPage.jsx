@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, Textarea, Badge } from "../../components/ui";
 import apiClient from "../../services/axios";
-import { MessageCircle, Send, Link2, LogOut, Paperclip, RefreshCw } from "lucide-react";
+import { MessageCircle, Send, Link2, LogOut, Paperclip, RefreshCw, Megaphone } from "lucide-react";
+import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
+import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 
 const STATUS_BADGE = {
   connected: "success",
@@ -102,8 +104,118 @@ export default function WhatsAppPage() {
         <SendPanel connected={connected} flash={flash} />
       </div>
 
+      <BroadcastPanel connected={connected} flash={flash} />
       <TemplatesPanel flash={flash} />
     </div>
+  );
+}
+
+// ─── Broadcast: send one message to many students (all / class / section / picked) ─
+function BroadcastPanel({ connected, flash }) {
+  const [target, setTarget] = useState("all"); // all | class | section | selected
+  const [classId, setClassId] = useState("");
+  const [sectionId, setSectionId] = useState("");
+  const [picked, setPicked] = useState([]); // student ids for "selected"
+  const [search, setSearch] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const { data: classes = [] } = useGetClassesQuery();
+  const { data: sections = [] } = useGetSectionsQuery(classId, { skip: !classId });
+  // Student picker list (only when narrowing to specific students).
+  const { data: studentResp, isFetching: searching } = useGetStudentsQuery(
+    { ...(search ? { search } : {}), ...(classId ? { classId } : {}), limit: 50 },
+    { skip: target !== "selected" || (!search && !classId) }
+  );
+  const students = studentResp?.data ?? [];
+
+  const order = { Nursery: -3, LKG: -2, UKG: -1 };
+  const sortedClasses = [...classes].sort((a, b) => (order[a.name] ?? Number(a.name) ?? 0) - (order[b.name] ?? Number(b.name) ?? 0));
+
+  const togglePick = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  const send = async () => {
+    if (!message.trim()) return flash("error", "Enter a message to broadcast");
+    const body = { message: message.trim() };
+    if (target === "class") { if (!classId) return flash("error", "Select a class"); body.classId = classId; }
+    if (target === "section") { if (!sectionId) return flash("error", "Select a section"); body.sectionId = sectionId; }
+    if (target === "selected") { if (!picked.length) return flash("error", "Pick at least one student"); body.studentIds = picked; }
+
+    const label = target === "all" ? "ALL students" : target === "class" ? "the class" : target === "section" ? "the section" : `${picked.length} student(s)`;
+    if (!window.confirm(`Send this message to ${label}? This messages each phone number once.`)) return;
+
+    setSending(true);
+    setResult(null);
+    try {
+      const { data } = await apiClient.post("/whatsapp/broadcast", body);
+      setResult(data.data);
+      flash("success", data.message || "Broadcast sent");
+    } catch (e) {
+      flash("error", e.response?.data?.error || "Broadcast failed");
+    } finally { setSending(false); }
+  };
+
+  return (
+    <Card className="mt-5 p-5 sm:p-6">
+      <h3 className="mb-1 flex items-center gap-2 text-base font-semibold text-slate-700"><Megaphone size={16} /> Broadcast Message</h3>
+      <p className="mb-4 text-xs text-slate-500">Send one message to many students at once — everyone, a whole class, a single section, or a hand-picked set. Each phone number is messaged once.</p>
+
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-4">
+          {[["all", "All Students"], ["class", "By Class"], ["section", "By Section"], ["selected", "Selected Students"]].map(([v, l]) => (
+            <label key={v} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              <input type="radio" name="bcTarget" checked={target === v} onChange={() => { setTarget(v); setResult(null); }} className="accent-indigo-600" /> {l}
+            </label>
+          ))}
+        </div>
+
+        {(target === "class" || target === "section" || target === "selected") && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select label="Class" value={classId} onChange={(e) => { setClassId(e.target.value); setSectionId(""); }}
+              options={[{ value: "", label: target === "selected" ? "All Classes" : "Select Class" }, ...sortedClasses.map((c) => ({ value: c.id, label: c.name }))]} />
+            {target === "section" && (
+              <Select label="Section" value={sectionId} onChange={(e) => setSectionId(e.target.value)} disabled={!classId}
+                options={[{ value: "", label: "Select Section" }, ...sections.map((s) => ({ value: s.id, label: s.name }))]} />
+            )}
+            {target === "selected" && (
+              <Input label="Search student" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name / roll / phone…" />
+            )}
+          </div>
+        )}
+
+        {target === "selected" && (
+          <div className="rounded-lg border border-slate-200 max-h-52 overflow-y-auto">
+            {searching ? (
+              <p className="p-3 text-[12px] text-slate-400">Searching…</p>
+            ) : students.length === 0 ? (
+              <p className="p-3 text-[12px] text-slate-400">{search || classId ? "No students found." : "Search or pick a class to list students."}</p>
+            ) : (
+              students.map((s) => (
+                <label key={s.id} className="flex items-center gap-2 px-3 py-2 text-[12.5px] border-b border-slate-50 last:border-0 cursor-pointer hover:bg-slate-50">
+                  <input type="checkbox" checked={picked.includes(s.id)} onChange={() => togglePick(s.id)} className="accent-indigo-600 w-4 h-4" />
+                  <span className="font-semibold text-slate-700">{s.rollNumber}</span>
+                  <span className="text-slate-600">{s.user?.firstName} {s.user?.lastName}</span>
+                  {!s.user?.phone && <span className="text-[10px] text-red-400">(no phone)</span>}
+                </label>
+              ))
+            )}
+            {picked.length > 0 && <p className="p-2 text-[11px] text-indigo-600 font-semibold">{picked.length} selected</p>}
+          </div>
+        )}
+
+        <Textarea label="Message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type the message to send…" rows={4} />
+
+        {result && (
+          <div className="rounded-lg bg-emerald-50 text-emerald-700 px-4 py-2.5 text-[12.5px]">
+            Sent to <b>{result.sent}</b> of {result.recipients} number(s){result.failed ? ` · ${result.failed} failed` : ""}{result.skippedNoPhone ? ` · ${result.skippedNoPhone} had no phone` : ""}.
+          </div>
+        )}
+
+        {!connected && <p className="text-xs text-amber-600">Link a number first to enable broadcasting.</p>}
+        <Button icon={<Send size={14} />} disabled={!connected || sending} onClick={send}>{sending ? "Sending…" : "Send Broadcast"}</Button>
+      </div>
+    </Card>
   );
 }
 

@@ -45,9 +45,11 @@ export function getSchool() {
       logo: u.schoolLogo || "",
       // Dedicated bill watermark image; falls back to the main logo.
       watermark: u.schoolWatermark || u.schoolLogo || "",
+      // UPI payment QR shown on demand bills ("Pay on this QR").
+      upiQr: u.schoolUpiQr || "",
     };
   } catch {
-    return { name: "", address: "", phone: "", email: "", logo: "", watermark: "" };
+    return { name: "", address: "", phone: "", email: "", logo: "", watermark: "", upiQr: "" };
   }
 }
 
@@ -134,6 +136,9 @@ export function printBill({
   tr.total td { border-top: 1.5px solid #111827; font-size: 16px; font-weight: 800; padding: 10px; }
   tr.total td.d { text-align: center; }
   .note { font-size: 11.5px; color: #374151; border: 1.5px solid #111827; border-top: 0; padding: 6px 10px; }
+  .qr { display: flex; align-items: center; gap: 10px; border: 1.5px solid #111827; border-top: 0; padding: 8px 10px; }
+  .qr img { width: 84px; height: 84px; object-fit: contain; }
+  .qr .pay { font-size: 13px; font-weight: 700; }
   .thanks { text-align: right; font-size: 16px; font-weight: 700; margin-top: 8px; }
   @media print {
     body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -158,6 +163,7 @@ export function printBill({
         </tbody>
       </table>
       ${note ? `<div class="note">Note : ${esc(note)}</div>` : ""}
+      ${school.upiQr ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" /><span class="pay">Pay on this QR</span></div>` : ""}
       ${footer ? `<div class="thanks">${esc(footer)}</div>` : ""}
     </div>
   </div>
@@ -182,6 +188,10 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   const win = window.open("", "_blank", "width=900,height=1100");
   if (!win) { alert("Please allow pop-ups for this site to save as PDF."); return false; }
 
+  // Each bill carries a UPI QR block when one is configured, which is taller —
+  // cap at 4 per sheet so the QR always fits (a QR-less sheet keeps its layout).
+  if (school.upiQr && perPage > 4) perPage = 4;
+
   const metaCol = (pairs) =>
     pairs
       .filter(([, v]) => v !== null && v !== undefined && v !== "")
@@ -205,6 +215,7 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
           <tbody>${body}<tr class="total"><td class="d">${esc(b.totalLabel || "Grand Total")}</td><td class="a">${amt(b.total)}</td></tr></tbody>
         </table>
         ${b.note ? `<div class="note">Note : ${esc(b.note)}</div>` : ""}
+        ${school.upiQr ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" /><span class="pay">Pay on this QR</span></div>` : ""}
       </div>
     </div>`;
   };
@@ -252,6 +263,9 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   tr.total td { border-top: 1.2px solid #111827; font-size: 11.5px; font-weight: 800; padding: 5px 6px; }
   tr.total td.d { text-align: center; }
   .note { font-size: 8.5px; color: #374151; border: 1.2px solid #111827; border-top: 0; padding: 3px 6px; }
+  .qr { display: flex; align-items: center; gap: 7px; border: 1.2px solid #111827; border-top: 0; padding: 4px 6px; }
+  .qr img { width: 54px; height: 54px; object-fit: contain; }
+  .qr .pay { font-size: 9.5px; font-weight: 700; }
   @page { size: A4 portrait; margin: 10mm 6mm; }
   @media print {
     body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

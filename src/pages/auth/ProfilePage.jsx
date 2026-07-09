@@ -21,9 +21,10 @@ export default function ProfilePage() {
 
   // School edit modal
   const [editOpen, setEditOpen] = useState(false);
-  const [schoolForm, setSchoolForm] = useState({ name: "", logo: "", watermark: "", address: "", phone: "" });
+  const [schoolForm, setSchoolForm] = useState({ name: "", logo: "", watermark: "", upiQr: "", address: "", phone: "" });
   const [uploading, setUploading] = useState(false);
   const [uploadingWm, setUploadingWm] = useState(false);
+  const [uploadingQr, setUploadingQr] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -62,6 +63,7 @@ export default function ProfilePage() {
       name: school?.name || "",
       logo: school?.logo || "",
       watermark: school?.watermark || "",
+      upiQr: school?.upiQr || "",
       address: school?.address || "",
       phone: school?.phone || "",
     });
@@ -98,6 +100,21 @@ export default function ProfilePage() {
     }
   };
 
+  const onUpiQr = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingQr(true);
+    try {
+      const url = await uploadImageFile(file, "schools");
+      setSchoolForm((f) => ({ ...f, upiQr: url }));
+    } catch (err) {
+      toast.error(err?.response?.data?.error || err.message || "UPI QR upload failed");
+    } finally {
+      setUploadingQr(false);
+    }
+  };
+
   const saveSchool = async () => {
     if (!schoolForm.name.trim()) { toast.error("School name is required"); return; }
     setSaving(true);
@@ -106,6 +123,7 @@ export default function ProfilePage() {
         name: schoolForm.name.trim(),
         logo: schoolForm.logo || null,
         watermark: schoolForm.watermark || null,
+        upiQr: schoolForm.upiQr || null,
         address: schoolForm.address || null,
         phone: schoolForm.phone || null,
       });
@@ -123,6 +141,7 @@ export default function ProfilePage() {
               schoolName: d.name ?? auth.user.schoolName,
               schoolLogo: d.logo ?? auth.user.schoolLogo,
               schoolWatermark: d.watermark ?? auth.user.schoolWatermark,
+              schoolUpiQr: d.upiQr ?? auth.user.schoolUpiQr,
               schoolAddress: d.address ?? auth.user.schoolAddress,
               schoolPhone: d.phone ?? auth.user.schoolPhone,
             };
@@ -261,6 +280,33 @@ export default function ProfilePage() {
                 <input type="file" accept="image/*" onChange={onWatermark} disabled={uploadingWm} className="hidden" />
               </label>
               <p className="text-[11px] text-slate-400 mt-2">Shown faintly behind fee receipts & demand bills. Falls back to the logo if empty.</p>
+            </div>
+          </div>
+
+          {/* UPI payment QR — printed on demand bills with a "Pay on this QR" caption */}
+          <div className="flex items-center gap-4">
+            <div className="relative w-24 h-24 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
+              {schoolForm.upiQr ? (
+                <>
+                  <img src={schoolForm.upiQr} alt="UPI QR" className="w-full h-full object-contain" />
+                  <button type="button" onClick={() => setSchoolForm((f) => ({ ...f, upiQr: "" }))}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-slate-600 shadow hover:bg-white">
+                    <X size={12} />
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-slate-400">
+                  <Camera size={22} />
+                  <span className="text-[9px]">{uploadingQr ? "Uploading…" : "No UPI QR"}</span>
+                </div>
+              )}
+            </div>
+            <div>
+              <label className={`inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg cursor-pointer ${uploadingQr ? "bg-slate-100 text-slate-400 cursor-wait" : "bg-emerald-600 text-white hover:bg-emerald-700"}`}>
+                <Camera size={13} /> {uploadingQr ? "Uploading…" : "Upload UPI QR"}
+                <input type="file" accept="image/*" onChange={onUpiQr} disabled={uploadingQr} className="hidden" />
+              </label>
+              <p className="text-[11px] text-slate-400 mt-2">Your UPI payment QR. Printed on demand bills as "Pay on this QR". When set, demand bills print 4 per page to fit it.</p>
             </div>
           </div>
 
