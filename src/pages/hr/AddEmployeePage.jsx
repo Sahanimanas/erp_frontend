@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, Textarea } from "../../components/ui";
 import { UserPlus, Plus, Trash2, Camera, X, FileDown, Eye, EyeOff } from "lucide-react";
+import toast from "react-hot-toast";
 import apiClient from "../../services/axios";
 import { uploadImageFile } from "../../services/upload";
 import { printRecord } from "../../utils/printPdf";
@@ -68,8 +69,11 @@ export default function AddEmployeePage() {
     try {
       const url = await uploadImageFile(file, "employees");
       setForm((f) => ({ ...f, photo: url }));
+      toast.success("Photo uploaded");
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || "Photo upload failed");
+      const msg = err?.response?.data?.error || err.message || "Photo upload failed";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
@@ -90,6 +94,7 @@ export default function AddEmployeePage() {
     setError(""); setSuccess("");
     if (!form.name.trim() || !form.email.trim() || !form.password) {
       setError("Name, Email and Password are required");
+      toast.error("Name, Email and Password are required");
       return;
     }
     const parts = form.name.trim().split(/\s+/);
@@ -97,6 +102,7 @@ export default function AddEmployeePage() {
     const lastName = parts.slice(1).join(" ") || parts[0];
 
     setSaving(true);
+    const savingToast = toast.loading("Saving employee…");
     try {
       const payload = {
         firstName, lastName,
@@ -112,13 +118,21 @@ export default function AddEmployeePage() {
       };
       const res = await apiClient.post("/employees", payload);
       if (res.data.success) {
-        setSuccess(`Employee "${firstName} ${lastName}" added (code ${res.data.data.employeeCode}).`);
+        const code = res.data.data.employeeCode;
+        setSuccess(`Employee "${firstName} ${lastName}" added (code ${code}).`);
+        toast.success(`Employee "${firstName} ${lastName}" added (${code})`, { id: savingToast });
         window.scrollTo({ top: 0, behavior: "smooth" });
         setForm((f) => ({ ...f, name: "", email: "", phone: "", password: "", employeeCode: "", photo: "" }));
         setExperiences([{ employer: "", role: "", totalExperience: "" }]);
+      } else {
+        const msg = res.data.error || "Failed to add employee";
+        setError(msg);
+        toast.error(msg, { id: savingToast });
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || "Failed to add employee");
+      const msg = err.response?.data?.error || err.message || "Failed to add employee";
+      setError(msg);
+      toast.error(msg, { id: savingToast });
     } finally { setSaving(false); }
   };
 

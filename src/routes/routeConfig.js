@@ -94,6 +94,16 @@ export const MODULE_PRIVILEGE = {
 };
 
 /**
+ * The privileges a Designation can actually grant — i.e. the DISTINCT set of
+ * sidebar modules that are privilege-gated (the values of MODULE_PRIVILEGE),
+ * in first-seen order. `canAccessSection` only ever checks these labels, so
+ * deriving the Designation checklist from here guarantees every option maps to
+ * a real, visible sidebar module: no dummy/inactive entries, none missing, and
+ * it stays in sync automatically when the sidebar/gating map changes.
+ */
+export const DESIGNATION_PRIVILEGES = [...new Set(Object.values(MODULE_PRIVILEGE))];
+
+/**
  * Whether a user with `permissions` (their designation's privilege list, or
  * null/undefined when they have no designation) may see the section `key`.
  * Privilege-exempt roles and unmapped sections are always allowed.
@@ -255,7 +265,6 @@ export const routeConfig = [
       { key: "students-profile",  label: "Student Profile",       path: "/students/profile",   icon: "User",      lazy: lazy("students/StudentProfilePage"),   roles: ALL_STAFF, hidden: true },
       { key: "students-idcard",   label: "ID Card",               path: "/students/id-card",   icon: "IdCard",    lazy: lazy("students/IDCardPage"),           roles: ADMIN_ONLY, hidden: true },
       { key: "students-idedit",   label: "ID Card Editor",        path: "/students/id-editor", icon: "CreditCard",lazy: lazy("students/IdCardEditorPage"),     roles: ADMIN_ONLY },
-      { key: "students-transfer", label: "Transfer Certificate",  path: "/students/transfer",  icon: "FileText",  lazy: lazy("students/TransferCertPage"),     roles: ADMIN_ONLY },
     ],
   },
 
@@ -269,7 +278,6 @@ export const routeConfig = [
     children: [
       { key: "parents-list",       label: "Parents List",    path: "/parents/list",        icon: "Users",   lazy: lazy("parents/ParentListPage"),         roles: ALL_STAFF },
       { key: "parents-add",        label: "Add Parent",      path: "/parents/add",         icon: "UserPlus",lazy: lazy("parents/AddParentPage"),          roles: ADMIN_ONLY },
-      { key: "parents-deactivate", label: "Login Deactivate",path: "/parents/deactivate",  icon: "Lock",    lazy: lazy("parents/ParentDeactivatePage"),   roles: ADMIN_ONLY },
     ],
   },
 
@@ -290,7 +298,6 @@ export const routeConfig = [
       { key: "emp-ideditor",    label: "Employee ID Card Editor", path: "/employee/id-editor", icon: "Pencil",     lazy: lazy("hr/EmployeeIdCardEditorPage"), roles: ADMIN_ONLY },
       { key: "emp-deactivate",  label: "Login Deactivate", path: "/employee/deactivate",     icon: "Lock",         lazy: lazy("hr/LoginDeactivatePage"),    roles: ADMIN_ONLY },
       { key: "emp-leaves",      label: "Leave Mgmt",       path: "/employee/leaves",         icon: "Calendar",     lazy: lazy("hr/LeavePage"),              roles: ADMIN_ONLY },
-      { key: "emp-payroll",     label: "Payroll",          path: "/employee/payroll",        icon: "DollarSign",   lazy: lazy("hr/PayrollPage"),            roles: ADMIN_ONLY },
     ],
   },
 

@@ -101,6 +101,23 @@ export const studentsApi = baseApi.injectEndpoints({
       transformResponse: (r) => r?.data ?? r,
       invalidatesTags: [{ type: "Students", id: "LIST" }],
     }),
+
+    // Mark a student inactive (left the school). `billedUntilMonth` ("Jun-2025")
+    // caps recurring fee accrual; omit to bill up to the current month.
+    // Invalidates Fees too so any open fee ledger reflects the new cutoff.
+    deactivateStudent: build.mutation({
+      query: ({ id, billedUntilMonth, leftDate }) => ({
+        url: `/students/${id}/deactivate`, method: "PATCH", body: { billedUntilMonth, leftDate },
+      }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: (_, __, { id }) => [{ type: "Students", id: "LIST" }, { type: "Students", id }, { type: "Fees", id }],
+    }),
+    // Re-activate a student (clears the leaving metadata; fees resume).
+    activateStudent: build.mutation({
+      query: (id) => ({ url: `/students/${id}/activate`, method: "PATCH" }),
+      transformResponse: (r) => r?.data ?? r,
+      invalidatesTags: (_, __, id) => [{ type: "Students", id: "LIST" }, { type: "Students", id }, { type: "Fees", id }],
+    }),
   }),
   overrideExisting: false,
 });
@@ -119,4 +136,6 @@ export const {
   useImportStudentsMutation,
   usePromoteStudentsMutation,
   useBulkUpdateStudentsMutation,
+  useDeactivateStudentMutation,
+  useActivateStudentMutation,
 } = studentsApi;

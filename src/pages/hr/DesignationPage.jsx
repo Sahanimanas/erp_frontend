@@ -8,13 +8,17 @@ import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, DataTable, Badge, ExportButton } from "../../components/ui";
 import { BadgeCheck, Save, Trash2, Pencil } from "lucide-react";
 import apiClient from "../../services/axios";
+import { DESIGNATION_PRIVILEGES } from "../../routes/routeConfig";
 
 export default function DesignationPage() {
   usePageTitle("Designation");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [privileges, setPrivileges] = useState([]);   // module list from backend
-  const [privLoading, setPrivLoading] = useState(true);
+  // Privileges = exactly the active, gate-able sidebar modules (see routeConfig
+  // MODULE_PRIVILEGE). No dummy/inactive entries — the list can never drift from
+  // what actually controls sidebar visibility.
+  const privileges = DESIGNATION_PRIVILEGES;
+  const privLoading = false;
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: "", type: "Others", permissions: [] });
   const [saving, setSaving] = useState(false);
@@ -27,17 +31,6 @@ export default function DesignationPage() {
     } catch { /* ignore */ } finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
-
-  // Privilege modules are owned by the backend (single source of truth).
-  useEffect(() => {
-    (async () => {
-      setPrivLoading(true);
-      try {
-        const res = await apiClient.get("/employees/designation-modules");
-        if (res.data.success) setPrivileges(res.data.data || []);
-      } catch { /* ignore */ } finally { setPrivLoading(false); }
-    })();
-  }, []);
 
   const togglePriv = (p) => setForm((f) => ({ ...f, permissions: f.permissions.includes(p) ? f.permissions.filter((x) => x !== p) : [...f.permissions, p] }));
   const reset = () => { setForm({ name: "", type: "Others", permissions: [] }); setEditingId(null); };
@@ -56,7 +49,14 @@ export default function DesignationPage() {
     finally { setSaving(false); }
   };
 
-  const edit = (r) => { setEditingId(r.id); setForm({ name: r.name, type: (privileges.length > 0 && r.permissions?.length >= privileges.length ? "Admin" : "Others"), permissions: r.permissions || [] }); };
+  const edit = (r) => {
+    // Drop any legacy/dummy privileges no longer present in the sidebar so
+    // re-saving cleans them up; Admin = grants every current privilege.
+    const valid = (r.permissions || []).filter((p) => privileges.includes(p));
+    const isAdmin = privileges.length > 0 && privileges.every((p) => valid.includes(p));
+    setEditingId(r.id);
+    setForm({ name: r.name, type: isAdmin ? "Admin" : "Others", permissions: valid });
+  };
   const remove = async (r) => {
     try { await apiClient.delete(`/employees/designations/${r.id}`); toast.success("Deleted"); load(); }
     catch (e) { toast.error(e.response?.data?.error || "Failed to delete"); }

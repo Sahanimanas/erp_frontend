@@ -9,20 +9,40 @@ import {
   SearchInput, Select, Pagination, Modal,
   Input, Textarea, Avatar, DateRangeFilter, ExportButton,
 } from "../../components/ui";
-import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload } from "lucide-react";
+import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload, UserX, UserCheck } from "lucide-react";
 import { filterByDateRange } from "../../utils/exportExcel";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
-import { useGetStudentsQuery, useCreateStudentMutation, useDeleteStudentMutation } from "../../redux/api/studentsApi";
+import {
+  useGetStudentsQuery, useCreateStudentMutation, useDeleteStudentMutation,
+  useDeactivateStudentMutation, useActivateStudentMutation,
+} from "../../redux/api/studentsApi";
 
 const FEE_BADGE = { PAID:"success", PENDING:"danger", PARTIAL:"warning" };
 const FEE_OPT   = [{ value:"", label:"All Status" }, { value:"PAID",label:"Paid" }, { value:"PENDING",label:"Pending" }, { value:"PARTIAL",label:"Partial" }];
+const STATUS_OPT = [{ value:"", label:"All Students" }, { value:"active",label:"Active" }, { value:"inactive",label:"Inactive (Left)" }];
+
+// Month names aligned with the backend fee-type month labels ("Jun-2025").
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+// Native <input type="month"> gives "2025-06"; the fee ledger keys by "Jun-2025".
+const toFeeMonth = (v) => {
+  if (!v) return "";
+  const [y, m] = v.split("-");
+  const idx = Number(m) - 1;
+  return idx >= 0 && idx < 12 ? `${MONTHS[idx]}-${y}` : "";
+};
+const currentMonthInput = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
 
 export default function StudentListPage() {
   usePageTitle("Students");
   const navigate = useNavigate();
   const [error,setError]=useState("");
   const [search,setSearch]=useState(""); const [cls,setCls]=useState(""); const [section,setSection]=useState(""); const [feeStatus,setFee]=useState("");
+  const [status,setStatus]=useState(""); // '' | 'active' | 'inactive'
   const [page,setPage]=useState(1); const [addOpen,setAddOpen]=useState(false); const [viewRow,setViewRow]=useState(null);
+  const [inactiveRow,setInactiveRow]=useState(null); // student being marked inactive
   const [dateRange,setDateRange]=useState({from:"",to:""});
   const PAGE_SIZE=10;
 
@@ -43,6 +63,7 @@ export default function StudentListPage() {
     ...(search && { search }),
     ...(cls && { classId: cls }),
     ...(section && { sectionId: section }),
+    ...(status && { status }),
   });
   const students = studentsResp?.data ?? [];
   const total = studentsResp?.pagination?.total ?? 0;
@@ -51,6 +72,18 @@ export default function StudentListPage() {
 
   const [createStudent] = useCreateStudentMutation();
   const [deleteStudent] = useDeleteStudentMutation();
+  const [deactivateStudent] = useDeactivateStudentMutation();
+  const [activateStudent] = useActivateStudentMutation();
+
+  const handleReactivate = async (studentId) => {
+    if (!confirm("Re-activate this student? Recurring fees will resume accruing.")) return;
+    try {
+      await activateStudent(studentId).unwrap();
+      setError("");
+    } catch (err) {
+      setError(err?.data?.error || "Failed to activate student");
+    }
+  };
 
   const handleAddStudent = async (formData) => {
     try {
@@ -93,6 +126,9 @@ export default function StudentListPage() {
     blood: s.bloodGroup || '-',
     phone: s.user?.phone || '-',
     fees: 'PENDING', // TODO: Integrate with fee module
+    isActive: s.isActive !== false, // enrollment status (left students are false)
+    billedUntilMonth: s.billedUntilMonth || '',
+    leftDate: s.leftDate ? new Date(s.leftDate).toLocaleDateString('en-IN') : '',
     createdAt: s.createdAt,
     admissionDate: s.admissionDate,
     original: s
@@ -120,14 +156,15 @@ export default function StudentListPage() {
 
   const COLUMNS=[
     {key:"roll",label:"Roll No",render:v=><span className="font-mono text-[11px] text-indigo-600 font-semibold">{v}</span>},
-    {key:"name",label:"Student",render:(v,r)=><div className="flex items-center gap-2.5"><Avatar name={v} size="sm"/><div><p className="font-semibold text-slate-800 text-[12px]">{v}</p><p className="text-[10px] text-slate-400">{r.gender} · {r.blood}</p></div></div>},
+    {key:"name",label:"Student",render:(v,r)=><div className="flex items-center gap-2.5"><Avatar name={v} size="sm"/><div><p className={`font-semibold text-[12px] ${r.isActive?"text-slate-800":"text-slate-400 line-through"}`}>{v}</p><p className="text-[10px] text-slate-400">{r.gender} · {r.blood}</p></div></div>},
     {key:"class",label:"Class",render:(v,r)=><span className="font-medium">{v}/{r.section}</span>},
     {key:"father",label:"Father Name"},
     {key:"mother",label:"Mother Name"},
     {key:"dob",label:"D.O.B."},
     {key:"phone",label:"Phone"},
     {key:"fees",label:"Fee Status",render:v=><Badge variant={FEE_BADGE[v] || "default"}>{v.charAt(0).toUpperCase()+v.slice(1)}</Badge>},
-    {key:"id",label:"Actions",sortable:false,render:(_,r)=><div className="flex gap-1"><button title="View profile" onClick={()=>navigate(`/students/add?id=${r.id}&view=1`,{state:{student:r.original}})} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-500"><Eye size={13}/></button><button title="Edit student" onClick={()=>navigate(`/students/add?id=${r.id}`,{state:{student:r.original}})} className="p-1.5 rounded-md hover:bg-amber-50 text-amber-500"><Edit2 size={13}/></button><button onClick={()=>handleDelete(r.id)} className="p-1.5 rounded-md hover:bg-red-50 text-red-500"><Trash2 size={13}/></button></div>},
+    {key:"isActive",label:"Status",render:(v,r)=>v?<Badge variant="success">Active</Badge>:<span title={`Billed till ${r.billedUntilMonth||"—"}${r.leftDate?` · Left ${r.leftDate}`:""}`}><Badge variant="danger">Inactive{r.billedUntilMonth?` · ${r.billedUntilMonth}`:""}</Badge></span>},
+    {key:"id",label:"Actions",sortable:false,render:(_,r)=><div className="flex gap-1"><button title="View profile" onClick={()=>navigate(`/students/add?id=${r.id}&view=1`,{state:{student:r.original}})} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-500"><Eye size={13}/></button><button title="Edit student" onClick={()=>navigate(`/students/add?id=${r.id}`,{state:{student:r.original}})} className="p-1.5 rounded-md hover:bg-amber-50 text-amber-500"><Edit2 size={13}/></button>{r.isActive?<button title="Mark inactive (student left)" onClick={()=>setInactiveRow(r)} className="p-1.5 rounded-md hover:bg-orange-50 text-orange-500"><UserX size={13}/></button>:<button title="Re-activate student" onClick={()=>handleReactivate(r.id)} className="p-1.5 rounded-md hover:bg-green-50 text-green-600"><UserCheck size={13}/></button>}<button title="Delete student" onClick={()=>handleDelete(r.id)} className="p-1.5 rounded-md hover:bg-red-50 text-red-500"><Trash2 size={13}/></button></div>},
   ];
 
   function AddStudentForm({ onSubmit, onCancel }) {
@@ -190,6 +227,54 @@ export default function StudentListPage() {
       </form>
     );
   }
+  // Modal to mark a student inactive with a "bill fees until" cutoff month.
+  function InactivateForm({ row, onCancel }) {
+    const [monthInput, setMonthInput] = useState(currentMonthInput());
+    const [leftDate, setLeftDate] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState("");
+
+    const submit = async () => {
+      setFormError("");
+      const billedUntilMonth = toFeeMonth(monthInput);
+      if (!billedUntilMonth) { setFormError("Please choose the last month to bill."); return; }
+      setSubmitting(true);
+      try {
+        await deactivateStudent({ id: row.id, billedUntilMonth, leftDate: leftDate || undefined }).unwrap();
+        setError("");
+        onCancel();
+      } catch (err) {
+        setFormError(err?.data?.error || err.message || "Failed to mark student inactive");
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="space-y-4">
+        {formError && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">{formError}</div>}
+        <div className="bg-slate-50 rounded-lg p-3 flex items-center gap-3">
+          <Avatar name={row.name} size="sm"/>
+          <div><p className="font-semibold text-slate-800 text-sm">{row.name}</p><p className="text-[11px] text-slate-400">Roll {row.roll} · Class {row.class}/{row.section}</p></div>
+        </div>
+        <p className="text-[13px] text-slate-600 leading-relaxed">
+          The student's record and full fee history are kept. Recurring (monthly) fees are billed only
+          <span className="font-semibold text-slate-800"> up to and including the month below</span> — no
+          further monthly fee is charged. Session / one-time fees stay fully due and can be waived later
+          via a discount.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Bill fees until *" type="month" value={monthInput} onChange={e=>setMonthInput(e.target.value)}/>
+          <Input label="Left date (optional)" type="date" value={leftDate} onChange={e=>setLeftDate(e.target.value)}/>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <Button type="button" onClick={submit} disabled={submitting} className="flex-1">{submitting?"Saving...":"Mark Inactive"}</Button>
+          <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>Cancel</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader title="Student Details" subtitle="Manage all enrolled students" icon={<Users size={18}/>}>
@@ -204,8 +289,9 @@ export default function StudentListPage() {
           <SearchInput value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search name / roll / father / mother..." className="w-52"/>
           <Select value={cls} onChange={e=>{setCls(e.target.value);setSection("");setPage(1);}} options={classFilterOpts} className="w-44"/>
           <Select value={section} onChange={e=>{setSection(e.target.value);setPage(1);}} options={sectionFilterOpts} className="w-36" disabled={!cls}/>
+          <Select value={status} onChange={e=>{setStatus(e.target.value);setPage(1);}} options={STATUS_OPT} className="w-40"/>
           <DateRangeFilter from={dateRange.from} to={dateRange.to} onChange={setDateRange} label="Admission" />
-          <Button variant="secondary" size="sm" icon={<Filter size={12}/>} onClick={()=>{setSearch("");setCls("");setSection("");setFee("");setDateRange({from:"",to:""});setPage(1);}}>Clear</Button>
+          <Button variant="secondary" size="sm" icon={<Filter size={12}/>} onClick={()=>{setSearch("");setCls("");setSection("");setFee("");setStatus("");setDateRange({from:"",to:""});setPage(1);}}>Clear</Button>
           <span className="ml-auto text-[11px] text-slate-500">{loading ? "Loading..." : `${filteredStudents.length} of ${total} students`}</span>
         </div>
         <DataTable columns={COLUMNS} data={filteredStudents} loading={loading}/>
@@ -216,6 +302,9 @@ export default function StudentListPage() {
       </Modal>
       <Modal open={addOpen} onClose={()=>setAddOpen(false)} title="Add New Student" size="lg">
         <AddStudentForm onSubmit={handleAddStudent} onCancel={()=>setAddOpen(false)}/>
+      </Modal>
+      <Modal open={!!inactiveRow} onClose={()=>setInactiveRow(null)} title="Mark Student Inactive" size="md">
+        {inactiveRow && <InactivateForm row={inactiveRow} onCancel={()=>setInactiveRow(null)}/>}
       </Modal>
     </div>
   );

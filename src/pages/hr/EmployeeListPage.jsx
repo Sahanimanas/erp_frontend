@@ -149,6 +149,7 @@ export default function EmployeeListPage() {
     department: e.department?.name || '-',
     dateOfJoining: e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '-',
     status: e.user?.isActive === false ? 'INACTIVE' : 'ACTIVE',
+    photo: e.photo || '',
     createdAt: e.createdAt,
     original: e,
   }));
@@ -205,7 +206,7 @@ export default function EmployeeListPage() {
       key: "name",
       label: "Employee",
       render: (v, r) => <div className="flex items-center gap-2.5">
-        <Avatar name={v} size="sm" />
+        <Avatar name={v} src={r.photo} size="sm" />
         <div>
           <p className="font-semibold text-slate-800 text-[12px]">{v}</p>
           <p className="text-[10px] text-slate-400">{r.email}</p>
@@ -479,7 +480,7 @@ export default function EmployeeListPage() {
         {viewRow && (
           <div className="space-y-4">
             <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
-              <Avatar name={viewRow.name} size="lg" />
+              <Avatar name={viewRow.name} src={viewRow.photo} size="lg" />
               <div>
                 <h3 className="font-bold text-slate-800">{viewRow.name}</h3>
                 <p className="text-xs text-slate-400">{viewRow.designation} · {viewRow.department}</p>

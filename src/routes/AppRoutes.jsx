@@ -15,6 +15,8 @@ import { routeConfig, authRoutes, newRoutes, moreRoutes, settingsRoutes } from "
 import NotFoundPage  from "../pages/auth/NotFoundPage";
 import ForbiddenPage from "../pages/auth/ForbiddenPage";
 
+const LandingPage = lazy(() => import("../pages/LandingPage"));
+
 const Missing = () => (
   <div className="flex items-center justify-center h-64 flex-col gap-3">
     <span className="text-4xl">🚧</span>
@@ -59,7 +61,15 @@ function buildRoutes(items, parentSectionKey = null) {
 
 function RootRoute() {
   const { token, user } = useSelector(state => state.auth);
-  if (!token) return <Navigate to="/login" replace />;
+  // Logged-out visitors get the public landing page; authenticated users are
+  // sent to their home dashboard.
+  if (!token) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LandingPage />
+      </Suspense>
+    );
+  }
   const home = user?.role === "SUPER_ADMIN" ? "/super-admin/dashboard" : "/dashboard";
   return <Navigate to={home} replace />;
 }
