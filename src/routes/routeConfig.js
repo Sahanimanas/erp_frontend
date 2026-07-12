@@ -535,7 +535,8 @@ export const routeConfig = [
     icon: "MessageCircle",
     roles: ADMIN_ONLY,
     children: [
-      { key: "whatsapp-send", label: "Send & Connect", path: "/whatsapp/send", icon: "Send", lazy: lazy("communication/WhatsAppPage"), roles: ADMIN_ONLY },
+      { key: "whatsapp-send",  label: "Send & Connect", path: "/whatsapp/send",  icon: "Send",      lazy: lazy("communication/WhatsAppPage"),      roles: ADMIN_ONLY },
+      { key: "whatsapp-stats", label: "Message Counts", path: "/whatsapp/stats", icon: "BarChart3", lazy: lazy("communication/WhatsAppStatsPage"), roles: ADMIN_ONLY },
     ],
   },
 
