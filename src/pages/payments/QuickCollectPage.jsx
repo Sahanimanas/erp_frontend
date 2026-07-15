@@ -10,7 +10,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { usePageTitle } from "../../hooks";
+import { usePageTitle, useDebounce } from "../../hooks";
 import { PageHeader, Card, Button, Select, Input, SearchInput, Badge, Modal, EmptyState, Skeleton, Avatar, Textarea } from "../../components/ui";
 import { Wallet, User, FileDown, MessageCircle } from "lucide-react";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
@@ -74,10 +74,14 @@ export default function QuickCollectPage() {
   const [remarks, setRemarks] = useState("");
   const [receipt, setReceipt] = useState(null);
 
+  // Debounced so a request fires once the user pauses, not per keystroke.
+  const qSearch = useDebounce(search.trim());
+  const qFather = useDebounce(father.trim());
+
   const { data: classes = [] } = useGetClassesQuery();
   const { data: studentList, isFetching: searching } = useGetStudentsQuery(
-    { ...(mode === "code" ? { ...(search && { search }) } : { classId }), ...(father && { fatherName: father }), limit: 50 },
-    { skip: mode === "code" ? !search && !father : !classId }
+    { ...(mode === "code" ? { ...(qSearch && { search: qSearch }) } : { classId }), ...(qFather && { fatherName: qFather }), limit: 50 },
+    { skip: mode === "code" ? !qSearch && !qFather : !classId }
   );
   const { data: ledger } = useGetLedgerQuery(studentId, { skip: !studentId });
   const { data: inst, isFetching } = useGetInstallmentsQuery(studentId, { skip: !studentId });
@@ -94,6 +98,8 @@ export default function QuickCollectPage() {
   const students = studentList?.data ?? [];
   const st = inst?.student || ledger?.student;
   const rows = inst?.rows ?? [];
+  const hasQuery = mode === "code" ? !!(qSearch || qFather) : !!classId;
+  const pickStudent = (id) => { setStudentId(id); setAmount(""); };
   const totalDue = Number(inst?.totals?.due ?? ledger?.totals?.due ?? 0);
   const items = ledger?.items ?? [];
 
@@ -168,20 +174,54 @@ export default function QuickCollectPage() {
               </label>
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             {mode === "code" ? (
-              <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Registration / name / roll / phone…" />
+              <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name / father name / registration / roll / phone…" />
             ) : (
               <Select label="Class" value={classId} onChange={(e) => setClassId(e.target.value)}
                 options={[{ value: "", label: "Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
             )}
             <Input label="Father Name" value={father} onChange={(e) => setFather(e.target.value)} placeholder="Search by father name…" />
-            <Select label="Student" value={studentId} onChange={(e) => { setStudentId(e.target.value); setAmount(""); }}
-              options={[{ value: "", label: searching ? "Searching…" : students.length ? "Select Student" : (mode === "code" ? search || father : classId) ? "No students found" : "Search first" },
-                ...students.map((s) => ({ value: s.id, label: `${s.rollNumber} · ${s.user?.firstName} ${s.user?.lastName}${s.fatherName ? ` (${s.fatherName})` : ""}` }))]} />
           </div>
         </div>
       </Card>
+
+      {/* Results — click a row to load that student's dues below */}
+      {hasQuery && (
+        <Card noPadding title={searching ? "Searching…" : `${students.length} student${students.length === 1 ? "" : "s"} found`}>
+          {searching && !students.length ? (
+            <div className="p-5 space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+          ) : !students.length ? (
+            <EmptyState icon={<User size={20} />} title="No students found" description="Try a different name, father name, registration or roll number." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[720px]">
+                <thead><tr className="bg-slate-50 border-b border-slate-100">
+                  {["Roll No", "Name", "Father Name", "Class", "Phone"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody className="divide-y divide-slate-50">
+                  {students.map((s) => (
+                    <tr key={s.id} onClick={() => pickStudent(s.id)}
+                      className={`cursor-pointer ${String(s.id) === String(studentId) ? "bg-indigo-50/80" : "hover:bg-slate-50/70"}`}>
+                      <td className="px-4 py-2.5 text-slate-600 text-[12px]">{s.rollNumber || "—"}</td>
+                      <td className="px-4 py-2.5 font-semibold text-slate-800 text-[12.5px]">
+                        {[s.user?.firstName, s.user?.lastName].filter(Boolean).join(" ") || "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-600 text-[12px]">{s.fatherName || "—"}</td>
+                      <td className="px-4 py-2.5 text-slate-600 text-[12px]">
+                        {s.section?.class?.name ? `${s.section.class.name}-${s.section?.name || ""}` : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-500 text-[12px]">{s.user?.phone || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Profile + dues summary */}
       {studentId && st && (
