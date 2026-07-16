@@ -8,7 +8,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { usePageTitle, useDebounce } from "../../hooks";
 import { PageHeader, Card, Button, Select, Input, SearchInput, Badge, Modal, EmptyState, Skeleton, Avatar, Textarea } from "../../components/ui";
-import { CreditCard, User, FileDown, Trash2, Pencil, Plus, Undo2, MessageCircle } from "lucide-react";
+import { CreditCard, User, FileDown, Trash2, Pencil, Plus, Undo2, MessageCircle, ArrowLeft } from "lucide-react";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
 import {
@@ -242,8 +242,8 @@ export default function StudentFeePaymentPage() {
         </div>
       </Card>
 
-      {/* Results — click a row to load that student's fee payment below */}
-      {hasQuery && (
+      {/* Results — click a row to open that student's fee payment (hides this list) */}
+      {hasQuery && !studentId && (
         <Card noPadding title={searching ? "Searching…" : `${students.length} student${students.length === 1 ? "" : "s"} found`}>
           {searching && !students.length ? (
             <div className="p-5 space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
@@ -277,6 +277,13 @@ export default function StudentFeePaymentPage() {
             </div>
           )}
         </Card>
+      )}
+
+      {/* Back to the results list (the list is hidden while a student is open) */}
+      {studentId && hasQuery && (
+        <Button variant="secondary" size="sm" icon={<ArrowLeft size={14} />} onClick={() => pickStudent("")}>
+          Back to list
+        </Button>
       )}
 
       {/* Profile card */}

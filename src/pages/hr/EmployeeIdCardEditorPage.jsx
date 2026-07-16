@@ -15,6 +15,8 @@ import { CreditCard as IdCard, Printer, Save, Plus, Trash2, Copy } from "lucide-
 import { selectUser } from "../../redux/slices/authSlice";
 import apiClient from "../../services/axios";
 import { EmpIdCardFace, makeDefaultCfg, loadTemplates, saveTemplates } from "./_empIdCardShared";
+import CardPresetGallery from "../../components/CardPresetGallery";
+import { CARD_PRESETS, PRESET_KEYS, applyPreset } from "../../utils/cardPresets";
 
 const FIELDS = [
   { key: "photo", label: "Photo" },
@@ -77,6 +79,10 @@ export default function EmployeeIdCardEditorPage() {
 
   const set = (k, v) => setCfg((c) => ({ ...c, [k]: v }));
   const setField = (k, v) => setCfg((c) => ({ ...c, fields: { ...c.fields, [k]: v } }));
+
+  // Which ready-made preset (if any) the current colours match — highlights the tile.
+  const activePresetId = CARD_PRESETS.find((p) => PRESET_KEYS.every((k) => cfg[k] === p.cfg[k]))?.id;
+  const applyDesign = (p) => { setCfg((c) => applyPreset(c, p)); toast.success(`Applied “${p.name}” design`); };
 
   const persist = (list) => { setTemplates(list); saveTemplates(list); };
 
@@ -160,6 +166,13 @@ export default function EmployeeIdCardEditorPage() {
                 <Button size="sm" variant="secondary" icon={<Copy size={13} />} onClick={saveAsNew}>Save as New</Button>
                 {currentId && <Button size="sm" variant="danger" icon={<Trash2 size={13} />} onClick={remove}>Delete</Button>}
               </div>
+            </div>
+          </Card>
+
+          <Card title="Design Presets">
+            <div className="p-4 space-y-2">
+              <p className="text-[11px] text-slate-500">Pick a ready-made look, then fine-tune the colours below and Save it as your template.</p>
+              <CardPresetGallery activeId={activePresetId} onPick={applyDesign} />
             </div>
           </Card>
 
