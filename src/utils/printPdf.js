@@ -56,6 +56,121 @@ export function getSchool() {
 const inr = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const amt = (v) => (typeof v === "number" ? inr(v) : esc(v));
 
+// ── Shared single-bill markup ────────────────────────────────────────────────
+// The demand-bill / receipt look lives in ONE place so that the on-screen
+// download (printBill → browser print) and the WhatsApp PDF (billToPdfBase64 →
+// html2canvas) are pixel-identical. Both render the exact same HTML + CSS.
+const BILL_CSS = `
+  * { box-sizing: border-box; }
+  .bill { position: relative; width: 460px; margin: 0 auto; background: #fff; border: 2px solid #111827; padding: 14px 16px 18px; overflow: hidden; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #111827; }
+  .bill .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .bill .wm img { width: 68%; max-width: 320px; opacity: 0.07; filter: grayscale(100%); }
+  .bill .content { position: relative; z-index: 1; }
+  .bill .phone { text-align: right; font-size: 12px; font-weight: 600; letter-spacing: .3px; min-height: 16px; }
+  .bill .sname { text-align: center; font-size: 26px; font-weight: 800; letter-spacing: 1px; margin: 2px 0 0; text-transform: uppercase; }
+  .bill .addr { text-align: center; font-size: 12px; color: #374151; margin-top: 2px; }
+  .bill .btype { text-align: center; font-size: 14px; font-weight: 600; color: #374151; margin: 8px 0 10px; }
+  .bill .meta { display: flex; border: 1.5px solid #111827; }
+  .bill .meta > div { flex: 1; padding: 8px 10px; }
+  .bill .meta > div + div { border-left: 1.5px solid #111827; }
+  .bill .mrow { display: flex; gap: 8px; font-size: 12.5px; padding: 1.5px 0; }
+  .bill .mk { width: 56px; font-weight: 700; }
+  .bill .mv { flex: 1; }
+  .bill table { width: 100%; border-collapse: collapse; border: 1.5px solid #111827; border-top: 0; }
+  .bill th { background: #f3f4f6; font-size: 14px; font-weight: 700; padding: 8px 10px; border-bottom: 1.5px solid #111827; }
+  .bill th.d, .bill td.d { text-align: left; border-right: 1.5px solid #111827; }
+  .bill th.a, .bill td.a { text-align: right; width: 40%; }
+  .bill td { padding: 6px 10px; font-size: 13px; }
+  .bill tr.total td { border-top: 1.5px solid #111827; font-size: 16px; font-weight: 800; padding: 10px; }
+  .bill tr.total td.d { text-align: center; }
+  .bill .note { font-size: 11.5px; color: #374151; border: 1.5px solid #111827; border-top: 0; padding: 6px 10px; }
+  .bill .qr { display: flex; align-items: center; gap: 10px; border: 1.5px solid #111827; border-top: 0; padding: 8px 10px; }
+  .bill .qr img { width: 84px; height: 84px; object-fit: contain; }
+  .bill .qr .pay { font-size: 13px; font-weight: 700; }
+  .bill .thanks { text-align: right; font-size: 16px; font-weight: 700; margin-top: 8px; }
+`;
+
+/** The inner markup of a single bill card (without the outer `.bill` wrapper). */
+function billInner({
+  billType = "Demand Bill", billNo = "", date = "", month = "", year = "",
+  party = {}, rows = [], total = 0, totalLabel = "Grand Total",
+  note = "Kindly pay fee before 10th of the Month.", footer = "Thanks",
+}, school) {
+  const left = [["Bill No", billNo], ["Name", party.name], ["Class", party.className], ["Batch", party.batch]];
+  const right = [["Date", date], ["Month", month], ["Year", year], ["ID No", party.idNo]];
+  const metaCol = (pairs) =>
+    pairs
+      .filter(([, v]) => v !== null && v !== undefined && v !== "")
+      .map(([l, v]) => `<div class="mrow"><span class="mk">${esc(l)}</span><span class="mv">${esc(v)}</span></div>`)
+      .join("");
+  const bodyRows = rows.map(([d, a]) => `<tr><td class="d">${esc(d)}</td><td class="a">${amt(a)}</td></tr>`).join("");
+  return `
+    ${(school.watermark || school.logo) ? `<div class="wm"><img src="${esc(school.watermark || school.logo)}" alt="" crossorigin="anonymous" /></div>` : ""}
+    <div class="content">
+      <div class="phone">${esc(school.phone || "")}</div>
+      <h1 class="sname">${esc(school.name || "School")}</h1>
+      ${school.address ? `<div class="addr">${esc(school.address)}</div>` : ""}
+      <div class="btype">${esc(billType)}</div>
+      <div class="meta"><div>${metaCol(left)}</div><div>${metaCol(right)}</div></div>
+      <table>
+        <thead><tr><th class="d">Description</th><th class="a">Amount</th></tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total"><td class="d">${esc(totalLabel)}</td><td class="a">${amt(total)}</td></tr>
+        </tbody>
+      </table>
+      ${note ? `<div class="note">Note : ${esc(note)}</div>` : ""}
+      ${school.upiQr ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" crossorigin="anonymous" /><span class="pay">Pay on this QR</span></div>` : ""}
+      ${footer ? `<div class="thanks">${esc(footer)}</div>` : ""}
+    </div>`;
+}
+
+/**
+ * Render a demand bill / fee receipt to a PDF and return its base64 (no data:
+ * prefix) — ready to POST to `/whatsapp/send-media` as a document. Uses the SAME
+ * markup as the on-screen download (printBill), so the WhatsApp copy is
+ * pixel-identical to what the office prints. Accepts the exact same options as
+ * printBill().
+ */
+export async function billToPdfBase64(opts = {}) {
+  const school = opts.school || getSchool();
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import("html2canvas"),
+    import("jspdf"),
+  ]);
+
+  const holder = document.createElement("div");
+  holder.style.cssText = "position:fixed;left:-10000px;top:0;width:492px;background:#fff;padding:16px;z-index:-1;";
+  holder.innerHTML = `<style>${BILL_CSS}</style><div class="bill">${billInner(opts, school)}</div>`;
+  document.body.appendChild(holder);
+
+  try {
+    // Let remote images (logo watermark / UPI QR) finish loading first, else
+    // html2canvas captures an empty box where they should be.
+    const imgs = [...holder.querySelectorAll("img")];
+    await Promise.all(imgs.map((img) => (img.complete ? Promise.resolve() : new Promise((res) => { img.onload = res; img.onerror = res; }))));
+
+    const canvas = await html2canvas(holder.querySelector(".bill"), {
+      scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false,
+    });
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+    const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 36;
+    let w = pageW - margin * 2;
+    let h = (canvas.height / canvas.width) * w;
+    const maxH = pageH - margin * 2;
+    if (h > maxH) { h = maxH; w = (canvas.width / canvas.height) * h; }
+    pdf.addImage(imgData, "JPEG", (pageW - w) / 2, margin, w, h);
+
+    return pdf.output("datauristring").split(",")[1];
+  } finally {
+    document.body.removeChild(holder);
+  }
+}
+
 /**
  * printBill — open a print-ready single-party bill (demand bill / fee receipt)
  * in the compact "Demand Bill" layout and trigger the print dialog. The school
@@ -93,18 +208,7 @@ export function printBill({
     return false;
   }
 
-  // Left/right meta columns mirror the printed demand bill.
-  const left = [["Bill No", billNo], ["Name", party.name], ["Class", party.className], ["Batch", party.batch]];
-  const right = [["Date", date], ["Month", month], ["Year", year], ["ID No", party.idNo]];
-  const metaCol = (pairs) =>
-    pairs
-      .filter(([, v]) => v !== null && v !== undefined && v !== "")
-      .map(([l, v]) => `<div class="mrow"><span class="mk">${esc(l)}</span><span class="mv">${esc(v)}</span></div>`)
-      .join("");
-
-  const bodyRows = rows
-    .map(([d, a]) => `<tr><td class="d">${esc(d)}</td><td class="a">${amt(a)}</td></tr>`)
-    .join("");
+  const inner = billInner({ billType, billNo, date, month, year, party, rows, total, totalLabel, note, footer }, school);
 
   win.document.write(`<!doctype html>
 <html>
@@ -112,61 +216,16 @@ export function printBill({
 <meta charset="utf-8" />
 <title>${esc(billType)}${billNo ? ` #${esc(billNo)}` : ""}</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #111827; margin: 0; padding: 24px; background: #f3f4f6; }
-  .bill { position: relative; max-width: 460px; margin: 0 auto; background: #fff; border: 2px solid #111827; padding: 14px 16px 18px; overflow: hidden; }
-  .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-  .wm img { width: 68%; max-width: 320px; opacity: 0.07; filter: grayscale(100%); }
-  .content { position: relative; z-index: 1; }
-  .phone { text-align: right; font-size: 12px; font-weight: 600; letter-spacing: .3px; min-height: 16px; }
-  .sname { text-align: center; font-size: 26px; font-weight: 800; letter-spacing: 1px; margin: 2px 0 0; text-transform: uppercase; }
-  .addr { text-align: center; font-size: 12px; color: #374151; margin-top: 2px; }
-  .btype { text-align: center; font-size: 14px; font-weight: 600; color: #374151; margin: 8px 0 10px; }
-  .meta { display: flex; border: 1.5px solid #111827; }
-  .meta > div { flex: 1; padding: 8px 10px; }
-  .meta > div + div { border-left: 1.5px solid #111827; }
-  .mrow { display: flex; gap: 8px; font-size: 12.5px; padding: 1.5px 0; }
-  .mk { width: 56px; font-weight: 700; }
-  .mv { flex: 1; }
-  table { width: 100%; border-collapse: collapse; border: 1.5px solid #111827; border-top: 0; }
-  th { background: #f3f4f6; font-size: 14px; font-weight: 700; padding: 8px 10px; border-bottom: 1.5px solid #111827; }
-  th.d, td.d { text-align: left; border-right: 1.5px solid #111827; }
-  th.a, td.a { text-align: right; width: 40%; }
-  td { padding: 6px 10px; font-size: 13px; }
-  tr.total td { border-top: 1.5px solid #111827; font-size: 16px; font-weight: 800; padding: 10px; }
-  tr.total td.d { text-align: center; }
-  .note { font-size: 11.5px; color: #374151; border: 1.5px solid #111827; border-top: 0; padding: 6px 10px; }
-  .qr { display: flex; align-items: center; gap: 10px; border: 1.5px solid #111827; border-top: 0; padding: 8px 10px; }
-  .qr img { width: 84px; height: 84px; object-fit: contain; }
-  .qr .pay { font-size: 13px; font-weight: 700; }
-  .thanks { text-align: right; font-size: 16px; font-weight: 700; margin-top: 8px; }
+  ${BILL_CSS}
+  body { margin: 0; padding: 24px; background: #f3f4f6; }
   @media print {
     body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .bill { border-width: 2px; max-width: none; }
+    .bill { border-width: 2px; }
   }
 </style>
 </head>
 <body>
-  <div class="bill">
-    ${(school.watermark || school.logo) ? `<div class="wm"><img src="${esc(school.watermark || school.logo)}" alt="" /></div>` : ""}
-    <div class="content">
-      <div class="phone">${esc(school.phone || "")}</div>
-      <h1 class="sname">${esc(school.name || "School")}</h1>
-      ${school.address ? `<div class="addr">${esc(school.address)}</div>` : ""}
-      <div class="btype">${esc(billType)}</div>
-      <div class="meta"><div>${metaCol(left)}</div><div>${metaCol(right)}</div></div>
-      <table>
-        <thead><tr><th class="d">Description</th><th class="a">Amount</th></tr></thead>
-        <tbody>
-          ${bodyRows}
-          <tr class="total"><td class="d">${esc(totalLabel)}</td><td class="a">${amt(total)}</td></tr>
-        </tbody>
-      </table>
-      ${note ? `<div class="note">Note : ${esc(note)}</div>` : ""}
-      ${school.upiQr ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" /><span class="pay">Pay on this QR</span></div>` : ""}
-      ${footer ? `<div class="thanks">${esc(footer)}</div>` : ""}
-    </div>
-  </div>
+  <div class="bill">${inner}</div>
   <script>
     window.onload = function () { setTimeout(function () { window.focus(); window.print(); }, 300); };
   </script>

@@ -15,8 +15,9 @@ import { PageHeader, Card, Button, Select, Input, SearchInput, Badge, Modal, Emp
 import { Wallet, User, FileDown, MessageCircle } from "lucide-react";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
-import { useGetLedgerQuery, useGetInstallmentsQuery, useCollectPaymentMutation, useSendReceiptWhatsAppMutation } from "../../redux/api/paymentsApi";
-import { printRecord } from "../../utils/printPdf";
+import { useGetLedgerQuery, useGetInstallmentsQuery, useCollectPaymentMutation } from "../../redux/api/paymentsApi";
+import { printBill, billToPdfBase64 } from "../../utils/printPdf";
+import apiClient from "../../services/axios";
 
 const FINANCE_ACCOUNTS = ["Cash", "SBI Bank", "Paytm/PayPhone", "Primary Account", "All UPI", "Cheque"];
 const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -86,13 +87,36 @@ export default function QuickCollectPage() {
   const { data: ledger } = useGetLedgerQuery(studentId, { skip: !studentId });
   const { data: inst, isFetching } = useGetInstallmentsQuery(studentId, { skip: !studentId });
   const [collect, { isLoading: collecting }] = useCollectPaymentMutation();
-  const [sendWhatsApp, { isLoading: sendingWa }] = useSendReceiptWhatsAppMutation();
+  const [sendingWa, setSendingWa] = useState(false);
 
-  const onWhatsApp = async (receiptNo) => {
+  const normalizePhone = (phone) => {
+    const d = String(phone || "").replace(/\D/g, "");
+    if (d.length === 10) return `91${d}`;
+    if (d.length === 11 && d.startsWith("0")) return `91${d.slice(1)}`;
+    return d;
+  };
+
+  // Send the paid receipt as a PDF document on WhatsApp — same compact bill
+  // layout as the on-screen download, so both are identical.
+  const onWhatsApp = async (rc) => {
+    const phone = normalizePhone(rc?.student?.phone || st?.phone);
+    if (!phone) { toast.error("This student has no phone number"); return; }
+    setSendingWa(true);
     try {
-      const res = await sendWhatsApp(receiptNo).unwrap();
-      toast.success(`Receipt sent on WhatsApp to ${res.to}`);
-    } catch (e) { toast.error(e?.data?.error || "WhatsApp send failed"); }
+      await apiClient.post("/whatsapp/send-media", {
+        to: phone,
+        mediaType: "document",
+        data: await billToPdfBase64(receiptBillArgs(rc)),
+        filename: `${rc.receiptNo || "receipt"}.pdf`,
+        mimetype: "application/pdf",
+        caption: `Fee receipt ${rc.receiptNo || ""} for ${rc.student?.name || st?.name || ""} — Paid ${money(rc.total)}`,
+      });
+      toast.success("Receipt PDF sent on WhatsApp");
+    } catch (e) {
+      toast.error(e?.response?.data?.error || e?.message || "WhatsApp send failed");
+    } finally {
+      setSendingWa(false);
+    }
   };
 
   const students = studentList?.data ?? [];
@@ -148,17 +172,30 @@ export default function QuickCollectPage() {
     }
   };
 
-  const printReceipt = (rc) => {
-    if (!rc) return;
-    printRecord({
-      title: "Fee Receipt",
-      subtitle: [rc.student?.name, rc.receiptNo, `${rc.student?.className || ""}-${rc.student?.sectionName || ""}`].filter(Boolean).join("  ·  "),
-      sections: [
-        { heading: "Student", rows: [["Name", rc.student?.name], ["Roll No", rc.student?.rollNumber], ["Reg Id", rc.student?.registrationNo], ["Father", rc.student?.fatherName]] },
-        { heading: "Payment", rows: [...rc.lines.map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, money(l.amount)]), ["TOTAL PAID", money(rc.total)], ["Account", rc.account || "Cash"]] },
-      ],
-    });
+  // Paid receipt args in the compact bill format — shared by the on-screen
+  // download and the WhatsApp PDF so both look identical.
+  const receiptBillArgs = (rc) => {
+    const now = new Date();
+    return {
+      billType: "Fee Receipt",
+      billNo: rc.receiptNo,
+      date: now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+      month: now.toLocaleDateString("en-GB", { month: "long" }),
+      year: String(now.getFullYear()),
+      party: {
+        name: rc.student?.name,
+        className: rc.student?.className,
+        batch: rc.student?.sectionName,
+        idNo: rc.student?.registrationNo || rc.student?.rollNumber,
+      },
+      rows: (rc.lines || []).map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, Number(l.amount) || 0]),
+      total: Number(rc.total) || 0,
+      totalLabel: "Total Paid",
+      note: `Received with thanks via ${rc.account || "Cash"}.`,
+    };
   };
+
+  const printReceipt = (rc) => { if (rc) printBill(receiptBillArgs(rc)); };
 
   return (
     <div className="space-y-5 w-full">
@@ -358,7 +395,7 @@ export default function QuickCollectPage() {
               <span>Total Paid</span><span className="text-emerald-600">{money(receipt.total)}</span>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="success" icon={<MessageCircle size={14} />} loading={sendingWa} onClick={() => onWhatsApp(receipt.receiptNo)}>Send WhatsApp</Button>
+              <Button variant="success" icon={<MessageCircle size={14} />} loading={sendingWa} onClick={() => onWhatsApp(receipt)}>Send WhatsApp</Button>
               <Button variant="secondary" icon={<FileDown size={14} />} onClick={() => printReceipt(receipt)}>Save as PDF</Button>
               <Button onClick={() => setReceipt(null)}>Done</Button>
             </div>

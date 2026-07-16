@@ -14,7 +14,7 @@ import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/at
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useLazyGetMonthlyDuesQuery } from "../../redux/api/paymentsApi";
 import { academicMonths } from "../fee-management/_feeShared";
-import { getSchool, printBill, printBills } from "../../utils/printPdf";
+import { printBill, printBills, billToPdfBase64 } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
 
 const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -113,146 +113,17 @@ export default function DemandReceiptPage() {
 
   const reminderRowId = (r) => r.studentId || r.rollNumber || r.regId || normalizeWhatsAppNumber(r.phone);
 
-  const pdfSafe = (v) => String(v ?? "")
-    .replace(/₹/g, "Rs. ")
-    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
   const pdfMoney = (n) => `Rs. ${Number(n || 0).toLocaleString("en-IN")}`;
-
-  const wrapPdfText = (text, maxChars) => {
-    const words = pdfSafe(text).split(" ").filter(Boolean);
-    const lines = [];
-    let line = "";
-    for (const word of words) {
-      const next = line ? `${line} ${word}` : word;
-      if (next.length > maxChars && line) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = next;
-      }
-    }
-    if (line) lines.push(line);
-    return lines.length ? lines : [""];
-  };
-
-  const pdfEscape = (text) => pdfSafe(text).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-
-  const buildDemandBillPdfBase64 = (r) => {
-    const bill = buildBillFor(r);
-    const school = getSchool();
-    const pageWidth = 595.28;
-    const pageHeight = 841.89;
-    const left = 58;
-    const right = pageWidth - 58;
-    const tableTop = 485;
-    const descX = left + 12;
-    const amountX = right - 12;
-    const amountColX = 405;
-    const commands = [];
-
-    const text = (x, y, value, size = 10, align = "left", font = "F1") => {
-      const safe = pdfEscape(value);
-      const width = pdfSafe(value).length * size * 0.5;
-      const tx = align === "right" ? x - width : align === "center" ? x - width / 2 : x;
-      commands.push(`BT /${font} ${size} Tf ${tx.toFixed(2)} ${y.toFixed(2)} Td (${safe}) Tj ET`);
-    };
-    const line = (x1, y1, x2, y2) => commands.push(`${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S`);
-    const rect = (x, y, w, h) => commands.push(`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re S`);
-
-    commands.push("0.9 w");
-    rect(left, 96, right - left, 665);
-    if (school.phone) text(right - 12, 742, school.phone, 9, "right");
-    text(pageWidth / 2, 722, school.name || "School", 18, "center", "F2");
-    if (school.address) text(pageWidth / 2, 706, school.address, 9, "center");
-    text(pageWidth / 2, 681, "DEMAND BILL", 15, "center", "F2");
-    text(pageWidth / 2, 662, pdfSafe(bill.party.name), 13, "center", "F2");
-    text(pageWidth / 2, 646, `${pdfSafe(bill.party.className)}${bill.party.batch ? `-${pdfSafe(bill.party.batch)}` : ""}`, 10, "center");
-
-    text(left + 14, 615, `Bill No: ${bill.billNo}`, 10);
-    text(left + 14, 598, `ID No: ${bill.party.idNo || ""}`, 10);
-    text(left + 14, 581, `Month: ${bill.month}`, 10);
-    text(left + 14, 564, `Period: ${monthLabel}`, 10);
-    text(amountColX, 615, `Date: ${bill.date}`, 10);
-    text(amountColX, 598, `Session: ${bill.year}`, 10);
-    text(amountColX, 581, `Class: ${bill.party.className || ""}`, 10);
-    text(amountColX, 564, `Batch: ${bill.party.batch || ""}`, 10);
-
-    rect(left, tableTop, right - left, 92);
-    line(amountColX, tableTop, amountColX, tableTop + 92);
-    line(left, tableTop + 64, right, tableTop + 64);
-    line(left, tableTop + 32, right, tableTop + 32);
-    text(descX, tableTop + 73, "Student", 10, "left", "F2");
-    text(amountX, tableTop + 73, bill.party.name, 10, "right");
-    text(descX, tableTop + 41, "Demand Period", 10, "left", "F2");
-    text(amountX, tableTop + 41, monthLabel, 10, "right");
-    text(descX, tableTop + 9, "Due Date", 10, "left", "F2");
-    text(amountX, tableTop + 9, bill.date, 10, "right");
-
-    const rowHeight = 24;
-    const headerY = tableTop - 36;
-    rect(left, headerY, right - left, rowHeight);
-    line(amountColX, headerY, amountColX, headerY + rowHeight);
-    text(descX, headerY + 8, "Description", 10, "left", "F2");
-    text(amountX, headerY + 8, "Amount", 10, "right", "F2");
-
-    let y = headerY - rowHeight;
-    const dueRows = bill.rows.filter(([, amount]) => Number(amount) > 0);
-    const rowsToPrint = dueRows.length ? dueRows : [["Current Dues", bill.total]];
-    for (const [name, amount] of rowsToPrint.slice(0, 12)) {
-      rect(left, y, right - left, rowHeight);
-      line(amountColX, y, amountColX, y + rowHeight);
-      text(descX, y + 8, wrapPdfText(name, 42)[0], 10);
-      text(amountX, y + 8, pdfMoney(amount), 10, "right");
-      y -= rowHeight;
-    }
-
-    rect(left, y, right - left, 30);
-    line(amountColX, y, amountColX, y + 30);
-    text(descX, y + 10, bill.totalLabel || "Grand Total", 12, "left", "F2");
-    text(amountX, y + 10, pdfMoney(bill.total), 12, "right", "F2");
-    y -= 42;
-
-    for (const noteLine of wrapPdfText(`Note: ${bill.note}`, 70).slice(0, 3)) {
-      text(left + 12, y, noteLine, 9);
-      y -= 13;
-    }
-    text(pageWidth / 2, 122, "This is a computer generated demand bill.", 8, "center");
-
-    const stream = commands.join("\n");
-    const objects = [
-      "<< /Type /Catalog /Pages 2 0 R >>",
-      "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>`,
-      "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-      "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-      `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
-    ];
-    let pdf = "%PDF-1.4\n";
-    const offsets = [0];
-    objects.forEach((obj, idx) => {
-      offsets.push(pdf.length);
-      pdf += `${idx + 1} 0 obj\n${obj}\nendobj\n`;
-    });
-    const xref = pdf.length;
-    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-    for (let i = 1; i < offsets.length; i += 1) pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
-    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-    const bytes = new TextEncoder().encode(pdf);
-    let binary = "";
-    bytes.forEach((b) => { binary += String.fromCharCode(b); });
-    return btoa(binary);
-  };
 
   const sendDemandBillPdf = async (r) => {
     const to = normalizeWhatsAppNumber(r.phone);
     const bill = buildBillFor(r);
+    // Render the SAME bill layout used for the on-screen download, so the
+    // WhatsApp copy is identical to what the office prints (not a plain fallback).
     await apiClient.post("/whatsapp/send-media", {
       to,
       mediaType: "document",
-      data: buildDemandBillPdfBase64(r),
+      data: await billToPdfBase64(bill),
       filename: `${bill.billNo || "demand-bill"}.pdf`,
       mimetype: "application/pdf",
       caption: `Demand bill for ${bill.party.name} - Total Due ${pdfMoney(bill.total)}`,

@@ -15,9 +15,9 @@ import {
   useGetLedgerQuery, useGetInstallmentsQuery, useGetPaymentHistoryQuery,
   useCollectPaymentMutation, useAdjustInstallmentMutation,
   useDeleteInstallmentPaymentMutation, useRevertReceiptMutation,
-  useSendReceiptWhatsAppMutation,
 } from "../../redux/api/paymentsApi";
-import { printBill } from "../../utils/printPdf";
+import { printBill, billToPdfBase64 } from "../../utils/printPdf";
+import apiClient from "../../services/axios";
 
 const MONTHLY_LIKE = ["Monthly", "Quarterly"];
 const FINANCE_ACCOUNTS = ["Cash", "SBI Bank", "Paytm/PayPhone", "Primary Account", "All UPI", "Cheque"];
@@ -58,17 +58,39 @@ export default function StudentFeePaymentPage() {
   const [adjust] = useAdjustInstallmentMutation();
   const [deletePayment] = useDeleteInstallmentPaymentMutation();
   const [revert] = useRevertReceiptMutation();
-  const [sendWhatsApp] = useSendReceiptWhatsAppMutation();
 
-  const onWhatsApp = async (receiptNo, { closeConfirm = false } = {}) => {
+  const normalizePhone = (phone) => {
+    const d = String(phone || "").replace(/\D/g, "");
+    if (d.length === 10) return `91${d}`;
+    if (d.length === 11 && d.startsWith("0")) return `91${d.slice(1)}`;
+    return d;
+  };
+
+  // Send a paid receipt as a PDF document on WhatsApp — the SAME layout as the
+  // downloaded receipt (one source of truth), not a plain text message.
+  const sendReceiptPdf = async (rc) => {
+    const phone = normalizePhone(rc?.student?.phone || st?.phone);
+    if (!phone) throw new Error("This student has no phone number");
+    await apiClient.post("/whatsapp/send-media", {
+      to: phone,
+      mediaType: "document",
+      data: await billToPdfBase64(receiptBillArgs(rc)),
+      filename: `${rc.receiptNo || "receipt"}.pdf`,
+      mimetype: "application/pdf",
+      caption: `Fee receipt ${rc.receiptNo || ""} for ${rc.student?.name || st?.name || ""} — Paid ${money(rc.total)}`,
+    });
+  };
+
+  const onWhatsApp = async (rc, { closeConfirm = false } = {}) => {
+    const receiptNo = rc?.receiptNo;
     if (!receiptNo || sendingReceiptNo) return;
     setSendingReceiptNo(receiptNo);
     try {
-      const res = await sendWhatsApp(receiptNo).unwrap();
-      toast.success(`Receipt sent on WhatsApp to ${res.to}`);
+      await sendReceiptPdf(rc);
+      toast.success("Receipt PDF sent on WhatsApp");
       if (closeConfirm) setWaConfirm(null);
     } catch (e) {
-      toast.error(e?.data?.error || "WhatsApp send failed");
+      toast.error(e?.response?.data?.error || e?.message || "WhatsApp send failed");
     } finally {
       setSendingReceiptNo("");
     }
@@ -153,11 +175,11 @@ export default function StudentFeePaymentPage() {
     catch (e) { toast.error(e?.data?.error || "Failed"); }
   };
 
-  // Paid fee receipt — rendered in the compact bill format with logo watermark.
-  const printReceipt = (rc) => {
-    if (!rc) return;
+  // Paid fee receipt args in the compact bill format — shared by the on-screen
+  // download (printReceipt) and the WhatsApp PDF (sendReceiptPdf) so both match.
+  const receiptBillArgs = (rc) => {
     const now = new Date();
-    printBill({
+    return {
       billType: "Fee Receipt",
       billNo: rc.receiptNo,
       date: fmtDate(now),
@@ -169,12 +191,14 @@ export default function StudentFeePaymentPage() {
         batch: rc.student?.sectionName,
         idNo: rc.student?.registrationNo || rc.student?.rollNumber,
       },
-      rows: rc.lines.map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, Number(l.amount) || 0]),
+      rows: (rc.lines || []).map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, Number(l.amount) || 0]),
       total: Number(rc.total) || 0,
       totalLabel: "Total Paid",
       note: `Received with thanks via ${rc.account || "Cash"}.`,
-    });
+    };
   };
+
+  const printReceipt = (rc) => { if (rc) printBill(receiptBillArgs(rc)); };
 
   // Outstanding demand bill for the current student (all due installments).
   const downloadDemandBill = () => {
@@ -482,7 +506,7 @@ export default function StudentFeePaymentPage() {
                 variant="success"
                 icon={<MessageCircle size={14} />}
                 loading={sendingReceiptNo === waConfirm.receiptNo}
-                onClick={() => onWhatsApp(waConfirm.receiptNo, { closeConfirm: true })}
+                onClick={() => onWhatsApp({ receiptNo: waConfirm.receiptNo, total: waConfirm.total, student: st, account: waConfirm.mode, lines: [{ name: "Fee payment", amount: waConfirm.total }] }, { closeConfirm: true })}
               >
                 Send Now
               </Button>
@@ -541,7 +565,7 @@ export default function StudentFeePaymentPage() {
                 icon={<MessageCircle size={14} />}
                 loading={sendingReceiptNo === receipt.receiptNo}
                 disabled={!!sendingReceiptNo && sendingReceiptNo !== receipt.receiptNo}
-                onClick={() => onWhatsApp(receipt.receiptNo)}
+                onClick={() => onWhatsApp(receipt)}
               >
                 Send WhatsApp
               </Button>
