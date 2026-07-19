@@ -115,11 +115,12 @@ export default function DemandReceiptPage() {
 
   const pdfMoney = (n) => `Rs. ${Number(n || 0).toLocaleString("en-IN")}`;
 
-  const sendDemandBillPdf = async (r) => {
+  const sendDemandBillPdf = async (r, { bulk = false } = {}) => {
     const to = normalizeWhatsAppNumber(r.phone);
     const bill = buildBillFor(r);
     // Render the SAME bill layout used for the on-screen download, so the
     // WhatsApp copy is identical to what the office prints (not a plain fallback).
+    // `bulk` paces a whole class ≈1 min apart on the server to dodge rate limits.
     await apiClient.post("/whatsapp/send-media", {
       to,
       mediaType: "document",
@@ -127,6 +128,7 @@ export default function DemandReceiptPage() {
       filename: `${bill.billNo || "demand-bill"}.pdf`,
       mimetype: "application/pdf",
       caption: `Demand bill for ${bill.party.name} - Total Due ${pdfMoney(bill.total)}`,
+      bulk,
     });
   };
 
@@ -159,14 +161,14 @@ export default function DemandReceiptPage() {
       for (const r of targets) {
         setSendingReminderId(reminderRowId(r));
         try {
-          await sendDemandBillPdf(r);
+          await sendDemandBillPdf(r, { bulk: true });
           sent += 1;
         } catch {
           failed += 1;
         }
       }
-      if (failed) toast.error(`Sent ${sent}, failed ${failed}`);
-      else toast.success(`Demand bill PDFs sent to ${sent} student(s)`);
+      if (failed) toast.error(`Queued ${sent}, failed ${failed}`);
+      else toast.success(`Queued ${sent} demand bill PDF(s) — WhatsApp will send about one per minute`);
     } finally {
       setSendingReminderId("");
       setSendingAll(false);

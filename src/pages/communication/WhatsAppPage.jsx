@@ -208,7 +208,7 @@ function BroadcastPanel({ connected, flash }) {
 
         {result && (
           <div className="rounded-lg bg-emerald-50 text-emerald-700 px-4 py-2.5 text-[12.5px]">
-            Sent to <b>{result.sent}</b> of {result.recipients} number(s){result.failed ? ` · ${result.failed} failed` : ""}{result.skippedNoPhone ? ` · ${result.skippedNoPhone} had no phone` : ""}.
+            Queued <b>{result.queued}</b> of {result.recipients} number(s){result.skippedNoPhone ? ` · ${result.skippedNoPhone} had no phone` : ""}. WhatsApp will send about one every minute in the background.
           </div>
         )}
 
