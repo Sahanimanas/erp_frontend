@@ -15,7 +15,24 @@ import { routeConfig, authRoutes, newRoutes, moreRoutes, settingsRoutes } from "
 import NotFoundPage  from "../pages/auth/NotFoundPage";
 import ForbiddenPage from "../pages/auth/ForbiddenPage";
 
-const LandingPage = lazy(() => import("../pages/LandingPage"));
+// Public marketing site (src/landing) — shell plus its pages. Lazy-loaded so
+// none of it lands in the bundle an authenticated user downloads.
+const SiteLayout   = lazy(() => import("../landing/SiteLayout"));
+const SiteHome     = lazy(() => import("../landing/pages/Home"));
+const SiteFeatures = lazy(() => import("../landing/pages/Features"));
+const SitePricing  = lazy(() => import("../landing/pages/Pricing"));
+const SiteAbout    = lazy(() => import("../landing/pages/About"));
+const SiteContact  = lazy(() => import("../landing/pages/Contact"));
+const SiteDemo     = lazy(() => import("../landing/pages/DemoRequest"));
+
+// Paths served by the marketing site, in the order they appear in its navbar.
+const sitePages = [
+  { path: "/features", Page: SiteFeatures },
+  { path: "/pricing",  Page: SitePricing  },
+  { path: "/about",    Page: SiteAbout    },
+  { path: "/contact",  Page: SiteContact  },
+  { path: "/demo",     Page: SiteDemo     },
+];
 
 const Missing = () => (
   <div className="flex items-center justify-center h-64 flex-col gap-3">
@@ -61,12 +78,13 @@ function buildRoutes(items, parentSectionKey = null) {
 
 function RootRoute() {
   const { token, user } = useSelector(state => state.auth);
-  // Logged-out visitors get the public landing page; authenticated users are
-  // sent to their home dashboard.
+  // Logged-out visitors get the marketing home page; authenticated users are
+  // sent straight to their dashboard. The other marketing pages (/features,
+  // /pricing, …) stay reachable either way.
   if (!token) {
     return (
       <Suspense fallback={<PageLoader />}>
-        <LandingPage />
+        <SiteHome />
       </Suspense>
     );
   }
@@ -77,7 +95,15 @@ function RootRoute() {
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<RootRoute />} />
+      {/* Public marketing site — shares the Navbar/Footer shell */}
+      <Route element={<Suspense fallback={<PageLoader />}><SiteLayout /></Suspense>}>
+        <Route path="/" element={<RootRoute />} />
+        {sitePages.map(({ path, Page }) => (
+          <Route key={path} path={path}
+            element={<Suspense fallback={<PageLoader />}><Page /></Suspense>}
+          />
+        ))}
+      </Route>
 
       {/* Auth routes */}
       <Route element={<AuthLayout />}>

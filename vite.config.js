@@ -9,7 +9,13 @@ export default defineConfig({
     compression({ algorithm: 'gzip', ext: '.gz' }),
   ],
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") }
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      // Public marketing site, ported from School-erp-main. Kept behind its own
+      // alias so its `@site/...` imports can't collide with the ERP app's own
+      // src/components, src/pages and src/utils directories.
+      "@site": path.resolve(__dirname, "./src/landing"),
+    }
   },
   build: {
     outDir: 'dist',

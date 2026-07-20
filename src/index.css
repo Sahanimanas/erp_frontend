@@ -70,3 +70,149 @@ table thead th { background-color: #f8fafc; }
     background: #fff !important;
   }
 }
+
+/* ==========================================================================
+   Public marketing site (src/landing) — design tokens & helpers
+   ──────────────────────────────────────────────────────────────────────────
+   Ported from School-erp-main. Everything here is scoped to `.gsm-site` (the
+   wrapper the marketing shell renders) so the ERP dashboard keeps its own
+   slate/emerald styling and is completely unaffected.
+   Palette: navy #1E3A8A primary + orange #EA580C accent.
+   ========================================================================== */
+.gsm-site {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 224 76% 33%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 20 91% 48%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 224 76% 33%;
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "Manrope", "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+
+  /* Many sections paint their gradient/grid backdrop in an `absolute inset-0
+     -z-10` layer. Without a stacking context here those negative-z layers fall
+     behind this element's own background-color and vanish (white text on
+     white). `isolate` makes .gsm-site a stacking context, so they paint above
+     its background and below the content, as intended. */
+  isolation: isolate;
+}
+
+.dark .gsm-site {
+  --background: 222 47% 5%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 8%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 8%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 5%;
+  --secondary: 217 33% 12%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 12%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 25 95% 53%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 217 91% 60%;
+}
+
+.gsm-site h1, .gsm-site h2, .gsm-site h3,
+.gsm-site h4, .gsm-site h5, .gsm-site h6 {
+  font-family: "Outfit", "Manrope", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.gsm-site ::selection {
+  background: hsl(224 76% 33% / 0.2);
+  color: hsl(var(--foreground));
+}
+
+/* ── Layout / effect helpers used by the ported sections ─────────────────── */
+/* Full-bleed section container: spans the whole viewport width, with padding
+   that scales up on larger screens so content never touches the edges. */
+.container-eru { @apply w-full mx-auto px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-24; }
+
+.text-gradient-indigo {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 45%, #ea580c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.shadow-soft {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 30px rgba(15, 23, 42, 0.06);
+}
+.shadow-soft-lg {
+  box-shadow: 0 4px 6px rgba(15, 23, 42, 0.04), 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+.dark .shadow-soft, .dark .shadow-soft-lg {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.glow-indigo {
+  box-shadow:
+    0 0 0 1px hsl(224 76% 33% / 0.35),
+    0 0 40px hsl(224 76% 33% / 0.15),
+    0 20px 60px hsl(20 91% 48% / 0.18);
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.dark .bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+.mask-radial-fade {
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+}
+
+/* Trusted-by logo marquee */
+.marquee-track { animation: marquee 40s linear infinite; }
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Pulse halo behind the AI insight dot */
+.ai-pulse::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: hsl(199 89% 48% / 0.5);
+  animation: ai-pulse 1.8s ease-out infinite;
+}
+@keyframes ai-pulse {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track, .ai-pulse::before { animation: none; }
+}
