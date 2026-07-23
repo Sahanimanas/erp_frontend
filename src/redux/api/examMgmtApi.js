@@ -143,6 +143,17 @@ export const examMgmtApi = baseApi.injectEndpoints({
       transformResponse: unwrap,
       providesTags: ["Academic"],
     }),
+
+    // Staff list, used to pick a paper's invigilator.
+    getInvigilators: build.query({
+      query: () => ({ url: "/employees", params: { limit: 200, status: "active" } }),
+      // /employees answers { data: [...], pagination } inside the envelope.
+      transformResponse: (res) => {
+        const d = unwrap(res);
+        return Array.isArray(d) ? d : d?.data ?? [];
+      },
+      providesTags: ["HR"],
+    }),
   }),
   overrideExisting: false,
 });
@@ -170,4 +181,5 @@ export const {
   useSaveExamAttendanceMutation,
   useGetClassSubjectsQuery,
   useGetAllSubjectsQuery,
+  useGetInvigilatorsQuery,
 } = examMgmtApi;

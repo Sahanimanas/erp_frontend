@@ -122,6 +122,10 @@ export const baseApi = createApi({
     "Grading", "ExamSchedule", "ExamHall", "ExamSeat", "ExamAttendance",
     // Subjects / timetable
     "Periods", "Timetable",
+    // Class Management
+    "ClassDetails", "NonSubjects", "Syllabus", "EmpSubjectMap",
+    // Result Management (shares StudentMark with Exam Management)
+    "Results", "ReportCards",
   ],
 
   // No endpoints here — all injected via injectEndpoints() in individual service files

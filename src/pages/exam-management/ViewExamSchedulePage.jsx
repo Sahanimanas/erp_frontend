@@ -8,8 +8,7 @@ import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, DataTable, Select } from "../../components/ui";
 import { CalendarDays, FileDown, Trash2 } from "lucide-react";
 import { useGetExamScheduleQuery, useDeleteScheduleItemMutation } from "../../redux/api/examMgmtApi";
-import { useSessionExams, useOrderedClasses, sessionOptions, examOptions, classOptions, fmtDate } from "./_examShared";
-import { printTable } from "../../utils/printPdf";
+import { useSessionExams, useOrderedClasses, sessionOptions, examOptions, classOptions, fmtDate, to12h, printExamTimetable } from "./_examShared";
 
 export default function ViewExamSchedulePage() {
   usePageTitle("View Exam Schedule");
@@ -20,7 +19,7 @@ export default function ViewExamSchedulePage() {
   const [deleteItem] = useDeleteScheduleItemMutation();
 
   const remove = async (r) => {
-    if (!confirm(`Remove ${r.subject?.name} (${r.class?.name}) from the schedule?`)) return;
+    if (!confirm(`Remove ${r.subject?.name} · ${r.paperName} (${r.class?.name}) from the schedule?`)) return;
     try { await deleteItem(r.id).unwrap(); toast.success("Paper removed"); }
     catch (e) { toast.error(e?.data?.error || "Failed to remove"); }
   };
@@ -28,19 +27,27 @@ export default function ViewExamSchedulePage() {
   const COLUMNS = [
     { key: "class", label: "Class", sortable: false, render: (v) => <span className="font-medium">{v?.name}</span> },
     { key: "subject", label: "Subject", sortable: false, render: (v) => <span className="font-semibold text-slate-800">{v?.name}</span> },
+    { key: "paperName", label: "Paper", render: (v) => v || "Theory" },
     { key: "examDate", label: "Date", render: (v) => fmtDate(v) },
-    { key: "startTime", label: "Time", render: (v, r) => `${v} - ${r.endTime}` },
+    { key: "startTime", label: "Time", render: (v, r) => `${to12h(v)} - ${to12h(r.endTime)}` },
     { key: "room", label: "Room", render: (v) => v || "-" },
+    { key: "examCode", label: "Code", render: (v) => v || "-" },
+    {
+      key: "invigilator", label: "Invigilator", sortable: false,
+      render: (v) => [v?.user?.firstName, v?.user?.lastName].filter(Boolean).join(" ") || "-",
+    },
     { key: "maxMarks", label: "Max Marks" },
     { key: "minMarks", label: "Pass Marks" },
     { key: "id", label: "", sortable: false, render: (_, r) => <button title="Remove paper" onClick={() => remove(r)} className="p-1.5 rounded-md hover:bg-red-50 text-red-500"><Trash2 size={13} /></button> },
   ];
 
-  const downloadPdf = () => printTable({
-    title: `${exam?.name || "Exam"} Schedule`,
-    subtitle: [sessionName && `Session ${sessionName}`, classId && classes.find((c) => c.id === classId)?.name && `Class ${classes.find((c) => c.id === classId).name}`].filter(Boolean).join("  ·  "),
-    columns: ["Class", "Subject", "Date", "Time", "Room", "Max Marks", "Pass Marks"],
-    rows: rows.map((r) => [r.class?.name, r.subject?.name, fmtDate(r.examDate), `${r.startTime} - ${r.endTime}`, r.room || "-", r.maxMarks, r.minMarks]),
+  // Marks are intentionally absent from the printed timetable — it is the
+  // student-facing sheet (day / date / time / subject / room only).
+  const downloadPdf = () => printExamTimetable({
+    exam,
+    sessionName,
+    className: classes.find((c) => c.id === classId)?.name || "",
+    rows,
   });
 
   return (

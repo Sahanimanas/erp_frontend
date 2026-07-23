@@ -70,7 +70,11 @@ export default function DashboardLayout() {
           className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
           id="main-content"
         >
-          <div className="animate-[fadeSlideIn_0.2s_ease-out] w-full">
+          {/* `min-h-full flex flex-col` lets a page stretch to the full viewport
+              by putting `flex-1` on its own root (list pages do this so the
+              table fills the screen instead of floating above a grey gap).
+              Pages that don't opt in keep sizing to their content. */}
+          <div className="animate-[fadeSlideIn_0.2s_ease-out] w-full min-h-full flex flex-col">
             <Outlet />
           </div>
         </main>

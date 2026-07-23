@@ -16,6 +16,7 @@ import { selectUser } from "../../redux/slices/authSlice";
 import apiClient from "../../services/axios";
 import { EmpIdCardFace, makeDefaultCfg, loadTemplates, saveTemplates } from "./_empIdCardShared";
 import CardPresetGallery from "../../components/CardPresetGallery";
+import { LAYOUTS } from "../../components/idcard/IdCardRenderer";
 import { CARD_PRESETS, PRESET_KEYS, applyPreset } from "../../utils/cardPresets";
 
 const FIELDS = [
@@ -169,10 +170,18 @@ export default function EmployeeIdCardEditorPage() {
             </div>
           </Card>
 
-          <Card title="Design Presets">
+          <Card title="Ready-made Templates">
             <div className="p-4 space-y-2">
-              <p className="text-[11px] text-slate-500">Pick a ready-made look, then fine-tune the colours below and Save it as your template.</p>
-              <CardPresetGallery activeId={activePresetId} onPick={applyDesign} />
+              <p className="text-[11px] text-slate-500">
+                Pick a finished design — each tile is the real card. Then tick only the fields you
+                want under <b>Fields</b>, fine-tune below, and Save it as your template.
+              </p>
+              <CardPresetGallery
+                cfg={cfg}
+                activeId={activePresetId}
+                onPick={applyDesign}
+                renderCard={(c, s) => <EmpIdCardFace cfg={c} employee={previewEmployee} face="front" logo={user?.schoolLogo} scale={s} />}
+              />
             </div>
           </Card>
 
@@ -186,8 +195,12 @@ export default function EmployeeIdCardEditorPage() {
 
           <Card title="Layout">
             <div className="p-4 space-y-3">
+              <Select label="Card Design" value={cfg.layout || "classic"} onChange={(e) => set("layout", e.target.value)}
+                options={LAYOUTS.map((l) => ({ value: l.id, label: l.name }))} />
               <Select label="Orientation" value={cfg.orientation} onChange={(e) => set("orientation", e.target.value)}
                 options={[{ value: "vertical", label: "Vertical (portrait)" }, { value: "horizontal", label: "Horizontal (landscape)" }]} />
+              <Select label="Photo Shape" value={cfg.photoShape || "rect"} onChange={(e) => set("photoShape", e.target.value)}
+                options={[{ value: "rect", label: "Rounded square" }, { value: "circle", label: "Circle" }]} />
               <label className="flex items-center gap-2 text-[13px] text-slate-700">
                 <input type="checkbox" checked={cfg.twoSided} onChange={(e) => set("twoSided", e.target.checked)} className="accent-indigo-600 w-4 h-4" />
                 Two-sided card (front + back)
@@ -231,6 +244,8 @@ export default function EmployeeIdCardEditorPage() {
             <div className="p-4 grid grid-cols-2 gap-3">
               <ColorField label="Content Area" value={cfg.bodyColor} onChange={(v) => set("bodyColor", v)} />
               <ColorField label="Accent" value={cfg.accentColor} onChange={(v) => set("accentColor", v)} />
+              {/* Drives the ribbon / wave / arc / diagonal decoration. */}
+              <ColorField label="Decoration" value={cfg.decorColor || cfg.accentColor} onChange={(v) => set("decorColor", v)} />
               <ColorField label="Footer" value={cfg.footerColor} onChange={(v) => set("footerColor", v)} />
               <ColorField label="Footer Text" value={cfg.footerTextColor} onChange={(v) => set("footerTextColor", v)} />
             </div>

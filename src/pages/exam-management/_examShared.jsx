@@ -60,6 +60,103 @@ export const classOptions = (classes, allLabel = "Select Class") => [{ value: ""
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/** "09:00" → "09:00 AM" (schedule times are stored as 24h "HH:mm" strings). */
+export const to12h = (t) => {
+  const [h, m] = String(t ?? "").split(":");
+  const hh = Number(h);
+  if (!Number.isFinite(hh)) return t || "-";
+  const suffix = hh >= 12 ? "PM" : "AM";
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  return `${String(h12).padStart(2, "0")}:${m ?? "00"} ${suffix}`;
+};
+
+/** "01 Apr, 2021" — the date format used on the printed timetable. */
+const fmtLongDate = (d) =>
+  d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ (\w+) /, " $1, ") : "-";
+
+/**
+ * printExamTimetable — student-facing exam timetable.
+ *
+ * Papers are grouped into exam days: the day number and date print once per
+ * day, and the following papers of that day leave those cells blank. Marks are
+ * deliberately left out — this sheet goes to students, who are told when and
+ * where to sit, not what the paper is worth.
+ */
+export function printExamTimetable({ exam = {}, sessionName = "", className = "", rows = [], school = getSchool() }) {
+  if (!rows.length) { alert("No papers to print."); return false; }
+  const win = window.open("", "_blank", "width=1000,height=1000");
+  if (!win) { alert("Please allow pop-ups for this site to save as PDF."); return false; }
+
+  const showClass = !className; // "All Classes" → the class needs its own column
+
+  // Rows arrive ordered by date then start time (backend orderBy), so a plain
+  // walk is enough to number the days and blank the repeats.
+  let day = 0;
+  let prevDate = null;
+  const body = rows.map((r) => {
+    const dateKey = r.examDate ? new Date(r.examDate).toDateString() : "";
+    const isNewDay = dateKey !== prevDate;
+    if (isNewDay) { day += 1; prevDate = dateKey; }
+    const subject = r.paperName && r.paperName !== "Theory"
+      ? `${r.subject?.name ?? "-"} (${r.paperName})`
+      : r.subject?.name ?? "-";
+    return `<tr>
+      <td class="day">${isNewDay ? day : ""}</td>
+      <td>${isNewDay ? esc(fmtLongDate(r.examDate)) : ""}</td>
+      <td>${esc(to12h(r.startTime))} - ${esc(to12h(r.endTime))}</td>
+      ${showClass ? `<td>${esc(r.class?.name ?? "-")}</td>` : ""}
+      <td>${esc(subject)}</td>
+      <td>${esc(r.room || "-")}</td>
+    </tr>`;
+  }).join("");
+
+  const meta = [
+    className && `Class : ${esc(className)}`,
+    sessionName && `Session : ${esc(sessionName)}`,
+    exam.name && `Exam : ${esc(exam.name)}`,
+    exam.startDate && exam.endDate && `Exam Date : ${esc(fmtLongDate(exam.startDate))} to ${esc(fmtLongDate(exam.endDate))}`,
+  ].filter(Boolean).map((l) => `<div>${l}</div>`).join("");
+
+  win.document.write(`<!doctype html>
+<html><head><meta charset="utf-8" /><title>Exam Time Table — ${esc(exam.name || "")}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; margin: 28px; }
+  .letterhead { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 14px; }
+  .letterhead img { width: 58px; height: 58px; object-fit: contain; flex: none; }
+  .school { text-align: center; font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: .3px; }
+  .addr { text-align: center; font-size: 11px; color: #475569; margin-top: 3px; }
+  .meta { font-size: 13px; line-height: 1.7; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #16b39b; color: #fff; text-align: left; font-size: 11.5px; padding: 9px 10px; border: 1px solid #16b39b; }
+  td { padding: 8px 10px; font-size: 12px; border: 1px solid #e2e8f0; color: #334155; }
+  td.day { color: #2563eb; }
+  .sign { margin-top: 90px; font-size: 13px; }
+  @page { size: A4 portrait; margin: 10mm; }
+  @media print { body { margin: 12mm; } th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head>
+<body>
+  ${(school?.logo || school?.name) ? `<div class="letterhead">
+    ${school?.logo ? `<img src="${esc(school.logo)}" alt="" crossorigin="anonymous" onerror="this.remove()" />` : ""}
+    <div>
+      ${school?.name ? `<div class="school">${esc(school.name)}</div>` : ""}
+      ${school?.address ? `<div class="addr">${esc(school.address)}</div>` : ""}
+    </div>
+  </div>` : ""}
+  <div class="meta">${meta}</div>
+  <table>
+    <thead><tr>
+      <th>Day</th><th>Exam Date</th><th>Exam Time</th>${showClass ? "<th>Class</th>" : ""}<th>Subject</th><th>Exam Hall/Room</th>
+    </tr></thead>
+    <tbody>${body}</tbody>
+  </table>
+  <div class="sign">Signature</div>
+  <script>window.onload = function () { setTimeout(function () { window.focus(); window.print(); }, 250); };</script>
+</body></html>`);
+  win.document.close();
+  return true;
+}
+
 /**
  * printHallTickets — print one admit/hall ticket card per student (2 per A4
  * page): student identity, seat/hall and the class's full paper schedule.

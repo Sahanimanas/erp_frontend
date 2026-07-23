@@ -371,30 +371,49 @@ export const routeConfig = [
     ],
   },
 
-  // ── Subject Management ──────────────────────────────────────────────────
+  // Subject Management merged into Class Management below (Subjects + Assign
+  // Subjects to Class now live under the Class Management section).
+
+  // ── Class Management ────────────────────────────────────────────────────
+  // Sessions / Classes / Subjects here are the SAME records used by Settings →
+  // Classes & Sections and every class/section dropdown (one merged dataset).
   {
-    key: "subjects",
-    label: "Subject Management",
-    path: "/subjects",
-    icon: "BookOpen",
-    roles: ALL_STAFF,
+    key: "class-management",
+    label: "Class Management",
+    path: "/class-management",
+    icon: "GraduationCap",
+    roles: ADMIN_ONLY,
     children: [
-      { key: "subj-list",   label: "Subjects",                 path: "/subjects/list",   icon: "BookOpen", lazy: lazy("subjects/SubjectListPage"),     roles: ADMIN_ONLY },
-      { key: "subj-assign", label: "Assign Subjects to Class", path: "/subjects/assign", icon: "Layers",   lazy: lazy("subjects/ClassSubjectMapPage"), roles: ADMIN_ONLY },
+      { key: "cm-session",      label: "Add Session",             path: "/class-management/session",       icon: "CalendarDays",  lazy: lazy("class-management/AddSessionPage"),             roles: ADMIN_ONLY },
+      { key: "cm-class",        label: "Add Class",               path: "/class-management/class",         icon: "School",        lazy: lazy("class-management/AddClassPage"),               roles: ADMIN_ONLY },
+      { key: "cm-class-detail", label: "Add Class Details",       path: "/class-management/class-details", icon: "Layers",        lazy: lazy("class-management/AddClassDetailsPage"),         roles: ADMIN_ONLY },
+      { key: "cm-subject",      label: "Add Subject",             path: "/class-management/subject",        icon: "BookOpen",      lazy: lazy("class-management/AddSubjectPage"),             roles: ADMIN_ONLY },
+      { key: "subj-list",       label: "Subjects",                path: "/class-management/subjects",         icon: "BookMarked",    lazy: lazy("subjects/SubjectListPage"),                     roles: ADMIN_ONLY },
+      { key: "subj-assign",     label: "Assign Subjects to Class",path: "/class-management/assign-subjects",  icon: "Layers",        lazy: lazy("subjects/ClassSubjectMapPage"),                 roles: ADMIN_ONLY },
+      { key: "cm-non-subject",  label: "Add Non-Subject",         path: "/class-management/non-subject",    icon: "Music",         lazy: lazy("class-management/AddNonSubjectPage"),           roles: ADMIN_ONLY },
+      { key: "cm-syllabus",     label: "Add Syllabus",            path: "/class-management/syllabus",       icon: "FileText",      lazy: lazy("class-management/AddSyllabusPage"),            roles: ADMIN_ONLY },
+      { key: "cm-manage-syll",  label: "Manage Syllabus",         path: "/class-management/manage-syllabus",icon: "Files",         lazy: lazy("class-management/ManageSyllabusPage"),          roles: ADMIN_ONLY },
+      { key: "cm-emp-map",      label: "Employee Subject Mapping",path: "/class-management/employee-mapping",icon: "Users",        lazy: lazy("class-management/EmployeeSubjectMappingPage"),  roles: ADMIN_ONLY },
     ],
   },
 
-  // ── Time Table Management ───────────────────────────────────────────────
+  // ── Time Table ──────────────────────────────────────────────────────────
+  // All pages read ONE shared timetable record, so building on Add Time Table
+  // flows straight through to View, Assign, Employee and Session views.
   {
     key: "timetable",
-    label: "Time Table Management",
+    label: "Time Table",
     path: "/timetable",
     icon: "CalendarRange",
     roles: ALL_STAFF,
     children: [
-      { key: "tt-periods", label: "Periods",           path: "/timetable/periods", icon: "Clock",         lazy: lazy("timetable/PeriodsPage"),         roles: ADMIN_ONLY },
-      { key: "tt-manage",  label: "Manage Time Table", path: "/timetable/manage",  icon: "CalendarRange", lazy: lazy("timetable/ManageTimetablePage"), roles: ADMIN_ONLY },
-      { key: "tt-view",    label: "View Time Table",   path: "/timetable/view",    icon: "CalendarDays",  lazy: lazy("timetable/ViewTimetablePage"),   roles: ALL_STAFF },
+      { key: "tt-manage",      label: "Add Time Table",           path: "/timetable/manage",       icon: "CalendarRange", lazy: lazy("timetable/ManageTimetablePage"),     roles: ADMIN_ONLY },
+      { key: "tt-view",        label: "View Time Table",          path: "/timetable/view",         icon: "CalendarDays",  lazy: lazy("timetable/ViewTimetablePage"),       roles: ALL_STAFF },
+      { key: "tt-assign",      label: "Time Table Assign",        path: "/timetable/assign",       icon: "UserCheck",     lazy: lazy("timetable/AssignTimetablePage"),     roles: ADMIN_ONLY },
+      { key: "tt-view-assign", label: "View Time Table Assign",   path: "/timetable/view-assign",  icon: "ClipboardList", lazy: lazy("timetable/ViewAssignTimetablePage"), roles: ALL_STAFF },
+      { key: "tt-employee",    label: "View Employee Time Table", path: "/timetable/employee",     icon: "UserSquare",    lazy: lazy("timetable/EmployeeTimetablePage"),   roles: ALL_STAFF },
+      { key: "tt-session",     label: "View Session Time Table",  path: "/timetable/session",      icon: "CalendarClock", lazy: lazy("timetable/SessionTimetablePage"),    roles: ALL_STAFF },
+      { key: "tt-periods",     label: "Periods",                  path: "/timetable/periods",      icon: "Clock",         lazy: lazy("timetable/PeriodsPage"),             roles: ADMIN_ONLY },
     ],
   },
 
@@ -418,6 +437,30 @@ export const routeConfig = [
       { key: "exam-hall-plan",     label: "Exam Hall Plan",          path: "/exam-management/hall-plan",           icon: "LayoutGrid",    lazy: lazy("exam-management/ExamHallPlanPage"),         roles: ADMIN_ONLY },
       { key: "exam-hall-detail",   label: "Exam Hall Detail",        path: "/exam-management/hall-detail",         icon: "Building2",     lazy: lazy("exam-management/ExamHallDetailPage"),       roles: ALL_STAFF },
       { key: "exam-sitting-plan",  label: "Exam Sitting Plan",       path: "/exam-management/sitting-plan",        icon: "Armchair",      lazy: lazy("exam-management/ExamSittingPlanPage"),      roles: ALL_STAFF },
+    ],
+  },
+
+  // ── Result Management ─────────────────────────────────────────────────────
+  // Exam subject results read/write the SAME StudentMark table as Exam
+  // Management, so marks entered here update exam results everywhere (in sync).
+  {
+    key: "result-management",
+    label: "Result Management",
+    path: "/result-management",
+    icon: "Flag",
+    roles: ALL_STAFF,
+    children: [
+      { key: "rm-manage",       label: "Manage Exam Result",     path: "/result-management/manage-exam",      icon: "ClipboardEdit",   lazy: lazy("result-management/ExamResultEntryPage"),     roles: [ROLES.TEACHER, ...ADMIN_ONLY] },
+      { key: "rm-add",          label: "Add Exam Result",        path: "/result-management/add-exam",         icon: "FilePlus",        lazy: lazy("result-management/AddExamResultPage"),       roles: [ROLES.TEACHER, ...ADMIN_ONLY] },
+      { key: "rm-manage-all",   label: "Manage All Exam Result", path: "/result-management/manage-all",       icon: "Table2",          lazy: lazy("result-management/AllExamResultPage"),       roles: [ROLES.TEACHER, ...ADMIN_ONLY] },
+      { key: "rm-view-all",     label: "View All Exam Result",   path: "/result-management/view-all",         icon: "Eye",             lazy: lazy("result-management/ViewAllExamResultPage"),   roles: ALL_STAFF },
+      { key: "rm-manage-non",   label: "Manage NonSubject Result",path: "/result-management/manage-nonsubject",icon: "Music",          lazy: lazy("result-management/NonSubjectResultPage"),    roles: [ROLES.TEACHER, ...ADMIN_ONLY] },
+      { key: "rm-view-non",     label: "View NonSubject Result", path: "/result-management/view-nonsubject",   icon: "Eye",             lazy: lazy("result-management/ViewNonSubjectResultPage"),roles: ALL_STAFF },
+      { key: "rm-publish-exam", label: "Publish Exam Result",    path: "/result-management/publish-exam",      icon: "Megaphone",       lazy: lazy("result-management/PublishExamResultPage"),   roles: ADMIN_ONLY },
+      { key: "rm-remarks",      label: "Report Card Remarks",    path: "/result-management/remarks",           icon: "MessageSquareText",lazy: lazy("result-management/ReportCardRemarksPage"),  roles: [ROLES.TEACHER, ...ADMIN_ONLY] },
+      { key: "rm-gen-card",     label: "Generate Report Card",   path: "/result-management/generate-card",     icon: "FileBadge",       lazy: lazy("result-management/GenerateReportCardPage"),  roles: ADMIN_ONLY },
+      { key: "rm-view-card",    label: "View Report Card",       path: "/result-management/view-card",         icon: "FileText",        lazy: lazy("result-management/ViewReportCardPage"),      roles: ALL_STAFF },
+      { key: "rm-publish-card", label: "Publish Report Card",    path: "/result-management/publish-card",      icon: "Send",            lazy: lazy("result-management/PublishReportCardPage"),   roles: ADMIN_ONLY },
     ],
   },
 
