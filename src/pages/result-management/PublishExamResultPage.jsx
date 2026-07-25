@@ -3,7 +3,7 @@
  * Summary of an exam's results for a section (total, %, grade) with a Publish /
  * Unpublish toggle and a downloadable PDF.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, EmptyState, Skeleton, Badge } from "../../components/ui";
@@ -13,7 +13,7 @@ import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attenda
 import { useGetExamsQuery } from "../../redux/api/examMgmtApi";
 import { useGetExamPublishStatusQuery, usePublishExamResultMutation } from "../../redux/api/resultMgmtApi";
 import { printTable } from "../../utils/printPdf";
-import { sessionOptions, classOptions, sectionOptions, examOptions } from "./_rmShared";
+import { sessionOptions, classOptions, sectionOptions, examOptions, StudentSearchBar, filterStudents, emptyStudentFilter } from "./_rmShared";
 
 export default function PublishExamResultPage() {
   usePageTitle("Publish Exam Result");
@@ -21,6 +21,7 @@ export default function PublishExamResultPage() {
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [examId, setExamId] = useState("");
+  const [sf, setSf] = useState(emptyStudentFilter);
 
   const { data: sessions = [] } = useGetSessionsQuery();
   const { data: classes = [] } = useGetClassesQuery();
@@ -29,6 +30,9 @@ export default function PublishExamResultPage() {
   const ready = examId && sectionId;
   const { data, isFetching } = useGetExamPublishStatusQuery({ examId, sectionId }, { skip: !ready });
   const [publish, { isLoading: publishing }] = usePublishExamResultMutation();
+
+  useEffect(() => { setSf(emptyStudentFilter); }, [examId, sectionId]);
+  const visibleStudents = filterStudents(data?.students || [], sf);
 
   const doPublish = async (state) => {
     try { const res = await publish({ examId, sectionId, published: state }).unwrap(); toast.success(res.message); }
@@ -39,7 +43,7 @@ export default function PublishExamResultPage() {
     title: `${data.exam?.name} — ${data.section?.className}/${data.section?.name}`,
     subtitle: "Exam Result",
     columns: ["Roll", "Student", ...(data.subjects || []).map((s) => s.name), "Total", "%", "Grade"],
-    rows: (data.students || []).map((s) => [s.rollNumber, s.name, ...(data.subjects || []).map(() => ""), `${s.obtained}/${s.total}`, `${s.percentage}%`, s.grade]),
+    rows: (data.students || []).map((s) => [s.rollNumber, s.name, ...(data.subjects || []).map((sub) => { const v = s.marks?.[sub.id]; return v === null || v === undefined ? "" : v; }), `${s.obtained}/${s.total}`, `${s.percentage}%`, s.grade]),
   });
 
   return (
@@ -68,6 +72,7 @@ export default function PublishExamResultPage() {
               ? <Button size="sm" variant="danger" loading={publishing} onClick={() => doPublish(false)}>Unpublish</Button>
               : <Button size="sm" icon={<CheckCircle2 size={13} />} loading={publishing} onClick={() => doPublish(true)}>Publish</Button>}
           </div>}>
+          <StudentSearchBar students={data.students || []} value={sf} onChange={setSf} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse min-w-[700px]">
               <thead>
@@ -81,7 +86,7 @@ export default function PublishExamResultPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {(data.students || []).map((s) => (
+                {visibleStudents.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50/60">
                     <td className="px-3 py-2 text-slate-500">{s.rollNumber}</td>
                     <td className="px-3 py-2 font-medium text-slate-700">{s.name}</td>
@@ -91,6 +96,7 @@ export default function PublishExamResultPage() {
                     <td className="px-3 py-2 text-center">{s.grade || "—"}</td>
                   </tr>
                 ))}
+                {visibleStudents.length === 0 && <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-400">No students match your search.</td></tr>}
               </tbody>
             </table>
           </div>

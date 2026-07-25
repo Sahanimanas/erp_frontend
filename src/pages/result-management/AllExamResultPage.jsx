@@ -12,7 +12,7 @@ import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetExamsQuery } from "../../redux/api/examMgmtApi";
 import { useGetAllExamResultQuery, useSaveAllExamResultMutation } from "../../redux/api/resultMgmtApi";
-import { SORT_OPTIONS, sessionOptions, classOptions, sectionOptions, examOptions, showMark } from "./_rmShared";
+import { SORT_OPTIONS, sessionOptions, classOptions, sectionOptions, examOptions, showMark, StudentSearchBar, filterStudents, emptyStudentFilter } from "./_rmShared";
 
 export default function AllExamResultPage({ editable = true }) {
   usePageTitle(editable ? "Manage All Exam Result" : "View All Exam Result");
@@ -22,6 +22,7 @@ export default function AllExamResultPage({ editable = true }) {
   const [examId, setExamId] = useState("");
   const [sortBy, setSortBy] = useState("Name");
   const [grid, setGrid] = useState({}); // studentId -> { subjectId: value }
+  const [sf, setSf] = useState(emptyStudentFilter);
 
   const { data: sessions = [] } = useGetSessionsQuery();
   const { data: classes = [] } = useGetClassesQuery();
@@ -32,6 +33,7 @@ export default function AllExamResultPage({ editable = true }) {
   const [save, { isLoading: saving }] = useSaveAllExamResultMutation();
 
   useEffect(() => { setSectionId(""); }, [classId]);
+  useEffect(() => { setSf(emptyStudentFilter); }, [examId, sectionId]);
   useEffect(() => {
     const seed = {};
     (data?.students || []).forEach((s) => {
@@ -40,6 +42,8 @@ export default function AllExamResultPage({ editable = true }) {
     });
     setGrid(seed);
   }, [data]);
+
+  const visibleStudents = filterStudents(data?.students || [], sf);
 
   const submit = async () => {
     const rows = (data?.students || []).map((s) => ({
@@ -71,6 +75,7 @@ export default function AllExamResultPage({ editable = true }) {
       ) : (
         <Card noPadding title={data.exam?.name}
           action={editable ? <Button size="sm" icon={<Save size={13} />} loading={saving} onClick={submit}>Update Exam Result</Button> : null}>
+          <StudentSearchBar students={data.students || []} value={sf} onChange={setSf} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse min-w-[900px]">
               <thead>
@@ -83,7 +88,7 @@ export default function AllExamResultPage({ editable = true }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.students.map((s) => (
+                {visibleStudents.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50/60">
                     <td className="px-3 py-2 font-medium text-slate-700 sticky left-0 bg-white">{s.name}</td>
                     <td className="px-3 py-2 text-slate-500">{s.rollNumber}</td>
@@ -100,6 +105,7 @@ export default function AllExamResultPage({ editable = true }) {
                     ))}
                   </tr>
                 ))}
+                {data.students.length > 0 && visibleStudents.length === 0 && <tr><td colSpan={(data.subjects?.length || 0) + 2} className="px-3 py-8 text-center text-slate-400">No students match your search.</td></tr>}
                 {data.students.length === 0 && <tr><td colSpan={(data.subjects?.length || 0) + 2} className="px-3 py-8 text-center text-slate-400">No students in this section.</td></tr>}
               </tbody>
             </table>

@@ -2,7 +2,7 @@
  * Result Management → Publish Report Card
  * Publish / unpublish generated report cards for a section+term.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, EmptyState, Skeleton, Badge } from "../../components/ui";
@@ -11,7 +11,11 @@ import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetExamsQuery } from "../../redux/api/examMgmtApi";
 import { useListReportCardsQuery, usePublishReportCardsMutation } from "../../redux/api/resultMgmtApi";
-import { sessionOptions, classOptions, sectionOptions, examOptions } from "./_rmShared";
+import { sessionOptions, classOptions, sectionOptions, examOptions, StudentSearchBar, studentMatches, emptyStudentFilter } from "./_rmShared";
+
+// Normalize a stored report card into the { id, name, rollNumber, … } shape the
+// shared student search bar / matcher expects (id = card id).
+const cardStudent = (c) => ({ id: c.id, name: c.data?.student?.name, rollNumber: c.data?.student?.rollNumber, registrationNo: c.data?.student?.registrationNo });
 
 export default function PublishReportCardPage() {
   usePageTitle("Publish Report Card");
@@ -27,6 +31,10 @@ export default function PublishReportCardPage() {
   const term = exams.find((e) => e.id === examId)?.name || "";
   const { data: cards = [], isFetching } = useListReportCardsQuery({ sectionId, academicYearId, term }, { skip: !sectionId || !term });
   const [publish, { isLoading }] = usePublishReportCardsMutation();
+
+  const [sf, setSf] = useState(emptyStudentFilter);
+  useEffect(() => { setSf(emptyStudentFilter); }, [sectionId, term]);
+  const visibleCards = cards.filter((c) => studentMatches(sf, cardStudent(c)));
 
   const doPublish = async (state) => {
     try { const res = await publish({ sectionId, academicYearId, term, published: state }).unwrap(); toast.success(`${res.message} (${res.count})`); }
@@ -60,13 +68,15 @@ export default function PublishReportCardPage() {
             <Button size="sm" variant="secondary" loading={isLoading} onClick={() => doPublish(false)}>Unpublish All</Button>
             <Button size="sm" icon={<CheckCircle2 size={13} />} loading={isLoading} onClick={() => doPublish(true)}>Publish All</Button>
           </div>}>
+          <StudentSearchBar students={cards.map(cardStudent)} value={sf} onChange={setSf} />
           <div className="divide-y divide-slate-100">
-            {cards.map((c) => (
+            {visibleCards.map((c) => (
               <div key={c.id} className="flex items-center justify-between px-4 py-2.5">
                 <p className="font-medium text-slate-700 text-[13px]">{c.data?.student?.name} <span className="text-[11px] text-slate-400">· Roll {c.data?.student?.rollNumber}</span></p>
                 {c.published ? <Badge variant="success">Published</Badge> : <Badge variant="default">Draft</Badge>}
               </div>
             ))}
+            {visibleCards.length === 0 && <div className="px-4 py-8 text-center text-slate-400">No report cards match your search.</div>}
           </div>
         </Card>
       )}

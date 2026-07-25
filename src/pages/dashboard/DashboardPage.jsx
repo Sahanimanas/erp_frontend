@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { selectUser } from "../../redux/slices/authSlice";
 import { usePageTitle } from "../../hooks";
 import { WelcomeBanner, StatCard, Card, ProgressBar, DateRangeFilter, Button, Modal } from "../../components/ui";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Users, GraduationCap, UserCheck, BookOpen, AlertCircle, Clock } from "lucide-react";
+import { Users, GraduationCap, UserCheck, AlertCircle, Clock } from "lucide-react";
 import apiClient from "../../services/axios";
 import { Loader } from "../../components/loaders/PageLoader";
 
-function Tip({active,payload,label}){if(!active||!payload?.length)return null;return <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs"><p className="font-semibold text-slate-700 mb-1">{label}</p>{payload.map((p,i)=><p key={i} style={{color:p.color}}>{p.name}: {p.value}M</p>)}</div>;}
+function Tip({active,payload,label}){if(!active||!payload?.length)return null;return <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs"><p className="font-semibold text-slate-700 mb-1">{label}</p>{payload.map((p,i)=><p key={i} style={{color:p.color}}>{p.name}: ₹{Number(p.value||0).toLocaleString()}</p>)}</div>;}
 
 export default function DashboardPage() {
   // A Super Admin belongs to the platform tenant (no students/staff of its own),
@@ -26,6 +26,7 @@ export default function DashboardPage() {
 
 function SchoolDashboard() {
   usePageTitle("Dashboard");
+  const navigate=useNavigate();
   const user=useSelector(selectUser);
   const [stats,setStats]=useState(null);
   const [loading,setLoading]=useState(true);
@@ -89,11 +90,11 @@ function SchoolDashboard() {
           {loading && <span className="text-[11px] text-indigo-500 mb-2">Updating…</span>}
         </div>
       </Card>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Employees" value={dashboardData.employees} gradient="bg-gradient-to-br from-indigo-500 to-indigo-600" icon={Users} change={0} sparkData={[1,2,1,3,2,1,1]}/>
-        <StatCard label="Students" value={dashboardData.students} gradient="bg-gradient-to-br from-cyan-500 to-teal-500" icon={GraduationCap} change={0} sparkData={[5,6,5,7,8,7,6]}/>
-        <StatCard label="Parents" value={dashboardData.parents} gradient="bg-gradient-to-br from-blue-500 to-blue-600" icon={UserCheck} change={0} sparkData={[8,10,9,11,12,11,10]}/>
-        <StatCard label="Teachers" value={dashboardData.teachers} gradient="bg-gradient-to-br from-pink-500 to-rose-500" icon={BookOpen} change={0} sparkData={[2,3,2,4,3,2,3]}/>
+      {/* KPI cards — each one drills into its own module listing. */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <StatCard label="Employees" value={dashboardData.employees} gradient="bg-gradient-to-br from-indigo-500 to-indigo-600" icon={Users} change={0} sparkData={[1,2,1,3,2,1,1]} onClick={()=>navigate("/employee/list")}/>
+        <StatCard label="Students" value={dashboardData.students} gradient="bg-gradient-to-br from-cyan-500 to-teal-500" icon={GraduationCap} change={0} sparkData={[5,6,5,7,8,7,6]} onClick={()=>navigate("/students/list")}/>
+        <StatCard label="Parents" value={dashboardData.parents} gradient="bg-gradient-to-br from-blue-500 to-blue-600" icon={UserCheck} change={0} sparkData={[8,10,9,11,12,11,10]} onClick={()=>navigate("/parents/list")}/>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
         <Card title="Income Vs Expense" className="lg:col-span-2">
@@ -122,7 +123,7 @@ function SchoolDashboard() {
                   <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3}/><stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/></linearGradient>
                   <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/><stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/></linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/><XAxis dataKey="month" tick={{fontSize:10,fill:"#94a3b8"}} axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10,fill:"#94a3b8"}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}M`}/>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/><XAxis dataKey="month" tick={{fontSize:10,fill:"#94a3b8"}} axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10,fill:"#94a3b8"}} axisLine={false} tickLine={false} tickFormatter={v=>Number(v).toLocaleString()}/>
                 <Tooltip content={<Tip/>}/><Legend iconType="circle" iconSize={8} wrapperStyle={{fontSize:11}}/>
                 <Area type="monotone" dataKey="total"     name="Total"     stroke="#6366f1" fill="url(#g1)" strokeWidth={2} dot={{r:3,fill:"#6366f1"}}/>
                 <Area type="monotone" dataKey="collected" name="Collected" stroke="#22d3ee" fill="url(#g2)" strokeWidth={2} dot={{r:3,fill:"#22d3ee"}}/>
@@ -153,8 +154,13 @@ function SchoolDashboard() {
           </div>
         </Card>
         <div className="space-y-3">
+          {/* Fee Collection — drills into the class-wise fee summary. */}
           <Card>
-            <div className="p-4">
+            <button
+              type="button"
+              onClick={()=>navigate("/fee-management/class-fee-summary")}
+              className="w-full text-left p-4 rounded-xl cursor-pointer hover:bg-slate-50/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-semibold text-slate-700">Fee Collection</span>
                 <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">This Month</span>
@@ -162,7 +168,7 @@ function SchoolDashboard() {
               <p className="text-2xl font-bold text-slate-800">₹{(dashboardData.feeCollection?.collected || 0).toLocaleString()}</p>
               <p className="text-xs text-slate-400 mb-3">of ₹{(dashboardData.feeCollection?.total || 0).toLocaleString()}</p>
               <ProgressBar value={dashboardData.feeCollection?.percentage || 0} color="indigo"/>
-            </div>
+            </button>
           </Card>
           <Card>
             <div className="p-4 flex gap-4 items-center">

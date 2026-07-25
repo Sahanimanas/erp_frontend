@@ -53,7 +53,7 @@ function NavLeaf({ item, collapsed, onNavigate, dim = false }) {
         <Icon name={item.icon} size={16} />
       </span>
       {!collapsed && (
-        <span className="text-[12.5px] font-medium truncate flex-1">{item.label}</span>
+        <span className="text-[12.5px] font-medium grow whitespace-nowrap">{item.label}</span>
       )}
     </NavLink>
   );
@@ -93,7 +93,7 @@ function NavParent({ item, collapsed, onNavigate }) {
         </span>
         {!collapsed && (
           <>
-            <span className="text-[12.5px] font-medium truncate flex-1">{item.label}</span>
+            <span className="text-[12.5px] font-medium grow whitespace-nowrap">{item.label}</span>
             <span
               className="transition-transform duration-200 flex-shrink-0"
               style={{ transform: isExpanded ? "rotate(180deg)" : "none" }}
@@ -129,7 +129,7 @@ function NavParent({ item, collapsed, onNavigate }) {
                   }
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-black flex-shrink-0" />
-                  <span className="truncate">{child.label}</span>
+                  <span className="whitespace-nowrap">{child.label}</span>
                 </NavLink>
               ))}
           </div>
@@ -207,7 +207,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   // Explicit sidebar ordering: core school modules pinned right under Dashboard,
   // and the generic/utility modules pushed to the bottom. Anything not listed
   // keeps its original routeConfig order, placed in between.
-  const HEAD_ORDER = ["dashboard", "students", "employee", "admission", "fee-management", "payments", "attendance", "exams"];
+  const HEAD_ORDER = ["dashboard", "students", "employee", "admission", "fee-management", "payments", "attendance", "class-management", "timetable", "exams", "result-management", "certificate"];
   const TAIL_ORDER = ["tasks", "house", "inventory", "license"];
   const weightFor = (item, idx) => {
     const head = HEAD_ORDER.indexOf(item.key);
@@ -222,13 +222,15 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     .map((x) => x.item);
 
   return (
+    // Expanded width is content-driven (w-max): the sidebar grows to fit the
+    // longest menu/submenu label instead of clipping it, bounded 220–300px.
     <aside
       className={`
         fixed lg:static inset-y-0 left-0 z-50
         flex flex-col shrink-0
         bg-gray-900 border-r-4 border-white/10
         transition-all duration-300 ease-in-out
-        ${collapsed ? "w-[52px]" : "w-[220px]"}
+        ${collapsed ? "w-[52px]" : "w-max min-w-[220px] max-w-[300px]"}
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
     >

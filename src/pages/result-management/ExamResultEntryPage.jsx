@@ -13,7 +13,7 @@ import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetExamsQuery, useGetClassSubjectsQuery } from "../../redux/api/examMgmtApi";
 import { useGetExamResultQuery, useSaveExamResultMutation } from "../../redux/api/resultMgmtApi";
-import { SORT_OPTIONS, sessionOptions, classOptions, sectionOptions, examOptions } from "./_rmShared";
+import { SORT_OPTIONS, sessionOptions, classOptions, sectionOptions, examOptions, StudentSearchBar, filterStudents, emptyStudentFilter } from "./_rmShared";
 
 export default function ExamResultEntryPage({ title = "Manage Exam Result" }) {
   usePageTitle(title);
@@ -24,6 +24,7 @@ export default function ExamResultEntryPage({ title = "Manage Exam Result" }) {
   const [subjectId, setSubjectId] = useState("");
   const [sortBy, setSortBy] = useState("Name");
   const [scores, setScores] = useState({}); // studentId -> value
+  const [sf, setSf] = useState(emptyStudentFilter);
 
   const { data: sessions = [] } = useGetSessionsQuery();
   const { data: classes = [] } = useGetClassesQuery();
@@ -37,6 +38,8 @@ export default function ExamResultEntryPage({ title = "Manage Exam Result" }) {
   const subjects = useMemo(() => classSubjects.map((cs) => cs.subject).filter(Boolean), [classSubjects]);
 
   useEffect(() => { setSectionId(""); setSubjectId(""); }, [classId]);
+  useEffect(() => { setSf(emptyStudentFilter); }, [examId, sectionId, subjectId]);
+  const visibleStudents = filterStudents(data?.students || [], sf);
   useEffect(() => {
     const seed = {};
     (data?.students || []).forEach((s) => { seed[s.id] = s.scored === null || s.scored === undefined ? "" : String(s.scored); });
@@ -73,6 +76,7 @@ export default function ExamResultEntryPage({ title = "Manage Exam Result" }) {
       ) : (
         <Card noPadding title={`${data.exam?.name} || ${data.subject?.name}`}
           action={<Button size="sm" icon={<Save size={13} />} loading={saving} onClick={submit}>Update Exam Result</Button>}>
+          <StudentSearchBar students={data.students || []} value={sf} onChange={setSf} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse min-w-[820px]">
               <thead>
@@ -86,7 +90,7 @@ export default function ExamResultEntryPage({ title = "Manage Exam Result" }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.students.map((s) => (
+                {visibleStudents.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50/60">
                     <td className="px-3 py-2 font-medium text-slate-700">{s.name}</td>
                     <td className="px-3 py-2 text-slate-500">{s.registrationNo}</td>
@@ -100,6 +104,7 @@ export default function ExamResultEntryPage({ title = "Manage Exam Result" }) {
                     </td>
                   </tr>
                 ))}
+                {data.students.length > 0 && visibleStudents.length === 0 && <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-400">No students match your search.</td></tr>}
                 {data.students.length === 0 && <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-400">No students in this section.</td></tr>}
               </tbody>
             </table>

@@ -11,7 +11,7 @@ import { Music, Save } from "lucide-react";
 import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetNonSubjectResultQuery, useSaveNonSubjectResultMutation } from "../../redux/api/resultMgmtApi";
-import { SORT_OPTIONS, TERMS, sessionOptions, classOptions, sectionOptions, showMark } from "./_rmShared";
+import { SORT_OPTIONS, TERMS, sessionOptions, classOptions, sectionOptions, showMark, StudentSearchBar, filterStudents, emptyStudentFilter } from "./_rmShared";
 
 export default function NonSubjectResultPage({ editable = true }) {
   usePageTitle(editable ? "Manage NonSubject Result" : "View NonSubject Result");
@@ -21,6 +21,7 @@ export default function NonSubjectResultPage({ editable = true }) {
   const [term, setTerm] = useState("Term 1");
   const [sortBy, setSortBy] = useState("Name");
   const [grid, setGrid] = useState({});
+  const [sf, setSf] = useState(emptyStudentFilter);
 
   const { data: sessions = [] } = useGetSessionsQuery();
   const { data: classes = [] } = useGetClassesQuery();
@@ -30,6 +31,7 @@ export default function NonSubjectResultPage({ editable = true }) {
   const [save, { isLoading: saving }] = useSaveNonSubjectResultMutation();
 
   useEffect(() => { setSectionId(""); }, [classId]);
+  useEffect(() => { setSf(emptyStudentFilter); }, [sectionId, term]);
   useEffect(() => {
     const seed = {};
     (data?.students || []).forEach((s) => {
@@ -38,6 +40,8 @@ export default function NonSubjectResultPage({ editable = true }) {
     });
     setGrid(seed);
   }, [data]);
+
+  const visibleStudents = filterStudents(data?.students || [], sf);
 
   const submit = async () => {
     const rows = (data?.students || []).map((s) => ({
@@ -71,6 +75,7 @@ export default function NonSubjectResultPage({ editable = true }) {
       ) : (
         <Card noPadding title={`Non-Subject — ${term}`}
           action={editable ? <Button size="sm" icon={<Save size={13} />} loading={saving} onClick={submit}>Update Result</Button> : null}>
+          <StudentSearchBar students={data.students || []} value={sf} onChange={setSf} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse min-w-[820px]">
               <thead>
@@ -83,7 +88,7 @@ export default function NonSubjectResultPage({ editable = true }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.students.map((s) => (
+                {visibleStudents.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50/60">
                     <td className="px-3 py-2 font-medium text-slate-700">{s.name}</td>
                     <td className="px-3 py-2 text-slate-500">{s.rollNumber}</td>
@@ -100,6 +105,7 @@ export default function NonSubjectResultPage({ editable = true }) {
                     ))}
                   </tr>
                 ))}
+                {data.students.length > 0 && visibleStudents.length === 0 && <tr><td colSpan={(data.nonSubjects?.length || 0) + 2} className="px-3 py-8 text-center text-slate-400">No students match your search.</td></tr>}
               </tbody>
             </table>
           </div>

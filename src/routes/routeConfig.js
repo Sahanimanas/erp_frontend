@@ -293,11 +293,17 @@ export const routeConfig = [
       { key: "emp-list",        label: "Employee Search",  path: "/employee/list",           icon: "Search",       lazy: lazy("hr/EmployeeListPage"),       roles: ADMIN_ONLY },
       { key: "emp-designation", label: "Designation",      path: "/employee/designation",    icon: "BadgeCheck",   lazy: lazy("hr/DesignationPage"),        roles: ADMIN_ONLY },
       { key: "emp-dept",        label: "Department",       path: "/employee/departments",    icon: "Building",     lazy: lazy("hr/DepartmentPage"),         roles: ADMIN_ONLY },
+      { key: "emp-dept-detail", label: "Department Details", path: "/employee/departments/:id", icon: "Building", lazy: lazy("hr/DepartmentDetailPage"),   roles: ADMIN_ONLY, hidden: true },
       { key: "emp-upload",      label: "Upload Employee",  path: "/employee/upload",         icon: "Upload",       lazy: lazy("hr/UploadEmployeePage"),     roles: ADMIN_ONLY },
       { key: "emp-idprint",     label: "Employee ID Print",path: "/employee/id-print",       icon: "IdCard",       lazy: lazy("hr/EmployeeIdPrintPage"),    roles: ADMIN_ONLY },
       { key: "emp-ideditor",    label: "Employee ID Card Editor", path: "/employee/id-editor", icon: "Pencil",     lazy: lazy("hr/EmployeeIdCardEditorPage"), roles: ADMIN_ONLY },
       { key: "emp-deactivate",  label: "Login Deactivate", path: "/employee/deactivate",     icon: "Lock",         lazy: lazy("hr/LoginDeactivatePage"),    roles: ADMIN_ONLY },
-      { key: "emp-leaves",      label: "Leave Mgmt",       path: "/employee/leaves",         icon: "Calendar",     lazy: lazy("hr/LeavePage"),              roles: ADMIN_ONLY },
+      // ── Employee Leave ────────────────────────────────────────────────
+      { key: "emp-leave-type",    label: "Leave Type",    path: "/employee/leave/types",   icon: "CalendarCheck",  lazy: lazy("hr/leave/LeaveTypePage"),    roles: ADMIN_ONLY },
+      { key: "emp-leave-assign",  label: "Leave Assign",  path: "/employee/leave/assign",  icon: "UserCog",        lazy: lazy("hr/leave/LeaveAssignPage"),  roles: ADMIN_ONLY },
+      { key: "emp-leave-add",     label: "Add Leave",     path: "/employee/leave/add",     icon: "CalendarPlus",   lazy: lazy("hr/leave/AddLeavePage"),     roles: ADMIN_ONLY },
+      { key: "emp-leave-apply",   label: "Apply Leave",   path: "/employee/leave/apply",   icon: "CalendarClock",  lazy: lazy("hr/leave/ApplyLeavePage"),   roles: ALL_STAFF },
+      { key: "emp-leave-approve", label: "Approve Leave", path: "/employee/leave/approve", icon: "CalendarCheck2", lazy: lazy("hr/leave/ApproveLeavePage"), roles: ADMIN_ONLY },
     ],
   },
 
@@ -318,6 +324,7 @@ export const routeConfig = [
   // ── Card Management ───────────────────────────────────────────────────────
   {
     key: "cards",
+    hidden: true,
     label: "Card Management",
     path: "/cards",
     icon: "CreditCard",

@@ -10,7 +10,7 @@ import { MessageSquareText, Save, Search } from "lucide-react";
 import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetRemarksQuery, useSaveRemarksMutation } from "../../redux/api/resultMgmtApi";
-import { SORT_OPTIONS, sessionOptions, classOptions, sectionOptions } from "./_rmShared";
+import { SORT_OPTIONS, sessionOptions, classOptions, sectionOptions, StudentSearchBar, filterStudents, emptyStudentFilter } from "./_rmShared";
 
 export default function ReportCardRemarksPage() {
   usePageTitle("Report Card Remarks");
@@ -20,6 +20,7 @@ export default function ReportCardRemarksPage() {
   const [sortBy, setSortBy] = useState("Name");
   const [loaded, setLoaded] = useState(false);
   const [remarks, setRemarks] = useState({});
+  const [sf, setSf] = useState(emptyStudentFilter);
 
   const { data: sessions = [] } = useGetSessionsQuery();
   const { data: classes = [] } = useGetClassesQuery();
@@ -28,7 +29,7 @@ export default function ReportCardRemarksPage() {
   const [save, { isLoading: saving }] = useSaveRemarksMutation();
 
   useEffect(() => { setSectionId(""); setLoaded(false); }, [classId]);
-  useEffect(() => { setLoaded(false); }, [sectionId, academicYearId]);
+  useEffect(() => { setLoaded(false); setSf(emptyStudentFilter); }, [sectionId, academicYearId]);
   useEffect(() => {
     const seed = {};
     (data?.students || []).forEach((s) => { seed[s.id] = s.remark || ""; });
@@ -63,8 +64,9 @@ export default function ReportCardRemarksPage() {
         <Card><div className="space-y-2">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div></Card>
       ) : (
         <Card noPadding title="Remarks" action={<Button size="sm" icon={<Save size={13} />} loading={saving} onClick={submit}>Update Remarks</Button>}>
+          <StudentSearchBar students={data?.students || []} value={sf} onChange={setSf} />
           <div className="divide-y divide-slate-100">
-            {(data?.students || []).map((s) => (
+            {filterStudents(data?.students || [], sf).map((s) => (
               <div key={s.id} className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2.5">
                 <div className="sm:w-64 shrink-0">
                   <p className="font-medium text-slate-700 text-[13px]">{s.name}</p>
@@ -75,6 +77,7 @@ export default function ReportCardRemarksPage() {
               </div>
             ))}
             {(data?.students || []).length === 0 && <div className="px-4 py-8 text-center text-slate-400">No students.</div>}
+            {(data?.students || []).length > 0 && filterStudents(data.students, sf).length === 0 && <div className="px-4 py-8 text-center text-slate-400">No students match your search.</div>}
           </div>
           <div className="p-4 flex justify-end border-t border-slate-100">
             <Button size="sm" icon={<Save size={13} />} loading={saving} onClick={submit}>Update Remarks</Button>

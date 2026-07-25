@@ -2,10 +2,11 @@
  * Employee → Department (wired to /employees/departments)
  */
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Textarea, DataTable, Badge } from "../../components/ui";
-import { Building, Save, Trash2, Download } from "lucide-react";
+import { Building, Save, Trash2, Download, Eye } from "lucide-react";
 import apiClient from "../../services/axios";
 import { exportRows } from "../../utils/exportExcel";
 
@@ -13,6 +14,7 @@ const fmtDate = (v) => (v ? new Date(v).toLocaleDateString("en-GB", { day: "2-di
 
 export default function DepartmentPage() {
   usePageTitle("Department");
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: "", address: "", description: "" });
@@ -44,12 +46,23 @@ export default function DepartmentPage() {
     catch (e) { toast.error(e.response?.data?.error || "Failed to delete"); }
   };
 
+  // Name and employee-count both drill into the department's detail page, which
+  // lists the staff assigned to it.
+  const openDetail = (r) => navigate(`/employee/departments/${r.id}`);
+
   const columns = [
-    { key: "name", label: "Name", render: (v) => <span className="font-semibold text-slate-800">{v}</span> },
-    { key: "employees", label: "Employees", sortable: false, render: (v) => <Badge variant="info">{v?.length ?? 0}</Badge> },
+    { key: "name", label: "Name", render: (v, r) => (
+        <button onClick={() => openDetail(r)} className="font-semibold text-indigo-600 hover:underline text-left">{v}</button>
+      ) },
+    { key: "employees", label: "Employees", sortable: false, render: (v, r) => (
+        <button onClick={() => openDetail(r)} title="View employees"><Badge variant="info">{v?.length ?? 0}</Badge></button>
+      ) },
     { key: "createdAt", label: "Create Date", render: (v) => fmtDate(v) },
     { key: "actions", label: "", sortable: false, render: (_v, r) => (
-        <button onClick={() => remove(r)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 size={13} /></button>
+        <div className="flex items-center gap-1">
+          <button onClick={() => openDetail(r)} title="View details" className="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-500"><Eye size={13} /></button>
+          <button onClick={() => remove(r)} title="Delete" className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 size={13} /></button>
+        </div>
       ) },
   ];
 

@@ -2,7 +2,7 @@
  * Result Management → View Report Card
  * Lists generated report cards for a section+term; view/print each as a PDF.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, EmptyState, Skeleton, Badge } from "../../components/ui";
 import { FileText, Printer } from "lucide-react";
@@ -11,7 +11,11 @@ import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attenda
 import { useGetExamsQuery } from "../../redux/api/examMgmtApi";
 import { useListReportCardsQuery } from "../../redux/api/resultMgmtApi";
 import { getSchool } from "../../utils/printPdf";
-import { sessionOptions, classOptions, sectionOptions, examOptions } from "./_rmShared";
+import { sessionOptions, classOptions, sectionOptions, examOptions, StudentSearchBar, studentMatches, emptyStudentFilter } from "./_rmShared";
+
+// Normalize a stored report card into the { id, name, rollNumber, … } shape the
+// shared student search bar / matcher expects (id = card id).
+const cardStudent = (c) => ({ id: c.id, name: c.data?.student?.name, rollNumber: c.data?.student?.rollNumber, registrationNo: c.data?.student?.registrationNo });
 
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
@@ -65,6 +69,10 @@ export default function ViewReportCardPage() {
   const term = exams.find((e) => e.id === examId)?.name || "";
   const { data: cards = [], isFetching } = useListReportCardsQuery({ sectionId, academicYearId, term }, { skip: !sectionId || !term });
 
+  const [sf, setSf] = useState(emptyStudentFilter);
+  useEffect(() => { setSf(emptyStudentFilter); }, [sectionId, term]);
+  const visibleCards = cards.filter((c) => studentMatches(sf, cardStudent(c)));
+
   return (
     <div className="space-y-4">
       <PageHeader title="View Report Card" subtitle="Generated report cards" icon={<FileText size={18} />} />
@@ -85,8 +93,9 @@ export default function ViewReportCardPage() {
         <Card noPadding><EmptyState icon="📭" title="No report cards" description="Generate them under Generate Report Card first." /></Card>
       ) : (
         <Card noPadding title={`Report Cards (${cards.length})`}>
+          <StudentSearchBar students={cards.map(cardStudent)} value={sf} onChange={setSf} />
           <div className="divide-y divide-slate-100">
-            {cards.map((c) => (
+            {visibleCards.map((c) => (
               <div key={c.id} className="flex items-center justify-between px-4 py-2.5">
                 <div>
                   <p className="font-medium text-slate-700 text-[13px]">{c.data?.student?.name}</p>
@@ -98,6 +107,7 @@ export default function ViewReportCardPage() {
                 </div>
               </div>
             ))}
+            {visibleCards.length === 0 && <div className="px-4 py-8 text-center text-slate-400">No report cards match your search.</div>}
           </div>
         </Card>
       )}

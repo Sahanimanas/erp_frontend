@@ -161,7 +161,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="w-full">
       <PageHeader title="My Profile" subtitle="Account" icon={<UserCog size={18} />}>
         {canEditSchool && !loading && !error && (
           <Button icon={<Pencil size={14} />} onClick={openEdit}>Edit School Info</Button>
@@ -214,7 +214,7 @@ export default function ProfilePage() {
                 <Badge variant="success" className="mt-1">{user?.role}</Badge>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pt-5">
               {fields.map(([label, value]) => (
                 <div key={label} className="bg-slate-50 rounded-lg px-3 py-2.5 flex flex-col">
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide leading-4">{label}</span>

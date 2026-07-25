@@ -98,11 +98,18 @@ export function Card({ children, className = "", title, subtitle, action, noPadd
 // ─────────────────────────────────────────────────────────────────────────────
 // STAT CARD
 // ─────────────────────────────────────────────────────────────────────────────
-export function StatCard({ label, value, icon: Icon, gradient, change, sparkData = [] }) {
+export function StatCard({ label, value, icon: Icon, gradient, change, sparkData = [], onClick }) {
   const isPos = change >= 0;
   const maxSp = Math.max(...sparkData, 1);
+  // When `onClick` is supplied the whole card becomes a button so it's keyboard
+  // reachable — otherwise it stays a plain, non-interactive div.
+  const Wrapper = onClick ? "button" : "div";
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow group cursor-default">
+    <Wrapper
+      {...(onClick ? { type: "button", onClick } : {})}
+      className={`w-full text-left bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow group
+        ${onClick ? "cursor-pointer hover:border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-400" : "cursor-default"}`}
+    >
       <div className="flex items-start justify-between mb-2">
         <div>
           <p className="text-[11px] text-slate-500 font-medium mb-1">{label}</p>
@@ -131,7 +138,7 @@ export function StatCard({ label, value, icon: Icon, gradient, change, sparkData
           ))}
         </div>
       )}
-    </div>
+    </Wrapper>
   );
 }
 

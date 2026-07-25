@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import {
   Card, DataTable, Pagination, SearchInput, Select, Button, Modal, Input, Badge, PageHeader, SummaryCards,
 } from "../../components/ui";
-import { Plus, Trash2, GraduationCap, UserCheck, Download } from "lucide-react";
+import { Plus, Trash2, GraduationCap, UserCheck, Download, Eye } from "lucide-react";
 import { exportRows } from "../../utils/exportExcel";
 import {
   useGetEnquiriesQuery, useGetEnquiryStatsQuery, useCreateEnquiryMutation,
@@ -29,12 +29,33 @@ const CLASS_OPTS = ["Nursery", "LKG", "UKG", ...Array.from({ length: 12 }, (_, i
 
 const EMPTY = { studentName: "", parentName: "", phone: "", email: "", classApplying: "", gender: "", dateOfBirth: "", source: "Walk-in", reference: "", followUpDate: "", notes: "" };
 
+const PHONE_RE = /^[0-9]{10}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
+/**
+ * Field-level validation for the enquiry form. Phone must be exactly 10 digits
+ * and email (optional) must look like a real address. Returns a { field: msg }
+ * map — empty when the form is valid.
+ */
+function validateEnquiry(form) {
+  const errs = {};
+  if (!form.studentName.trim()) errs.studentName = "Student name is required";
+  const phone = form.phone.trim();
+  if (!phone) errs.phone = "Phone number is required";
+  else if (!PHONE_RE.test(phone)) errs.phone = "Phone number must be exactly 10 digits";
+  const email = form.email.trim();
+  if (email && !EMAIL_RE.test(email)) errs.email = "Enter a valid email address (e.g. name@example.com)";
+  return errs;
+}
+
 export function EnquiryBoard({ title, subtitle, icon, statuses, showStats = false, allowAdd = true }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState(statuses?.length === 1 ? statuses[0] : "");
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(EMPTY);
+  const [errors, setErrors] = useState({});
+  const [viewing, setViewing] = useState(null); // the enquiry shown in the detail modal
 
   // When a page is locked to specific funnel stages, pass the single status to
   // the API; for multi-stage pages we filter client-side after fetch.
@@ -56,14 +77,33 @@ export function EnquiryBoard({ title, subtitle, icon, statuses, showStats = fals
   if (statuses?.length > 1) rows = rows.filter((r) => statuses.includes(r.status));
   const total = statuses?.length > 1 ? rows.length : (data?.pagination?.total ?? 0);
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k) => (e) => {
+    // Phone is numeric-only and capped at 10 digits at the keystroke level, so an
+    // invalid value can't be typed in the first place.
+    const raw = e.target.value;
+    const value = k === "phone" ? raw.replace(/\D/g, "").slice(0, 10) : raw;
+    setForm((f) => ({ ...f, [k]: value }));
+    setErrors((prev) => (prev[k] ? { ...prev, [k]: undefined } : prev));
+  };
+
+  const closeAdd = () => { setAdding(false); setForm(EMPTY); setErrors({}); };
 
   const submit = async () => {
-    if (!form.studentName || !form.phone) { toast.error("Student name and phone are required"); return; }
+    const errs = validateEnquiry(form);
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      toast.error(Object.values(errs)[0]);
+      return;
+    }
     try {
-      await createEnquiry({ ...form, status: statuses?.length === 1 ? statuses[0] : "ENQUIRY" }).unwrap();
+      await createEnquiry({
+        ...form,
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        status: statuses?.length === 1 ? statuses[0] : "ENQUIRY",
+      }).unwrap();
       toast.success("Enquiry added");
-      setAdding(false); setForm(EMPTY);
+      closeAdd();
     } catch (e) { toast.error(e?.data?.error || "Failed to add enquiry"); }
   };
 
@@ -109,6 +149,7 @@ export function EnquiryBoard({ title, subtitle, icon, statuses, showStats = fals
     { key: "createdAt", label: "Date", render: (v) => fmtDate(v) },
     { key: "actions", label: "", sortable: false, render: (_v, r) => (
         <div className="flex items-center gap-1.5 justify-end">
+          <button onClick={() => setViewing(r)} title="View full details" className="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-600"><Eye size={13} /></button>
           {r.status !== "ADMITTED" && (
             <button onClick={() => openAdmit(r)} title="Admit as student" className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600"><UserCheck size={13} /></button>
           )}
@@ -159,12 +200,15 @@ export function EnquiryBoard({ title, subtitle, icon, statuses, showStats = fals
         {(!statuses || statuses.length === 1) && <Pagination page={page} total={total} pageSize={10} onPageChange={setPage} />}
       </Card>
 
-      <Modal open={adding} onClose={() => setAdding(false)} title="New Admission Enquiry" size="lg">
+      <Modal open={adding} onClose={closeAdd} title="New Admission Enquiry" size="lg">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label="Student Name *" value={form.studentName} onChange={set("studentName")} />
+          <Input label="Student Name *" value={form.studentName} onChange={set("studentName")} error={errors.studentName} />
           <Input label="Parent / Guardian" value={form.parentName} onChange={set("parentName")} />
-          <Input label="Phone *" value={form.phone} onChange={set("phone")} />
-          <Input label="Email" type="email" value={form.email} onChange={set("email")} />
+          <Input
+            label="Phone *" value={form.phone} onChange={set("phone")} error={errors.phone}
+            type="tel" inputMode="numeric" maxLength={10} placeholder="10-digit mobile number"
+          />
+          <Input label="Email" type="email" value={form.email} onChange={set("email")} error={errors.email} placeholder="name@example.com" />
           <Select label="Class Applying" value={form.classApplying} onChange={set("classApplying")}
             options={[{ value: "", label: "Select…" }, ...CLASS_OPTS.map((c) => ({ value: c, label: c }))]} />
           <Select label="Gender" value={form.gender} onChange={set("gender")}
@@ -177,10 +221,18 @@ export function EnquiryBoard({ title, subtitle, icon, statuses, showStats = fals
           <Input label="Notes" value={form.notes} onChange={set("notes")} className="md:col-span-2" />
         </div>
         <div className="flex justify-end gap-2 mt-5">
-          <Button variant="secondary" onClick={() => setAdding(false)}>Cancel</Button>
+          <Button variant="secondary" onClick={closeAdd}>Cancel</Button>
           <Button loading={creating} onClick={submit}>Save Enquiry</Button>
         </div>
       </Modal>
+
+      {/* Full detail of a single enquiry (eye button) */}
+      <EnquiryDetailModal
+        enquiry={viewing}
+        onClose={() => setViewing(null)}
+        onAdmit={(row) => { setViewing(null); openAdmit(row); }}
+      />
+
 
       {/* Admit → create a real Student from this enquiry */}
       <Modal open={!!admit} onClose={() => setAdmit(null)} title={`Admit ${admit?.studentName ?? ""}`} size="md">
@@ -200,5 +252,97 @@ export function EnquiryBoard({ title, subtitle, icon, statuses, showStats = fals
         </div>
       </Modal>
     </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * ENQUIRY DETAIL MODAL — read-only view of every field on one enquiry.
+ * The list endpoint already returns the full record, so the row we were given
+ * is all the data we need (no extra fetch).
+ * ──────────────────────────────────────────────────────────────────────────── */
+const fmtDateTime = (v) => (v
+  ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+  : "—");
+
+function Field({ label, value, className = "" }) {
+  return (
+    <div className={className}>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
+      <p className="text-[13px] text-slate-800 mt-0.5 break-words">{value || "—"}</p>
+    </div>
+  );
+}
+
+export function EnquiryDetailModal({ enquiry: e, onClose, onAdmit }) {
+  return (
+    <Modal open={!!e} onClose={onClose} title="Enquiry Details" size="lg">
+      {e && (
+        <div className="space-y-5">
+          {/* Header block: name, stage, registration no. */}
+          <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
+            <div>
+              <h3 className="text-[15px] font-bold text-slate-800">{e.studentName}</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Enquiry received {fmtDate(e.createdAt)}
+                {e.registrationNo && <> · Reg. No <span className="font-mono text-indigo-600">{e.registrationNo}</span></>}
+              </p>
+            </div>
+            <AdmissionStatusBadge status={e.status} />
+          </div>
+
+          <div>
+            <p className="text-[11px] font-bold text-slate-500 mb-2">Applicant</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Field label="Student Name" value={e.studentName} />
+              <Field label="Gender" value={e.gender} />
+              <Field label="Date of Birth" value={e.dateOfBirth ? fmtDate(e.dateOfBirth) : ""} />
+              <Field label="Class Applying" value={e.classApplying} />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-bold text-slate-500 mb-2">Contact</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Field label="Parent / Guardian" value={e.parentName} />
+              <Field
+                label="Phone"
+                value={e.phone ? <a href={`tel:${e.phone}`} className="font-mono text-indigo-600 hover:underline">{e.phone}</a> : ""}
+              />
+              <Field
+                label="Email"
+                value={e.email ? <a href={`mailto:${e.email}`} className="text-indigo-600 hover:underline">{e.email}</a> : ""}
+              />
+              <Field label="Address" value={e.address} className="col-span-2 md:col-span-3" />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-bold text-slate-500 mb-2">Enquiry Tracking</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Field label="Source" value={e.source} />
+              <Field label="Reference" value={e.reference} />
+              <Field label="Follow-up Date" value={e.followUpDate ? fmtDate(e.followUpDate) : ""} />
+              <Field label="Stage" value={e.status} />
+              <Field label="Created" value={fmtDateTime(e.createdAt)} />
+              <Field label="Last Updated" value={fmtDateTime(e.updatedAt)} />
+              <Field label="Notes" value={e.notes} className="col-span-2 md:col-span-3" />
+            </div>
+          </div>
+
+          {e.admittedStudentId && (
+            <p className="text-[12px] text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
+              Admitted as a student — this applicant now has a Student record.
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            {onAdmit && e.status !== "ADMITTED" && (
+              <Button variant="success" icon={<UserCheck size={15} />} onClick={() => onAdmit(e)}>Admit as Student</Button>
+            )}
+            <Button variant="secondary" onClick={onClose}>Close</Button>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }

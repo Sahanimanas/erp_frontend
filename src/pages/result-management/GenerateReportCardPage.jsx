@@ -3,7 +3,7 @@
  * Aggregates an exam's marks + non-subjects + remark into a stored report card
  * per student (Class-Wise or a single student). View / Publish read these.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Select, Skeleton } from "../../components/ui";
@@ -11,8 +11,8 @@ import { FileBadge, Sparkles, CheckCircle2 } from "lucide-react";
 import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetExamsQuery } from "../../redux/api/examMgmtApi";
-import { useGenerateReportCardsMutation } from "../../redux/api/resultMgmtApi";
-import { sessionOptions, classOptions, sectionOptions, examOptions } from "./_rmShared";
+import { useGenerateReportCardsMutation, useGetExamPublishStatusQuery } from "../../redux/api/resultMgmtApi";
+import { sessionOptions, classOptions, sectionOptions, examOptions, StudentSearchBar, emptyStudentFilter } from "./_rmShared";
 
 export default function GenerateReportCardPage() {
   usePageTitle("Generate Report Card");
@@ -22,6 +22,7 @@ export default function GenerateReportCardPage() {
   const [sectionId, setSectionId] = useState("");
   const [examId, setExamId] = useState("");
   const [done, setDone] = useState(null);
+  const [sf, setSf] = useState(emptyStudentFilter); // for "particular student" mode
 
   const { data: sessions = [] } = useGetSessionsQuery();
   const { data: classes = [] } = useGetClassesQuery();
@@ -29,12 +30,20 @@ export default function GenerateReportCardPage() {
   const { data: exams = [] } = useGetExamsQuery({ academicYearId });
   const [generate, { isLoading }] = useGenerateReportCardsMutation();
 
+  // Students of the chosen section (for the single-student picker). Reuses the
+  // publish-status endpoint, which returns the section roster for the exam.
+  const { data: status } = useGetExamPublishStatusQuery({ examId, sectionId }, { skip: !(examId && sectionId) });
+  const students = status?.students || [];
+
   const examName = exams.find((e) => e.id === examId)?.name || "";
+
+  useEffect(() => { setSf(emptyStudentFilter); }, [sectionId, examId, mode]);
 
   const submit = async () => {
     if (!sectionId || !examId) return toast.error("Select section and exam term");
+    if (mode === "student" && !sf.id) return toast.error("Select a student");
     try {
-      const res = await generate({ academicYearId, sectionId, examId, term: examName }).unwrap();
+      const res = await generate({ academicYearId, sectionId, examId, term: examName, studentId: mode === "student" ? sf.id : undefined }).unwrap();
       setDone(res);
       toast.success(res.message || "Generated");
     } catch (e) { toast.error(e?.data?.error || "Failed to generate"); }
@@ -56,6 +65,15 @@ export default function GenerateReportCardPage() {
             <Select label="Class (Year/Semester) *" value={sectionId} onChange={(e) => setSectionId(e.target.value)} disabled={!classId} options={sectionOptions(sections)} />
             <Select label="Exam Term *" value={examId} onChange={(e) => setExamId(e.target.value)} options={examOptions(exams)} />
           </div>
+          {mode === "student" && (
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+              {sectionId && examId ? (
+                <StudentSearchBar students={students} value={sf} onChange={setSf} placeholder="Search the student to generate for…" />
+              ) : (
+                <p className="px-4 py-3 text-[12.5px] text-slate-400">Select a class, section and exam term to pick a student.</p>
+              )}
+            </div>
+          )}
           <div className="flex justify-end">
             <Button icon={<Sparkles size={14} />} loading={isLoading} onClick={submit}>Generate Report Card</Button>
           </div>
