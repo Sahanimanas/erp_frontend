@@ -147,16 +147,19 @@ export function StatCard({ label, value, icon: Icon, gradient, change, sparkData
 // ─────────────────────────────────────────────────────────────────────────────
 export function PageHeader({ title, subtitle, icon, children }) {
   return (
-    <div className="flex items-center justify-between mb-5">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-4">
         {icon && (
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+          // Pages pass their own icon at assorted sizes (14–20px); normalise to
+          // 22px here so every page header badge matches without touching all
+          // ~177 call sites.
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0 [&_svg]:w-[22px] [&_svg]:h-[22px]">
             {icon}
           </div>
         )}
         <div>
-          <h1 className="text-[15px] font-bold text-slate-800">{title}</h1>
-          {subtitle && <p className="text-[11px] text-slate-400 mt-0.5">{subtitle}</p>}
+          <h1 className="text-[22px] leading-tight font-bold text-slate-800">{title}</h1>
+          {subtitle && <p className="text-[13px] text-slate-500 mt-1">{subtitle}</p>}
         </div>
       </div>
       {children && <div className="flex items-center gap-2">{children}</div>}

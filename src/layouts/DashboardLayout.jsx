@@ -3,25 +3,25 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * The shell that wraps every authenticated page:
  *
- *   ┌─────────────────────────────────────────────┐
- *   │  Sidebar  │  Topbar                         │
- *   │           │─────────────────────────────────│
- *   │           │  <Outlet />  (page content)      │
- *   └─────────────────────────────────────────────┘
+ *   ┌───────────┬─────────────────────────────────┐
+ *   │  Sidebar  │  <Outlet />  (page content)     │
+ *   └───────────┴─────────────────────────────────┘
+ *
+ * There is deliberately NO top bar: the brand and the menu toggle live inside
+ * the sidebar, so page content keeps the full viewport height.
  *
  * Sidebar width transitions via CSS class (not inline style) so Tailwind
  * JIT can purge unused classes correctly.
  */
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { Menu, GraduationCap } from "lucide-react";
-import { selectSidebarCollapsed, setMobileOpen } from "../redux/slices/uiSlice";
+import { useDispatch } from "react-redux";
+import { Menu } from "lucide-react";
+import { setMobileOpen } from "../redux/slices/uiSlice";
 import Sidebar from "../components/sidebar/Sidebar";
 
 export default function DashboardLayout() {
-  const dispatch         = useDispatch();
-  const sidebarCollapsed = useSelector(selectSidebarCollapsed);
+  const dispatch = useDispatch();
   const [mobileSidebarOpen, setMobileSidebarOpenState] = useState(false);
 
   const openMobile  = () => { setMobileSidebarOpenState(true);  dispatch(setMobileOpen(true)); };
@@ -45,29 +45,23 @@ export default function DashboardLayout() {
         onMobileClose={closeMobile}
       />
 
-      {/* ── Main area ──────────────────────────────────────────────────── */}
-      <div
-        className={`
-          flex flex-col flex-1 min-w-0 overflow-hidden
-          transition-all duration-300
-        `}
-      >
-        {/* Mobile-only top bar — opens the sidebar drawer. Hidden on desktop,
-            where the page content fills the area beside the always-visible sidebar. */}
-        <header className="lg:hidden flex items-center gap-3 h-14 px-4 bg-[#0f172a] text-white shrink-0">
-          <button onClick={openMobile} aria-label="Open menu" className="p-1.5 -ml-1 rounded-lg hover:bg-white/10">
-            <Menu size={20} />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-              <GraduationCap size={15} className="text-white" />
-            </div>
-            <span className="font-bold text-[13px] tracking-wide">GlobalSchoolMitra</span>
-          </div>
-        </header>
+      {/* Mobile-only floating menu button. The sidebar is off-screen on mobile,
+          so without this there is no way to open it — but it FLOATS over the
+          content instead of being a bar, so it costs the page no height. */}
+      {!mobileSidebarOpen && (
+        <button
+          onClick={openMobile}
+          aria-label="Open menu"
+          className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg bg-white text-slate-700 border border-slate-200 shadow-md hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+        >
+          <Menu size={20} />
+        </button>
+      )}
 
+      {/* ── Main area ──────────────────────────────────────────────────── */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden transition-all duration-300">
         <main
-          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
+          className="flex-1 overflow-y-auto p-4 pt-16 sm:p-6 sm:pt-16 lg:p-8"
           id="main-content"
         >
           {/* `min-h-full flex flex-col` lets a page stretch to the full viewport
