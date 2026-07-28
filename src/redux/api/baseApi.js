@@ -116,6 +116,9 @@ export const baseApi = createApi({
     "Academic", "Sessions",
     // Fee management
     "FeeType", "FeeStructure", "TransportRoute",
+    // Transport management (TransportRoute above is shared with Fee Management)
+    "TransportVehicle", "TransportDriver", "TransportStoppage",
+    "RouteStoppage", "StudentRoute",
     // Payments
     "Ledger", "PaymentHistory", "LateFeeRule",
     // Exam management

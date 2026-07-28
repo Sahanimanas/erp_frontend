@@ -94,16 +94,6 @@ export const MODULE_PRIVILEGE = {
 };
 
 /**
- * The privileges a Designation can actually grant — i.e. the DISTINCT set of
- * sidebar modules that are privilege-gated (the values of MODULE_PRIVILEGE),
- * in first-seen order. `canAccessSection` only ever checks these labels, so
- * deriving the Designation checklist from here guarantees every option maps to
- * a real, visible sidebar module: no dummy/inactive entries, none missing, and
- * it stays in sync automatically when the sidebar/gating map changes.
- */
-export const DESIGNATION_PRIVILEGES = [...new Set(Object.values(MODULE_PRIVILEGE))];
-
-/**
  * Whether a user with `permissions` (their designation's privilege list, or
  * null/undefined when they have no designation) may see the section `key`.
  * Privilege-exempt roles and unmapped sections are always allowed.
@@ -353,8 +343,10 @@ export const routeConfig = [
   },
 
   // ── Live Class Rooms ──────────────────────────────────────────────────────
+  // Hidden from the sidebar (still routable by direct URL).
   {
     key: "live-rooms",
+    hidden: true,
     label: "Live Class Rooms",
     path: "/live",
     icon: "Monitor",
@@ -366,8 +358,10 @@ export const routeConfig = [
   },
 
   // ── Homework ──────────────────────────────────────────────────────────────
+  // Hidden from the sidebar (still routable by direct URL).
   {
     key: "homework",
+    hidden: true,
     label: "Homework",
     path: "/homework",
     icon: "PenTool",
@@ -616,7 +610,10 @@ export const routeConfig = [
       { key: "fm-class-type",     label: "Class Fee Type",      path: "/fee-management/class-fee-type",     icon: "Receipt",   lazy: lazy("fee-management/ClassFeeTypePage"),      roles: ADMIN_ONLY },
       { key: "fm-manage",         label: "Manage Class Fee",    path: "/fee-management/manage-class-fee",   icon: "Wallet",    lazy: lazy("fee-management/ManageClassFeePage"),    roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
       { key: "fm-structure",      label: "Class Fee Structure", path: "/fee-management/class-fee-structure",icon: "FileText",  lazy: lazy("fee-management/ClassFeeStructurePage"), roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
-      { key: "fm-route-fee",      label: "Transport Fee Manage",path: "/fee-management/transport-route-fee",icon: "Bus",       lazy: lazy("fee-management/TransportRouteFeePage"), roles: ADMIN_ONLY },
+      // Transport routes + their monthly fee moved to Transport → Manage
+      // Transport Route (one place to manage a route). Kept routable so old
+      // links/bookmarks don't 404.
+      { key: "fm-route-fee",      label: "Transport Fee Manage",path: "/fee-management/transport-route-fee",icon: "Bus",       lazy: lazy("fee-management/TransportRouteFeePage"), roles: ADMIN_ONLY, hidden: true },
       { key: "fm-summary",        label: "Class Fee Summary",   path: "/fee-management/class-fee-summary",  icon: "PieChart",  lazy: lazy("fee-management/ClassFeeSummaryPage"),   roles: [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT] },
     ],
   },
@@ -695,6 +692,10 @@ export const routeConfig = [
   },
 
   // ── Transport ─────────────────────────────────────────────────────────────
+  // Routes here are the SAME TransportRoute records Fee Management edits: this
+  // section owns the operational detail, Fee Management → Transport Fee Manage
+  // owns the monthly fee. Child order follows the operational flow:
+  // fleet → drivers → stops → routes → stops on a route → students on a route.
   {
     key: "transport",
     label: "Transport",
@@ -702,9 +703,13 @@ export const routeConfig = [
     icon: "Truck",
     roles: ADMIN_ONLY,
     children: [
-      { key: "transport-routes",  label: "Bus Routes",   path: "/transport/routes",   icon: "Map",      lazy: lazy("transport/RoutesPage"),   roles: ADMIN_ONLY },
-      { key: "transport-drivers", label: "Drivers",      path: "/transport/drivers",  icon: "User",     lazy: lazy("transport/DriversPage"),  roles: ADMIN_ONLY },
-      { key: "transport-assign",  label: "Assignment",   path: "/transport/assign",   icon: "UserCheck",lazy: lazy("transport/AssignPage"),   roles: ADMIN_ONLY },
+      { key: "transport-vehicles",  label: "Manage Vehicle Detail",   path: "/transport/vehicles",         icon: "Bus",         lazy: lazy("transport/ManageVehiclePage"),          roles: ADMIN_ONLY },
+      { key: "transport-drivers",   label: "Manage Driver Detail",    path: "/transport/drivers",          icon: "UserCog",     lazy: lazy("transport/ManageDriverPage"),           roles: ADMIN_ONLY },
+      { key: "transport-stoppages", label: "Manage Stoppage",         path: "/transport/stoppages",        icon: "MapPin",      lazy: lazy("transport/ManageStoppagePage"),         roles: ADMIN_ONLY },
+      { key: "transport-routes",    label: "Manage Transport Route",  path: "/transport/routes",           icon: "Map",         lazy: lazy("transport/ManageTransportRoutePage"),   roles: ADMIN_ONLY },
+      { key: "transport-rs",        label: "Assign Stoppage To Route",path: "/transport/assign-stoppage",  icon: "MapPinned",   lazy: lazy("transport/AssignStoppageToRoutePage"),  roles: ADMIN_ONLY },
+      { key: "transport-assign",    label: "Assign Student To Route", path: "/transport/assign-student",   icon: "UsersRound",  lazy: lazy("transport/AssignStudentToRoutePage"),   roles: ADMIN_ONLY },
+      { key: "transport-report",    label: "Student Transport Report",path: "/transport/student-report",   icon: "ClipboardList",lazy: lazy("transport/StudentTransportReportPage"),roles: ALL_STAFF },
     ],
   },
 
@@ -737,8 +742,10 @@ export const routeConfig = [
   },
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  // Hidden from the sidebar (still routable by direct URL).
     {
     key: "settings",
+    hidden: true,
     label: "Settings",
     path: "/settings",
     icon: "Settings",
@@ -775,6 +782,25 @@ export const routeConfig = [
       { key: "account-pass",    label: "Change Password", path: "/account/password", icon: "Lock",   lazy: lazy("auth/ChangePasswordPage"),roles: ALL_ROLES },
     ],
   },
+];
+
+/**
+ * The privileges a Designation can actually grant — the DISTINCT set of
+ * privilege labels (values of MODULE_PRIVILEGE) that gate a section actually
+ * VISIBLE in the sidebar, in first-seen order.
+ *
+ * Derived from routeConfig rather than straight from MODULE_PRIVILEGE so that
+ * hiding a section removes its privilege from the Designation checklist
+ * automatically — no dummy options for modules nobody can see — while the
+ * section keeps its MODULE_PRIVILEGE entry, so `canAccessSection` still guards
+ * its routes in RoleRoute. Defined after routeConfig because it reads it.
+ */
+export const DESIGNATION_PRIVILEGES = [
+  ...new Set(
+    routeConfig
+      .filter((section) => !section.hidden && MODULE_PRIVILEGE[section.key])
+      .map((section) => MODULE_PRIVILEGE[section.key])
+  ),
 ];
 
 // ─── Auth routes (outside dashboard layout) ───────────────────────────────

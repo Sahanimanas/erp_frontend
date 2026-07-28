@@ -14,7 +14,9 @@ import { UserPlus, Save, Camera, X, Plus, Trash2, Upload, FileText, FileDown, Sw
 import { useCreateStudentMutation, useUpdateStudentMutation, useGetStudentQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
 import { useGetSessionsQuery } from "../../redux/api/academicApi";
-import { useGetRoutesQuery } from "../../redux/api/feeMgmtApi";
+// Routes come from Transport Management — the one place they're created, along
+// with the monthly fee shown against each option below.
+import { useGetTransportRoutesQuery } from "../../redux/api/transportApi";
 import { academicMonths } from "../fee-management/_feeShared";
 import { uploadImageFile, uploadDocumentFile } from "../../services/upload";
 import { printRecord, printCurrentPage } from "../../utils/printPdf";
@@ -105,7 +107,10 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
   const { data: classes = [] } = useGetClassesQuery();
   // Transport routes (with monthly fee) feed the route dropdown; the chosen
   // route's fee × selected months is billed through the fee ledger.
-  const { data: routes = [] } = useGetRoutesQuery();
+  const { data: allRoutes = [] } = useGetTransportRoutesQuery();
+  // Disabled routes stay in the DB (existing riders keep billing) but must not
+  // be offered for new assignments.
+  const routes = allRoutes.filter((r) => r.enabled !== false);
   const TRANSPORT_MONTHS = academicMonths();
   // Sessions configured under Settings → Sessions feed this dropdown; fall back to
   // the computed Apr–Mar defaults when none have been set up yet.
@@ -537,8 +542,11 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
               Transport Required
             </label>
             <Select label="Transport Route" value={form.transportRoute} onChange={set("transportRoute")} disabled={!form.transportAllotted}
-              options={[{ value: "", label: routes.length ? "Select Route" : "No routes — add under Fee Management" },
-                ...routes.map((r) => ({ value: r.name, label: `${r.name} — ₹${Number(r.fee || 0).toLocaleString("en-IN")}/mo` }))]} />
+              options={[{ value: "", label: routes.length ? "Select Route" : "No routes — add under Transport → Manage Transport Route" },
+                ...routes.map((r) => ({
+                  value: r.name,
+                  label: `${r.name}${r.routeFrom && r.routeTo ? ` (${r.routeFrom} → ${r.routeTo})` : ""} — ₹${Number(r.fee || 0).toLocaleString("en-IN")}/mo`,
+                }))]} />
             <Input label="Bus No" value={form.busNo} onChange={set("busNo")} placeholder="Bus Number" disabled={!form.transportAllotted} />
           </div>
 
