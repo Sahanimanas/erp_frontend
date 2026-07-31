@@ -15,8 +15,8 @@ import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  selectSidebarCollapsed, selectExpandedSections,
-  toggleSidebar, toggleSection, openSection,
+  selectSidebarCollapsed, selectExpandedSections, selectDarkMode,
+  toggleSidebar, toggleSection, openSection, toggleDarkMode,
 } from "../../redux/slices/uiSlice";
 import { selectUserRole, selectUser, selectUserPermissions, logout } from "../../redux/slices/authSlice";
 import { routeConfig, canAccessSection } from "../../routes/routeConfig";
@@ -28,6 +28,27 @@ function Icon({ name, size = 16, className = "" }) {
   const LucideIcon = Icons[name];
   if (!LucideIcon) return null;
   return <LucideIcon size={size} className={className} />;
+}
+
+// ─── Sidebar-only dark/light toggle ────────────────────────────────────────
+// Flips uiSlice.darkMode, which puts the `dark` class on this sidebar's <aside>
+// (not on <html>), so the theme change is confined to the sidebar.
+function ThemeToggle({ dark, onToggle }) {
+  const label = dark ? "Switch sidebar to light theme" : "Switch sidebar to dark theme";
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={label}
+      aria-label={label}
+      aria-pressed={dark}
+      className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50
+                 dark:text-slate-400 dark:hover:text-amber-300 dark:hover:bg-slate-800
+                 transition-colors shrink-0"
+    >
+      {dark ? <Icons.Sun size={16} /> : <Icons.Moon size={16} />}
+    </button>
+  );
 }
 
 // ─── Nav leaf item (link) ──────────────────────────────────────────────────
@@ -45,7 +66,7 @@ function NavLeaf({ item, collapsed, onNavigate, dim = false }) {
          ${collapsed ? "justify-center px-0" : "gap-3.5 px-3.5"}
          ${active
            ? "bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 text-white font-bold border-indigo-500 shadow-sm"
-           : "text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 border-slate-200"
+           : "text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 border-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-300 dark:border-slate-700"
          }`;
       }}
       title={collapsed ? item.label : undefined}
@@ -95,7 +116,7 @@ function NavParent({ item, collapsed, onNavigate }) {
           ${collapsed ? "justify-center px-0" : "gap-3.5 px-3.5"}
           ${isExpanded || isParentActive
             ? "bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 text-white font-bold border-indigo-500 shadow-sm"
-            : "text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 border-slate-200"
+            : "text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 border-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-300 dark:border-slate-700"
           }
         `}
         title={collapsed ? item.label : undefined}
@@ -127,7 +148,7 @@ function NavParent({ item, collapsed, onNavigate }) {
           {/* Open submenu: flat desktop-menu style — one shaded panel, rows
               flush against each other with no pills, borders or gaps. The row
               itself is the hover/active target, edge to edge. */}
-          <div className="-mx-2.5 mt-1 bg-indigo-50 border-y border-indigo-100 py-1">
+          <div className="-mx-2.5 mt-1 bg-indigo-50 border-y border-indigo-100 py-1 dark:bg-slate-950/60 dark:border-slate-800">
             {item.children
               .filter((c) => !c.hidden)
               .map((child) => (
@@ -140,7 +161,7 @@ function NavParent({ item, collapsed, onNavigate }) {
                     `flex items-center gap-3 pl-6 pr-3 py-2 text-[13.5px] font-bold transition-colors duration-100
                      ${isActive
                        ? "bg-indigo-600 text-white"
-                       : "text-slate-700 hover:bg-indigo-100 hover:text-indigo-800"
+                       : "text-slate-700 hover:bg-indigo-100 hover:text-indigo-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
                      }`
                   }
                 >
@@ -171,6 +192,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     return () => mq.removeEventListener("change", apply);
   }, []);
   const collapsed        = isMobile ? false : collapsedPref;
+  // Sidebar-only dark theme: the `dark` class goes on the <aside> below, so every
+  // `dark:` variant in this file resolves inside the sidebar and nowhere else.
+  const darkMode         = useSelector(selectDarkMode);
   const expandedSections = useSelector(selectExpandedSections);
   // True once the user opens any expandable section — used to drop the Dashboard
   // highlight so two items aren't shown "selected" at the same time.
@@ -245,9 +269,12 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     // ("All Student Daily Attendance"); below it the nav gains an x-scrollbar.
     <aside
       className={`
+        ${/* `dark` marks the subtree; Tailwind's class strategy is a descendant
+             selector, so the <aside>'s own colours are set explicitly here. */
+           darkMode ? "dark bg-slate-900 border-slate-800" : "bg-white border-slate-200"}
         fixed lg:static inset-y-0 left-0 z-50
         flex flex-col shrink-0
-        bg-white border-r border-slate-200 shadow-sm
+        border-r shadow-sm
         transition-all duration-300 ease-in-out
         ${collapsed ? "w-[58px]" : "w-max min-w-[216px] max-w-[280px]"}
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -256,7 +283,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {/* ── Brand + menu toggle ──────────────────────────────────────── */}
       {/* Both live inside the sidebar so no top bar is needed and the page keeps
           its full height. */}
-      <div className="flex items-center justify-between h-14 px-3 border-b border-slate-200 shrink-0">
+      <div className="flex items-center justify-between h-14 px-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
             {logoOk ? (
@@ -268,7 +295,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
                 <Icons.GraduationCap size={16} className="text-white" />
               </div>
             )}
-            <span className="text-slate-900 font-bold text-[14px] tracking-wide truncate">{brandName}</span>
+            <span className="text-slate-900 dark:text-white font-bold text-[14px] tracking-wide truncate">{brandName}</span>
           </div>
         )}
         {collapsed && (
@@ -286,7 +313,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         {!collapsed && (
           <button
             onClick={() => dispatch(toggleSidebar())}
-            className="hidden lg:inline-flex text-red-600 hover:text-red-700 transition-colors p-1.5 rounded-md hover:bg-red-50 shrink-0"
+            className="hidden lg:inline-flex text-red-600 hover:text-red-700 transition-colors p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 dark:text-red-400 dark:hover:text-red-300 shrink-0"
             title="Close menu"
             aria-label="Close menu"
           >
@@ -299,7 +326,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {collapsed && (
         <button
           onClick={() => dispatch(toggleSidebar())}
-          className="flex items-center justify-center py-2.5 text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors border-b border-slate-200"
+          className="flex items-center justify-center py-2.5 text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-slate-300 dark:hover:text-indigo-300 dark:hover:bg-slate-800 transition-colors border-b border-slate-200 dark:border-slate-800"
           title="Open menu"
           aria-label="Open menu"
         >
@@ -308,9 +335,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       )}
 
       {/* ── Nav ──────────────────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+      <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent">
         {!collapsed && (
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">MAIN</p>
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2">MAIN</p>
         )}
 
         {visibleNav.map((item) =>
@@ -329,14 +356,15 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       </nav>
 
       {/* ── Profile + Logout ─────────────────────────────────────────── */}
-      <div className="p-2 border-t border-slate-200 shrink-0">
+      <div className="p-2 border-t border-slate-200 dark:border-slate-800 shrink-0">
         {collapsed ? (
           <div className="flex flex-col items-center gap-1.5">
             <NavLink to="/account/profile" title={user?.name || "My Profile"}
               className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold">
               {initials}
             </NavLink>
-            <button onClick={handleLogout} title="Logout" className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+            <ThemeToggle dark={darkMode} onToggle={() => dispatch(toggleDarkMode())} />
+            <button onClick={handleLogout} title="Logout" className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors">
               <Icons.LogOut size={16} />
             </button>
           </div>
@@ -344,17 +372,18 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
           <div className="flex items-center gap-2">
             {/* Profile — moved here from the top-right corner */}
             <NavLink to="/account/profile" onClick={onMobileClose}
-              className="flex-1 min-w-0 flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+              className="flex-1 min-w-0 flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
                 {initials}
               </div>
               <div className="min-w-0 text-left">
-                <p className="text-[12px] font-semibold text-slate-900 truncate">{user?.name || "User"}</p>
-                <p className="text-[10px] text-slate-500 truncate">{user?.role || ""}</p>
+                <p className="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">{user?.name || "User"}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user?.role || ""}</p>
               </div>
             </NavLink>
+            <ThemeToggle dark={darkMode} onToggle={() => dispatch(toggleDarkMode())} />
             <button onClick={handleLogout} title="Logout"
-              className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0">
+              className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors shrink-0">
               <Icons.LogOut size={16} />
             </button>
           </div>

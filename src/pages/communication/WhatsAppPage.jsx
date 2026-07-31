@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, Textarea, Badge } from "../../components/ui";
 import apiClient from "../../services/axios";
-import { MessageCircle, Send, Link2, LogOut, Paperclip, RefreshCw, Megaphone } from "lucide-react";
+import { MessageCircle, Send, Link2, LogOut, Paperclip, RefreshCw, Megaphone, AlertTriangle } from "lucide-react";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 
@@ -83,7 +83,9 @@ export default function WhatsAppPage() {
   return (
     <div>
       <PageHeader title="WhatsApp" subtitle="Link your number once and send messages & media to anyone" icon={<MessageCircle size={18} />}>
-        <Badge variant={STATUS_BADGE[state.status]} dot>{STATUS_LABEL[state.status]}</Badge>
+        {state.requiresRelink
+          ? <Badge variant="warning" dot>Relink needed</Badge>
+          : <Badge variant={STATUS_BADGE[state.status]} dot>{STATUS_LABEL[state.status]}</Badge>}
       </PageHeader>
 
       {toast && (
@@ -349,6 +351,22 @@ function ConnectionPanel({ state, busy, connected, onConnect, onLogout, onRefres
           <img src={state.qr} alt="WhatsApp QR" className="h-56 w-56 rounded-lg border border-slate-200" />
           <p className="text-xs text-slate-500">Waiting for you to scan… this refreshes automatically.</p>
           <Button size="sm" variant="secondary" icon={<RefreshCw size={12} />} onClick={onRefresh}>Refresh</Button>
+        </div>
+      ) : state.requiresRelink ? (
+        // The socket is deliberately parked: WhatsApp logged this number out (or
+        // reconnects ran out) and nothing auto-retries, because re-registering a
+        // number over and over is what gets it banned. Only this button resumes.
+        <div className="flex flex-col items-center gap-3 py-7 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+            <AlertTriangle size={26} />
+          </div>
+          <p className="text-sm font-semibold text-slate-700">Relink needed{state.number ? ` for ${state.number}` : ""}</p>
+          <p className="max-w-xs text-xs text-slate-500">{state.lastError || "WhatsApp ended this session."}</p>
+          <p className="max-w-xs text-[11px] text-slate-400">
+            Auto-reconnect is paused on purpose — repeatedly re-registering a number is a common reason WhatsApp blocks it.
+            Wait a while before relinking, and avoid large broadcasts right after.
+          </p>
+          <Button icon={<Link2 size={14} />} onClick={onConnect} disabled={busy}>Link Number Again</Button>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3 py-8">

@@ -4,9 +4,21 @@
  */
 import { createSlice } from "@reduxjs/toolkit";
 
+// Dark mode is scoped to the sidebar only (the `dark` class is put on the
+// <aside>, not on <html>), but the preference itself survives reloads.
+// Dark is the default: only an explicit "0" written by the toggle turns it off,
+// so a first-time visitor (nothing stored) gets the dark sidebar.
+const DARK_KEY = "erp_sidebar_dark";
+const readDark = () => {
+  try { return localStorage.getItem(DARK_KEY) !== "0"; } catch { return true; }
+};
+const writeDark = (on) => {
+  try { localStorage.setItem(DARK_KEY, on ? "1" : "0"); } catch { /* ignore */ }
+};
+
 const initialState = {
   sidebarCollapsed: false,
-  darkMode: false,
+  darkMode: readDark(),
   expandedSections: [],   // array of nav item keys that are open
   mobileOpen: false,
 };
@@ -23,6 +35,11 @@ const uiSlice = createSlice({
     },
     toggleDarkMode(state) {
       state.darkMode = !state.darkMode;
+      writeDark(state.darkMode);
+    },
+    setDarkMode(state, { payload }) {
+      state.darkMode = !!payload;
+      writeDark(state.darkMode);
     },
     // Accordion behaviour: only one section open at a time. Opening a section
     // closes any other; clicking the open one collapses it.
@@ -49,6 +66,7 @@ export const {
   toggleSidebar,
   setSidebarCollapsed,
   toggleDarkMode,
+  setDarkMode,
   toggleSection,
   openSection,
   closeAllSections,

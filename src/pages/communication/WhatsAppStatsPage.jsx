@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, StatCard, Badge, Button } from "../../components/ui";
 import apiClient from "../../services/axios";
-import { BarChart3, Send, CheckCheck, Eye, XCircle, Clock, RefreshCw } from "lucide-react";
+import { BarChart3, Send, CheckCheck, Eye, XCircle, Clock, RefreshCw, OctagonX } from "lucide-react";
 
 const STATUS_BADGE = { connected: "success", qr: "info", connecting: "warning", disconnected: "default" };
 const STATUS_LABEL = { connected: "Connected", qr: "Scan QR", connecting: "Connecting…", disconnected: "Not linked" };
@@ -24,6 +24,8 @@ export default function WhatsAppStatsPage() {
   const [stats, setStats] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [notice, setNotice] = useState(null);
   const pollRef = useRef(null);
 
   const fetchStats = useCallback(async () => {
@@ -47,6 +49,24 @@ export default function WhatsAppStatsPage() {
   const { totals, today, daily, live } = stats;
   const refresh = () => { setRefreshing(true); fetchStats(); };
 
+  // Emergency stop for a broadcast already in flight. A queued run trickles out
+  // ≈1 message/min for hours, so being able to kill it without unlinking the
+  // number is the difference between one bad send and a banned number.
+  const cancelPending = async () => {
+    if (!window.confirm(`Cancel all ${live.queued} message(s) still waiting to send?\n\nThis stops the queue immediately. Your number stays linked.`)) return;
+    setCancelling(true);
+    try {
+      const { data } = await apiClient.post("/whatsapp/cancel-pending");
+      setNotice(data.message || "Pending sends cancelled");
+      fetchStats();
+    } catch (e) {
+      setNotice(e.response?.data?.error || "Could not cancel the pending sends");
+    } finally {
+      setCancelling(false);
+      setTimeout(() => setNotice(null), 5000);
+    }
+  };
+
   // Show most recent day first in the table.
   const rows = [...daily].reverse();
 
@@ -54,10 +74,19 @@ export default function WhatsAppStatsPage() {
     <div>
       <PageHeader title="Message Counts" subtitle="How many WhatsApp messages this school has sent and how they landed" icon={<BarChart3 size={18} />}>
         <Badge variant={STATUS_BADGE[live.status]} dot>{STATUS_LABEL[live.status]}</Badge>
+        {live.queued > 0 && (
+          <Button size="sm" variant="danger" icon={<OctagonX size={12} />} onClick={cancelPending} disabled={cancelling}>
+            {cancelling ? "Stopping…" : `Stop ${live.queued} Queued`}
+          </Button>
+        )}
         <Button size="sm" variant="secondary" icon={<RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />} onClick={refresh}>
           Refresh
         </Button>
       </PageHeader>
+
+      {notice && (
+        <div className="mb-4 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700">{notice}</div>
+      )}
 
       {/* All-time totals */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
