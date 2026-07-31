@@ -84,8 +84,10 @@ const BILL_CSS = `
   .bill tr.total td { border-top: 1.5px solid #111827; font-size: 16px; font-weight: 800; padding: 10px; }
   .bill tr.total td.d { text-align: center; }
   .bill .note { font-size: 11.5px; color: #374151; border: 1.5px solid #111827; border-top: 0; padding: 6px 10px; }
-  .bill .qr { display: flex; align-items: center; gap: 10px; border: 1.5px solid #111827; border-top: 0; padding: 8px 10px; }
-  .bill .qr img { width: 84px; height: 84px; object-fit: contain; }
+  .bill .qr { display: flex; align-items: center; gap: 8px; border: 1.5px solid #111827; border-top: 0; padding: 3px 4px; min-height: 128px; }
+  .bill .qr img { width: 122px; height: 122px; object-fit: contain; flex: 0 0 122px; }
+  .bill .qr .qrText { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; }
+  .bill .qr .note { border: 0; padding: 0; font-size: 11.5px; line-height: 1.35; }
   .bill .qr .pay { font-size: 13px; font-weight: 700; }
   .bill .thanks { text-align: right; font-size: 16px; font-weight: 700; margin-top: 8px; }
 `;
@@ -119,8 +121,9 @@ function billInner({
           <tr class="total"><td class="d">${esc(totalLabel)}</td><td class="a">${amt(total)}</td></tr>
         </tbody>
       </table>
-      ${note ? `<div class="note">Note : ${esc(note)}</div>` : ""}
-      ${school.upiQr ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" crossorigin="anonymous" /><span class="pay">Pay on this QR</span></div>` : ""}
+      ${school.upiQr
+        ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" crossorigin="anonymous" /><div class="qrText">${note ? `<div class="note">Note : ${esc(note)}</div>` : ""}<span class="pay">Pay on this QR</span></div></div>`
+        : note ? `<div class="note">Note : ${esc(note)}</div>` : ""}
       ${footer ? `<div class="thanks">${esc(footer)}</div>` : ""}
     </div>`;
 }
@@ -273,8 +276,9 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
           <thead><tr><th class="d">Description</th><th class="a">Amount</th></tr></thead>
           <tbody>${body}<tr class="total"><td class="d">${esc(b.totalLabel || "Grand Total")}</td><td class="a">${amt(b.total)}</td></tr></tbody>
         </table>
-        ${b.note ? `<div class="note">Note : ${esc(b.note)}</div>` : ""}
-        ${school.upiQr ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" /><span class="pay">Pay on this QR</span></div>` : ""}
+        ${school.upiQr
+          ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" /><div class="qrText">${b.note ? `<div class="note">Note : ${esc(b.note)}</div>` : ""}<span class="pay">Pay on this QR</span></div></div>`
+          : b.note ? `<div class="note">Note : ${esc(b.note)}</div>` : ""}
       </div>
     </div>`;
   };
@@ -322,8 +326,10 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   tr.total td { border-top: 1.2px solid #111827; font-size: 11.5px; font-weight: 800; padding: 5px 6px; }
   tr.total td.d { text-align: center; }
   .note { font-size: 8.5px; color: #374151; border: 1.2px solid #111827; border-top: 0; padding: 3px 6px; }
-  .qr { display: flex; align-items: center; gap: 7px; border: 1.2px solid #111827; border-top: 0; padding: 4px 6px; }
-  .qr img { width: 54px; height: 54px; object-fit: contain; }
+  .qr { display: flex; align-items: center; gap: 5px; border: 1.2px solid #111827; border-top: 0; padding: 2px 3px; min-height: 82px; }
+  .qr img { width: 78px; height: 78px; object-fit: contain; flex: 0 0 78px; }
+  .qr .qrText { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+  .qr .note { border: 0; padding: 0; font-size: 8.5px; line-height: 1.25; }
   .qr .pay { font-size: 9.5px; font-weight: 700; }
   @page { size: A4 portrait; margin: 10mm 6mm; }
   @media print {
