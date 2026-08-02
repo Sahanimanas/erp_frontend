@@ -231,6 +231,22 @@ export default function CreateSchoolPage() {
                 ⚠ Save this password now — it won't be shown again.
               </p>
             </div>
+
+            {/* Whether the welcome email actually went out. Without this the
+                operator would assume the school was notified and never hand the
+                password over — the failure is silent otherwise. */}
+            {created.credentialsEmail && (
+              created.credentialsEmail.sent ? (
+                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">
+                  ✓ Login details emailed to <b>{created.credentialsEmail.to}</b>.
+                </p>
+              ) : (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-700">
+                  ⚠ Could not email the login details to <b>{created.credentialsEmail.to}</b> — share them manually.
+                  {created.credentialsEmail.error ? <span className="block mt-0.5 text-[11px] text-amber-600">{created.credentialsEmail.error}</span> : null}
+                </p>
+              )
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => { setForm(EMPTY); setSubState({ status: "idle" }); setCreated(null); }}>Create Another</Button>
               <Button onClick={() => navigate(`/super-admin/schools/${created.id}`)}>View School</Button>
