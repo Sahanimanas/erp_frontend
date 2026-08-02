@@ -2,9 +2,82 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, Textarea, Badge } from "../../components/ui";
 import apiClient from "../../services/axios";
-import { MessageCircle, Send, Link2, LogOut, Paperclip, RefreshCw, Megaphone, AlertTriangle } from "lucide-react";
+import { MessageCircle, Send, Link2, LogOut, Paperclip, RefreshCw, Megaphone, AlertTriangle, X, FileUp, ShieldCheck } from "lucide-react";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
+
+// Kept in step with the server's allow-list (backend/src/modules/whatsapp/media.ts).
+const ACCEPTED_FILES =
+  ".jpg,.jpeg,.png,.gif,.webp,.mp4,.3gp,.mkv,.mp3,.ogg,.m4a,.aac,.wav,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip";
+
+const prettySize = (bytes) =>
+  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+/**
+ * Upload-once attachment handling. The file goes to the server a single time
+ * and every send (one recipient or a whole class) then quotes the returned
+ * mediaId — the browser never re-uploads per recipient.
+ */
+function useAttachment(flash) {
+  const [file, setFile] = useState(null); // { mediaId, filename, mediaType, size }
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef(null);
+
+  const pick = async (e) => {
+    const chosen = e.target.files?.[0];
+    if (!chosen) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", chosen);
+      const { data } = await apiClient.post("/whatsapp/media", form, {
+        // Let the browser set multipart/form-data with its own boundary, and
+        // allow a big PDF the time it needs.
+        headers: { "Content-Type": undefined },
+        timeout: 300_000,
+      });
+      setFile(data.data);
+    } catch (err) {
+      flash("error", err.response?.data?.error || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const clear = () => setFile(null);
+  return { file, uploading, pick, clear, inputRef };
+}
+
+function AttachmentField({ attachment, label = "Attach a file (optional)", hint }) {
+  const { file, uploading, pick, clear, inputRef } = attachment;
+  return (
+    <div className="rounded-lg border border-dashed border-slate-200 p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <Paperclip size={13} /> {label}
+      </div>
+
+      {file ? (
+        <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+          <FileUp size={15} className="shrink-0 text-indigo-500" />
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-slate-700">{file.filename}</span>
+          <span className="shrink-0 text-[11px] text-slate-400">{file.mediaType} · {prettySize(file.size)}</span>
+          <button type="button" onClick={clear} className="shrink-0 rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600" title="Remove attachment">
+            <X size={14} />
+          </button>
+        </div>
+      ) : (
+        <>
+          <input ref={inputRef} type="file" accept={ACCEPTED_FILES} onChange={pick} disabled={uploading}
+            className="block w-full text-[12.5px] text-slate-600 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-[12.5px] file:font-semibold file:text-indigo-600 hover:file:bg-indigo-100" />
+          <p className="mt-1.5 text-[11px] text-slate-400">
+            {uploading ? "Uploading…" : hint || "Images, video, audio, PDF, Word, Excel, PowerPoint, CSV or ZIP."}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
 
 const STATUS_BADGE = {
   connected: "success",
@@ -47,9 +120,12 @@ export default function WhatsAppPage() {
   }, [fetchStatus]);
 
   useEffect(() => {
-    const active = state.status === "qr" || state.status === "connecting";
+    const linking = state.status === "qr" || state.status === "connecting";
     clearInterval(pollRef.current);
-    if (active) pollRef.current = setInterval(fetchStatus, 3000);
+    // Fast while linking (the QR refreshes); slow once connected, just to keep
+    // the queue depth and daily-allowance meter current.
+    if (linking) pollRef.current = setInterval(fetchStatus, 3000);
+    else if (state.status === "connected") pollRef.current = setInterval(fetchStatus, 20000);
     return () => clearInterval(pollRef.current);
   }, [state.status, fetchStatus]);
 
@@ -122,6 +198,7 @@ function BroadcastPanel({ connected, flash }) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
+  const attachment = useAttachment(flash);
 
   const { data: classes = [] } = useGetClassesQuery();
   const { data: sections = [] } = useGetSectionsQuery(classId, { skip: !classId });
@@ -138,14 +215,17 @@ function BroadcastPanel({ connected, flash }) {
   const togglePick = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   const send = async () => {
-    if (!message.trim()) return flash("error", "Enter a message to broadcast");
+    if (!message.trim() && !attachment.file) return flash("error", "Enter a message or attach a file to broadcast");
     const body = { message: message.trim() };
+    // One message per parent: the file carries the text as its caption.
+    if (attachment.file) body.media = { mediaId: attachment.file.mediaId };
     if (target === "class") { if (!classId) return flash("error", "Select a class"); body.classId = classId; }
     if (target === "section") { if (!sectionId) return flash("error", "Select a section"); body.sectionId = sectionId; }
     if (target === "selected") { if (!picked.length) return flash("error", "Pick at least one student"); body.studentIds = picked; }
 
     const label = target === "all" ? "ALL students" : target === "class" ? "the class" : target === "section" ? "the section" : `${picked.length} student(s)`;
-    if (!window.confirm(`Send this message to ${label}? This messages each phone number once.`)) return;
+    const what = attachment.file ? `"${attachment.file.filename}"${message.trim() ? " with your message" : ""}` : "this message";
+    if (!window.confirm(`Send ${what} to ${label}? This messages each phone number once.`)) return;
 
     setSending(true);
     setResult(null);
@@ -206,7 +286,23 @@ function BroadcastPanel({ connected, flash }) {
           </div>
         )}
 
-        <Textarea label="Message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type the message to send…" rows={4} />
+        <Textarea
+          label={attachment.file ? "Message (sent as the file's caption)" : "Message"}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Type the message to send…"
+          rows={4}
+        />
+        <p className="-mt-2 text-[11px] text-slate-400">
+          Tip: write <span className="font-mono">{"{Dear|Hello|Hi}"}</span> to vary the wording per parent — hundreds of
+          word-for-word identical messages is one of the things WhatsApp scores as spam.
+        </p>
+
+        <AttachmentField
+          attachment={attachment}
+          label="Attach a file to the broadcast (optional)"
+          hint="Uploaded once, then sent to every recipient — circular PDF, timetable, photo, fee notice."
+        />
 
         {result && (
           <div className="rounded-lg bg-emerald-50 text-emerald-700 px-4 py-2.5 text-[12.5px]">
@@ -215,7 +311,9 @@ function BroadcastPanel({ connected, flash }) {
         )}
 
         {!connected && <p className="text-xs text-amber-600">Link a number first to enable broadcasting.</p>}
-        <Button icon={<Send size={14} />} disabled={!connected || sending} onClick={send}>{sending ? "Sending…" : "Send Broadcast"}</Button>
+        <Button icon={<Send size={14} />} disabled={!connected || sending || attachment.uploading} onClick={send}>
+          {sending ? "Sending…" : attachment.uploading ? "Uploading…" : "Send Broadcast"}
+        </Button>
       </div>
     </Card>
   );
@@ -344,6 +442,7 @@ function ConnectionPanel({ state, busy, connected, onConnect, onLogout, onRefres
           <p className="text-sm text-slate-600">
             Linked number: <span className="font-semibold text-slate-800">{state.number || "—"}</span>
           </p>
+          <SafetyMeter health={state.health} />
           <Button variant="danger" icon={<LogOut size={13} />} onClick={onLogout} disabled={busy}>Disconnect</Button>
         </div>
       ) : state.status === "qr" && state.qr ? (
@@ -383,34 +482,80 @@ function ConnectionPanel({ state, busy, connected, onConnect, onLogout, onRefres
   );
 }
 
+/**
+ * How much of today's safe sending allowance is left. The caps exist so a
+ * school number never looks like a bulk-marketing blaster — the number one
+ * reason WhatsApp blocks a number — so it's worth showing them plainly.
+ */
+function SafetyMeter({ health }) {
+  if (!health || health.dailyCap == null) return null;
+
+  const used = health.usedToday ?? 0;
+  const cap = health.dailyCap || 1;
+  const pct = Math.min(100, Math.round((used / cap) * 100));
+  const bar = pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500";
+  const cooldownAt = health.cooldownUntil ? new Date(health.cooldownUntil) : null;
+
+  return (
+    <div className="w-full max-w-xs rounded-lg bg-slate-50 px-3 py-2.5">
+      <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-500">
+        <span className="flex items-center gap-1"><ShieldCheck size={12} /> Safe sending today</span>
+        <span className="font-semibold text-slate-700">{used} / {cap}</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+        <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mt-1.5 text-[11px] text-slate-400">
+        {health.usedThisHour ?? 0}/{health.hourlyCap} this hour
+        {health.queued ? ` · ${health.queued} waiting in queue` : ""}
+        {health.skippedDuplicates ? ` · ${health.skippedDuplicates} duplicate(s) skipped` : ""}
+      </p>
+      {cooldownAt && (
+        <p className="mt-1.5 rounded bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700">
+          Sending paused until {cooldownAt.toLocaleTimeString()} to protect the number.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function SendPanel({ connected, flash }) {
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("");
   const [mediaType, setMediaType] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
-  const [caption, setCaption] = useState("");
   const [sending, setSending] = useState(false);
+  const attachment = useAttachment(flash);
 
   const send = async () => {
     if (!to.trim()) return flash("error", "Enter a recipient number");
     setSending(true);
     try {
-      if (mediaType && mediaUrl.trim()) {
+      if (attachment.file) {
+        // Uploaded file: the server already knows its name and type, and the
+        // message rides along as the caption so it stays ONE WhatsApp message.
+        await apiClient.post("/whatsapp/send-media", {
+          to: to.trim(),
+          mediaId: attachment.file.mediaId,
+          caption: message.trim() || undefined,
+        });
+        flash("success", `${attachment.file.filename} sent`);
+        attachment.clear();
+      } else if (mediaType && mediaUrl.trim()) {
         await apiClient.post("/whatsapp/send-media", {
           to: to.trim(),
           mediaType,
           url: mediaUrl.trim(),
-          caption: caption || message || undefined,
+          caption: message.trim() || undefined,
         });
         flash("success", "Media sent");
+        setMediaUrl("");
       } else {
-        if (!message.trim()) return flash("error", "Enter a message or attach media");
+        if (!message.trim()) return flash("error", "Enter a message or attach a file");
         await apiClient.post("/whatsapp/send", { to: to.trim(), message });
         flash("success", "Message sent");
       }
       setMessage("");
-      setMediaUrl("");
-      setCaption("");
     } catch (e) {
       flash("error", e.response?.data?.error || "Failed to send");
     } finally {
@@ -428,35 +573,39 @@ function SendPanel({ connected, flash }) {
           value={to}
           onChange={(e) => setTo(e.target.value)}
         />
-        <Textarea label="Message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your message…" />
+        <Textarea
+          label={attachment.file ? "Caption (optional)" : "Message"}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder={attachment.file ? "Sent along with the file…" : "Type your message…"}
+        />
 
-        <div className="rounded-lg border border-dashed border-slate-200 p-3">
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <Paperclip size={13} /> Attach Media (optional)
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Select
-              label="Type"
-              value={mediaType}
-              onChange={(e) => setMediaType(e.target.value)}
-              options={[
-                { value: "", label: "None" },
-                { value: "image", label: "Image" },
-                { value: "video", label: "Video" },
-                { value: "document", label: "Document" },
-                { value: "audio", label: "Audio" },
-              ]}
-            />
-            <Input label="Media URL" placeholder="https://…" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} disabled={!mediaType} />
-          </div>
-          <div className="mt-3">
-            <Input label="Caption" placeholder="Optional caption" value={caption} onChange={(e) => setCaption(e.target.value)} disabled={!mediaType} />
-          </div>
-        </div>
+        <AttachmentField attachment={attachment} label="Attach a file (optional)" />
+
+        {!attachment.file && (
+          <details className="rounded-lg border border-slate-200 px-3 py-2">
+            <summary className="cursor-pointer text-[12px] font-medium text-slate-500">Or send media from a link</summary>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Select
+                label="Type"
+                value={mediaType}
+                onChange={(e) => setMediaType(e.target.value)}
+                options={[
+                  { value: "", label: "None" },
+                  { value: "image", label: "Image" },
+                  { value: "video", label: "Video" },
+                  { value: "document", label: "Document" },
+                  { value: "audio", label: "Audio" },
+                ]}
+              />
+              <Input label="Media URL" placeholder="https://…" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} disabled={!mediaType} />
+            </div>
+          </details>
+        )}
 
         {!connected && <p className="text-xs text-amber-600">Link a number first to enable sending.</p>}
-        <Button className="w-full" icon={<Send size={14} />} onClick={send} disabled={!connected || sending}>
-          {sending ? "Sending…" : "Send"}
+        <Button className="w-full" icon={<Send size={14} />} onClick={send} disabled={!connected || sending || attachment.uploading}>
+          {sending ? "Sending…" : attachment.uploading ? "Uploading…" : "Send"}
         </Button>
       </div>
     </Card>

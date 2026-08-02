@@ -98,7 +98,17 @@ function billInner({
   party = {}, rows = [], total = 0, totalLabel = "Grand Total",
   note = "Kindly pay fee before 10th of the Month.", footer = "Thanks",
 }, school) {
-  const left = [["Bill No", billNo], ["Name", party.name], ["Class", party.className], ["Batch", party.batch]];
+  // Father's name sits directly under the student's, where parents look for it
+  // when several siblings' bills come home together. Dropped from the layout
+  // when absent (metaCol filters empties), so nothing shifts for a record
+  // that has no father on file.
+  const left = [
+    ["Bill No", billNo],
+    ["Name", party.name],
+    ["Father Name", party.fatherName],
+    ["Class", party.className],
+    ["Batch", party.batch],
+  ];
   const right = [["Date", date], ["Month", month], ["Year", year], ["ID No", party.idNo]];
   const metaCol = (pairs) =>
     pairs

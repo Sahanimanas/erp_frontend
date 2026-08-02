@@ -212,6 +212,7 @@ export default function StudentFeePaymentPage() {
       year: String(now.getFullYear()),
       party: {
         name: st?.name,
+        fatherName: st?.fatherName,
         className: st?.className,
         batch: st?.sectionName,
         idNo: st?.registrationNo || st?.rollNumber,

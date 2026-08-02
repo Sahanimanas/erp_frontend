@@ -94,7 +94,7 @@ export default function DemandReceiptPage() {
       date: dueDate || fmtDate(now),
       month: scopeMonth || now.toLocaleDateString("en-GB", { month: "long" }),
       year: (session && years.find((y) => y.id === session)?.name) || String(now.getFullYear()),
-      party: { name: r.name, className, batch: r.section, idNo: r.regId || r.rollNumber },
+      party: { name: r.name, fatherName: r.fatherName, className, batch: r.section, idNo: r.regId || r.rollNumber },
       rows: billRows,
       total: Number(r.totalDue ?? r.due) || 0,
       totalLabel: "Grand Total",
