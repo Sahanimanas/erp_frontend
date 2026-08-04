@@ -38,7 +38,9 @@ export default function LoginPage() {
     try {
       // Call backend API
       const response = await apiClient.post("/auth/login", {
-        email: form.email,
+        // Trimmed — a stray space pasted along with an emailed credential is a
+        // common cause of "invalid credentials". The password is sent verbatim.
+        email: form.email.trim(),
         password: form.password,
       });
 
