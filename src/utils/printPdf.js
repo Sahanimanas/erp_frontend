@@ -231,9 +231,13 @@ export function printBill({
 <style>
   ${BILL_CSS}
   body { margin: 0; padding: 24px; background: #f3f4f6; }
+  /* On paper the bill sits at the TOP-LEFT of the sheet (the office cuts it out
+     and files it), not floated in the middle of an A4 page. The on-screen
+     preview keeps its centred card look. */
+  @page { size: A4 portrait; margin: 10mm; }
   @media print {
     body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .bill { border-width: 2px; }
+    .bill { border-width: 2px; margin: 0; }
   }
 </style>
 </head>
