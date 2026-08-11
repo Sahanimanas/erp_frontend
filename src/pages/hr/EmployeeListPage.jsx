@@ -250,7 +250,7 @@ export default function EmployeeListPage() {
             lastName: initialData.original?.user?.lastName || '',
             email: initialData.original?.user?.email || '',
             phone: initialData.original?.user?.phone || '',
-            dateOfBirth: initialData.original?.dateOfBirth || '',
+            dateOfBirth: initialData.original?.dateOfBirth?.split('T')[0] || '',
             gender: initialData.original?.gender || '',
             departmentId: initialData.original?.departmentId || '',
             designationId: initialData.original?.designationId || '',
@@ -376,13 +376,13 @@ export default function EmployeeListPage() {
             label="Department *"
             value={form.departmentId}
             onChange={e => setForm({ ...form, departmentId: e.target.value })}
-            options={deptOptions}
+            options={deptOptions.map(o => (o.value ? o : { ...o, label: "Select Department" }))}
           />
           <Select
             label="Designation *"
             value={form.designationId}
             onChange={e => setForm({ ...form, designationId: e.target.value })}
-            options={desigOptions}
+            options={desigOptions.map(o => (o.value ? o : { ...o, label: "Select Designation" }))}
           />
           <Select
             label="Gender"
