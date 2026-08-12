@@ -247,7 +247,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   // Explicit sidebar ordering: core school modules pinned right under Dashboard,
   // and the generic/utility modules pushed to the bottom. Anything not listed
   // keeps its original routeConfig order, placed in between.
-  const HEAD_ORDER = ["dashboard", "students", "employee", "admission", "fee-management", "payments", "attendance", "timetable", "exams", "result-management", "certificate", "parents", "library"];
+  const HEAD_ORDER = ["dashboard", "admission", "students", "class-management", "employee", "leave", "salary", "fee-management", "payments", "attendance", "timetable", "exams", "result-management", "certificate", "parents", "library"];
   const TAIL_ORDER = ["tasks", "house", "inventory", "license"];
   const weightFor = (item, idx) => {
     const head = HEAD_ORDER.indexOf(item.key);

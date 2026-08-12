@@ -73,6 +73,11 @@ export const MODULE_PRIVILEGE = {
   dashboard:      "Home",
   students:       "Student",
   employee:       "Employee",
+  // Leave and Salary were split out of the Employee section into their own
+  // sidebar modules; they stay behind the "Employee" privilege so no existing
+  // designation silently gains or loses access to them.
+  leave:          "Employee",
+  salary:         "Employee",
   admission:      "Admission",
   "fee-management": "Fees Management",
   "student-acct": "Finance",
@@ -288,12 +293,41 @@ export const routeConfig = [
       { key: "emp-idprint",     label: "Employee ID Print",path: "/employee/id-print",       icon: "IdCard",       lazy: lazy("hr/EmployeeIdPrintPage"),    roles: ADMIN_ONLY },
       { key: "emp-ideditor",    label: "Employee ID Card Editor", path: "/employee/id-editor", icon: "Pencil",     lazy: lazy("hr/EmployeeIdCardEditorPage"), roles: ADMIN_ONLY },
       { key: "emp-deactivate",  label: "Login Deactivate", path: "/employee/deactivate",     icon: "Lock",         lazy: lazy("hr/LoginDeactivatePage"),    roles: ADMIN_ONLY },
-      // ── Employee Leave ────────────────────────────────────────────────
-      { key: "emp-leave-type",    label: "Leave Type",    path: "/employee/leave/types",   icon: "CalendarCheck",  lazy: lazy("hr/leave/LeaveTypePage"),    roles: ADMIN_ONLY },
-      { key: "emp-leave-assign",  label: "Leave Assign",  path: "/employee/leave/assign",  icon: "UserCog",        lazy: lazy("hr/leave/LeaveAssignPage"),  roles: ADMIN_ONLY },
-      { key: "emp-leave-add",     label: "Add Leave",     path: "/employee/leave/add",     icon: "CalendarPlus",   lazy: lazy("hr/leave/AddLeavePage"),     roles: ADMIN_ONLY },
-      { key: "emp-leave-apply",   label: "Apply Leave",   path: "/employee/leave/apply",   icon: "CalendarClock",  lazy: lazy("hr/leave/ApplyLeavePage"),   roles: ALL_STAFF },
-      { key: "emp-leave-approve", label: "Approve Leave", path: "/employee/leave/approve", icon: "CalendarCheck2", lazy: lazy("hr/leave/ApproveLeavePage"), roles: ADMIN_ONLY },
+    ],
+  },
+
+  // ── Leave Management ──────────────────────────────────────────────────────
+  // Split out of the Employee section into its own sidebar module. Kept on the
+  // same ADMIN_ONLY section roles and "Employee" privilege it inherited there,
+  // so the move changes placement only — nobody gains or loses access. (The
+  // sidebar filters submenu items by `hidden` but not by role, so widening the
+  // section would show admin-only pages to staff and 403 them on click.)
+  {
+    key: "leave",
+    label: "Leave Management",
+    path: "/leave",
+    icon: "CalendarDays",
+    roles: ADMIN_ONLY,
+    children: [
+      { key: "leave-type",    label: "Leave Type",    path: "/leave/types",   icon: "CalendarCheck",  lazy: lazy("hr/leave/LeaveTypePage"),    roles: ADMIN_ONLY },
+      { key: "leave-assign",  label: "Leave Assign",  path: "/leave/assign",  icon: "UserCog",        lazy: lazy("hr/leave/LeaveAssignPage"),  roles: ADMIN_ONLY },
+      { key: "leave-add",     label: "Add Leave",     path: "/leave/add",     icon: "CalendarPlus",   lazy: lazy("hr/leave/AddLeavePage"),     roles: ADMIN_ONLY },
+      { key: "leave-apply",   label: "Apply Leave",   path: "/leave/apply",   icon: "CalendarClock",  lazy: lazy("hr/leave/ApplyLeavePage"),   roles: ALL_STAFF },
+      { key: "leave-approve", label: "Approve Leave", path: "/leave/approve", icon: "CalendarCheck2", lazy: lazy("hr/leave/ApproveLeavePage"), roles: ADMIN_ONLY },
+    ],
+  },
+
+  // ── Salary Management ─────────────────────────────────────────────────────
+  {
+    key: "salary",
+    label: "Salary Management",
+    path: "/salary",
+    icon: "Wallet",
+    roles: ADMIN_ONLY,
+    children: [
+      { key: "salary-structure", label: "Salary Structure", path: "/salary/structure", icon: "Building",    lazy: lazy("hr/salary/SalaryStructurePage"),  roles: ADMIN_ONLY },
+      { key: "salary-pay",       label: "Pay Salary",       path: "/salary/pay",       icon: "IndianRupee", lazy: lazy("hr/salary/SalaryManagementPage"), roles: ADMIN_ONLY },
+      { key: "salary-payments",  label: "Salary Payments",  path: "/salary/payments",  icon: "Receipt",     lazy: lazy("hr/salary/SalaryPaymentsPage"),   roles: ADMIN_ONLY },
     ],
   },
 
