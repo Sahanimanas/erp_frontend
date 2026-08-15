@@ -539,6 +539,7 @@ export const routeConfig = [
       { key: "attend-emp-view",     label: "View Employee Attendance",   path: "/attendance/employee/view",     icon: "Search",       lazy: lazy("attendance/ViewEmployeeAttendancePage"),      roles: ADMIN_ONLY },
       { key: "attend-emp-view-all", label: "View All Employee Attendance",path: "/attendance/employee/view-all", icon: "Users",        lazy: lazy("attendance/ViewAllEmployeeAttendancePage"),   roles: ADMIN_ONLY },
       { key: "attend-student",      label: "Student Attendance",         path: "/attendance/student",           icon: "Users",        lazy: lazy("attendance/StudentAttendancePage"),           roles: ALL_STAFF },
+      { key: "attend-manual",       label: "Manual Attendance",          path: "/attendance/manual",            icon: "ClipboardCheck",lazy: lazy("attendance/ManualAttendancePage"),           roles: ALL_STAFF },
       { key: "attend-student-dl",   label: "Download Student Attendance",path: "/attendance/student/download",  icon: "Download",     lazy: lazy("attendance/DownloadStudentAttendancePage"),   roles: ALL_STAFF },
       { key: "attend-student-all",  label: "All Student Daily Attendance",path: "/attendance/student/daily",    icon: "CalendarCheck",lazy: lazy("attendance/AllStudentDailyAttendancePage"),   roles: ALL_STAFF },
       { key: "attend-smartcard",    label: "Smart Card Attendance",      path: "/attendance/smart-card",        icon: "CreditCard",   lazy: lazy("attendance/SmartCardAttendancePage"),         roles: ADMIN_ONLY },

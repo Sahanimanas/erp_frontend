@@ -105,11 +105,17 @@ export const attendanceApi = baseApi.injectEndpoints({
       transformResponse: (r) => r?.data ?? [],
       providesTags: [{ type: "Attendance", id: "EMP_RANGE" }],
     }),
-    // Students with their status for a date (optionally one section)
+    // Students with their status for a date, optionally narrowed to a section,
+    // a whole class (all its sections) and/or an academic session.
     getStudentsDaily: build.query({
-      query: ({ date, sectionId } = {}) => ({
+      query: ({ date, sectionId, classId, session } = {}) => ({
         url: "/attendance/students/daily",
-        params: { date, ...(sectionId ? { sectionId } : {}) },
+        params: {
+          date,
+          ...(sectionId ? { sectionId } : {}),
+          ...(!sectionId && classId ? { classId } : {}),
+          ...(session ? { session } : {}),
+        },
       }),
       transformResponse: (r) => r?.data ?? [],
       providesTags: [{ type: "Attendance", id: "STU_DAILY" }],
