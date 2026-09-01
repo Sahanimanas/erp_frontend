@@ -16,7 +16,7 @@ import {
   useCollectPaymentMutation, useAdjustInstallmentMutation,
   useDeleteInstallmentPaymentMutation, useRevertReceiptMutation,
 } from "../../redux/api/paymentsApi";
-import { printBill, billToPdfBase64 } from "../../utils/printPdf";
+import { printBill, printBills, billToPdfBase64 } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
 
 const MONTHLY_LIKE = ["Monthly", "Quarterly"];
@@ -204,7 +204,7 @@ export default function StudentFeePaymentPage() {
   const downloadDemandBill = () => {
     if (!dueRows.length) { toast.error("No outstanding dues for this student"); return; }
     const now = new Date();
-    printBill({
+    printBills({ bills: [{
       billType: "Demand Bill",
       billNo: `DB-${(st?.rollNumber || studentId || "").toString().slice(-6).toUpperCase()}-${now.getDate()}${now.getMonth() + 1}`,
       date: fmtDate(now),
@@ -221,7 +221,7 @@ export default function StudentFeePaymentPage() {
       total: Number(inst?.totals?.due) || dueRows.reduce((s, r) => s + Number(r.due || 0), 0),
       totalLabel: "Grand Total",
       note: "Kindly pay fee before 10th of the Month.",
-    });
+    }] });
   };
 
   // ── class fee structure (one row per fee type) ────────────────────────────

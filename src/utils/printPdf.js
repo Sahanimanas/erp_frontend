@@ -74,7 +74,7 @@ const BILL_CSS = `
   .bill .meta > div { flex: 1; padding: 8px 10px; }
   .bill .meta > div + div { border-left: 1.5px solid #111827; }
   .bill .mrow { display: flex; gap: 8px; font-size: 12.5px; padding: 1.5px 0; }
-  .bill .mk { width: 56px; font-weight: 700; }
+  .bill .mk { flex: 0 0 78px; font-weight: 700; }
   .bill .mv { flex: 1; }
   .bill table { width: 100%; border-collapse: collapse; border: 1.5px solid #111827; border-top: 0; }
   .bill th { background: #f3f4f6; font-size: 14px; font-weight: 700; padding: 8px 10px; border-bottom: 1.5px solid #111827; }
@@ -275,7 +275,16 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
       .join("");
 
   const billCard = (b) => {
-    const left = [["Bill No", b.billNo], ["Name", b.party?.name], ["Class", b.party?.className], ["Batch", b.party?.batch]];
+    // Father's name sits right under the student's — same order as the single
+    // bill layout — so parents can tell siblings' slips apart. metaCol drops it
+    // for a record with no father on file.
+    const left = [
+      ["Bill No", b.billNo],
+      ["Name", b.party?.name],
+      ["Father Name", b.party?.fatherName],
+      ["Class", b.party?.className],
+      ["Batch", b.party?.batch],
+    ];
     const right = [["Date", b.date], ["Month", b.month], ["Year", b.year], ["ID No", b.party?.idNo]];
     const body = (b.rows || []).map(([d, a]) => `<tr><td class="d">${esc(d)}</td><td class="a">${amt(a)}</td></tr>`).join("");
     return `<div class="bill">
@@ -337,7 +346,7 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   .meta > div { flex: 1; padding: 4px 6px; }
   .meta > div + div { border-left: 1.2px solid #111827; }
   .mrow { display: flex; gap: 5px; font-size: 9.5px; padding: 1px 0; }
-  .mk { width: 42px; font-weight: 700; }
+  .mk { flex: 0 0 52px; font-weight: 700; }
   .mv { flex: 1; word-break: break-word; }
   table { width: 100%; border-collapse: collapse; border: 1.2px solid #111827; border-top: 0; }
   th { background: #f3f4f6; font-size: 10px; font-weight: 700; padding: 4px 6px; border-bottom: 1.2px solid #111827; }
