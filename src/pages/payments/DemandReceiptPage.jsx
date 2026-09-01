@@ -14,7 +14,7 @@ import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/at
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useLazyGetMonthlyDuesQuery } from "../../redux/api/paymentsApi";
 import { academicMonths } from "../fee-management/_feeShared";
-import { printBill, printBills, billToPdfBase64 } from "../../utils/printPdf";
+import { printBills, billToPdfBase64 } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
 
 const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -102,7 +102,11 @@ export default function DemandReceiptPage() {
     };
   };
 
-  const printDemandBill = (r) => printBill(buildBillFor(r));
+  // One bill prints through the SAME compact sheet layout as the bulk print, so
+  // a single slip comes out the same size as one from a 6-per-page sheet
+  // (top-left of the sheet) instead of being blown up to fill the whole page.
+  const printDemandBill = (r) =>
+    printBills({ bills: [buildBillFor(r)], perPage: Math.max(1, Number(billsPerPage) || 6) });
 
   const normalizeWhatsAppNumber = (phone) => {
     const digits = String(phone || "").replace(/\D/g, "");

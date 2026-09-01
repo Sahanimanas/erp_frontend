@@ -301,8 +301,12 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   const cols = perPage <= 2 ? 1 : 2;
   const pages = [];
   for (let i = 0; i < bills.length; i += perPage) pages.push(bills.slice(i, i + perPage));
+  // A single bill must come out the SAME physical size as one card on a full
+  // sheet (the office cuts them all to the same slip) — so it keeps the grid
+  // and simply sits in the top-left cell instead of being blown up or floated
+  // into the middle of the sheet.
   const pagesHtml = pages
-    .map((pg) => `<div class="page" style="grid-template-columns: repeat(${cols}, 1fr);">${pg.map(billCard).join("")}</div>`)
+    .map((pg) => `<div class="page${bills.length === 1 ? " sparse" : ""}" style="grid-template-columns: repeat(${cols}, 1fr);">${pg.map(billCard).join("")}</div>`)
     .join("");
 
   win.document.write(`<!doctype html>
@@ -318,6 +322,9 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
      4-per-page and 6-per-page layouts — instead of clustering at the top. */
   .page { display: grid; gap: 6mm; height: 276mm; align-content: center; page-break-after: always; }
   .page:last-child { page-break-after: auto; }
+  /* One lone bill: top-left of the sheet, card size unchanged. */
+  .page.sparse { align-content: start; }
+  .page.sparse .bill { align-self: start; }
   .bill { position: relative; background: #fff; border: 1.5px solid #111827; padding: 10px 14px 12px; overflow: hidden; break-inside: avoid; }
   .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .wm img { width: 70%; max-width: 200px; opacity: 0.06; filter: grayscale(100%); }
