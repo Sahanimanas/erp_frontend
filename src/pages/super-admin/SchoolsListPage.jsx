@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
-import { loginSuccess } from "../../redux/slices/authSlice";
+import { impersonateStart } from "../../redux/slices/authSlice";
 import {
   Building2, Eye, Pencil, Ban, CheckCircle2, Trash2, LogIn, Plus, KeyRound,
 } from "lucide-react";
@@ -91,7 +91,7 @@ export default function SchoolsListPage() {
       const res = await loginAs(school.id).unwrap();
       // Start a real session as the school admin, then hard-redirect into the
       // school dashboard so every API call uses the impersonation token + tenant.
-      dispatch(loginSuccess({
+      dispatch(impersonateStart({
         token: res.accessToken,
         refreshToken: null,
         tokenExpiry: Date.now() + 15 * 60 * 1000, // impersonation token lives ~15 min

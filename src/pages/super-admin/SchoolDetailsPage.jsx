@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
-import { loginSuccess } from "../../redux/slices/authSlice";
+import { impersonateStart } from "../../redux/slices/authSlice";
 import {
   Building2, ArrowLeft, LogIn, Users as UsersIcon, HardDrive, Layers,
   CreditCard, ScrollText, Settings as SettingsIcon, Mail, Phone, MapPin, Globe,
@@ -60,7 +60,7 @@ export default function SchoolDetailsPage() {
   const handleLoginAs = async () => {
     try {
       const res = await loginAs(id).unwrap();
-      dispatch(loginSuccess({
+      dispatch(impersonateStart({
         token: res.accessToken,
         refreshToken: null,
         tokenExpiry: Date.now() + 15 * 60 * 1000,

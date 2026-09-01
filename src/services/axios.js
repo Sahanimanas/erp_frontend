@@ -108,6 +108,9 @@ apiClient.interceptors.response.use(
     } catch (refreshError) {
       processPendingQueue(refreshError);
       localStorage.removeItem(LS_KEY);
+      // Also drop a Super Admin session parked by impersonation — a forced
+      // logout must not leave their refresh token behind in storage.
+      localStorage.removeItem("erp_auth_super");
       window.location.href = "/login?expired=true";
       return Promise.reject(refreshError);
 
