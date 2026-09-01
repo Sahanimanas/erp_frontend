@@ -140,17 +140,40 @@ export default function IdCardEditorPage() {
 
   return (
     <div className="space-y-4">
-      <style>{`@media print {
-        .no-print { display:none !important; }
-        body { background:#fff !important; }
-        .id-print-area { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; gap:24px; padding:24px; }
-      }`}</style>
+      <style>{`
+        /* Keep every background colour / image (header band, footer, decorations,
+           watermark, barcode) when printing — browsers strip them by default,
+           which is why the card used to come out plain white. */
+        .id-print-area, .id-print-area * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        /* The print copy of the card only exists on paper. */
+        .id-print-area { display: none; }
+        @media print {
+          /* Zero page margin makes browsers drop their auto date / title / URL
+             headers & footers — the card supplies its own padding below. */
+          @page { size: auto; margin: 0; }
+          /* Hide the app shell (sidebar + floating mobile menu button) and every
+             on-page control, so only the designed card prints. */
+          aside, header, .no-print, [aria-label="Open menu"] { display: none !important; }
+          html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+          .id-print-area {
+            display: flex !important;
+            position: fixed; inset: 0; z-index: 9999;
+            align-items: center; justify-content: center;
+            gap: 24px; padding: 24px; background: #fff;
+          }
+          /* A drop shadow prints as a grey smudge around the card edge. */
+          .id-print-area .shadow-lg { box-shadow: none !important; }
+        }
+      `}</style>
 
       <div className="no-print">
         <PageHeader title="ID Card Editor" subtitle="Design ID card templates — saved templates show up in Student ID Print" icon={<IdCard size={18} />}>
           <Button variant="secondary" icon={<Plus size={14} />} onClick={startNew}>New</Button>
           <Button icon={<Save size={14} />} onClick={save}>Save</Button>
-          <Button icon={<Printer size={14} />} onClick={() => window.print()}>Print</Button>
+          <Button variant="success" icon={<Printer size={14} />} onClick={() => window.print()}>Print</Button>
         </PageHeader>
       </div>
 
@@ -319,7 +342,7 @@ export default function IdCardEditorPage() {
               <IdCardFace key={s} cfg={cfg} student={previewStudent} face={s} logo={user?.schoolLogo} />
             ))}
           </div>
-          <div className="id-print-area hidden print:flex">
+          <div className="id-print-area">
             <IdCardFace cfg={cfg} student={previewStudent} face="front" logo={user?.schoolLogo} />
             {cfg.twoSided && <IdCardFace cfg={cfg} student={previewStudent} face="back" logo={user?.schoolLogo} />}
           </div>
