@@ -14,6 +14,7 @@ import apiClient from "../../services/axios";
 import { filterByDateRange } from "../../utils/exportExcel";
 import { uploadImageFile } from "../../services/upload";
 import toast from "react-hot-toast";
+import { toastApiError } from "../../utils/apiError";
 
 const STATUS_BADGE = { ACTIVE: "success", INACTIVE: "default", ON_LEAVE: "warning" };
 // Values must match the backend UserRole enum (staff roles only).
@@ -31,7 +32,6 @@ export default function EmployeeListPage() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [department, setDepartment] = useState("");
@@ -48,7 +48,6 @@ export default function EmployeeListPage() {
   useEffect(() => {
     const fetchEmployees = async () => {
       setLoading(true);
-      setError("");
       try {
         const params = new URLSearchParams({
           page: String(page),
@@ -64,8 +63,7 @@ export default function EmployeeListPage() {
           setTotal(response.data.pagination?.total || 0);
         }
       } catch (err) {
-        setError(err.message || "Failed to fetch employees");
-        console.error("Employee fetch error:", err);
+        toastApiError(err, "Failed to fetch employees");
       } finally {
         setLoading(false);
       }
@@ -122,7 +120,7 @@ export default function EmployeeListPage() {
         setTotal(response.data.pagination?.total || 0);
       }
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to update employee");
+      toastApiError(err, "Failed to update employee");
     }
   };
 
@@ -132,7 +130,7 @@ export default function EmployeeListPage() {
         await apiClient.patch(`/employees/${employeeId}/deactivate`);
         setEmployees(employees.filter(e => e.id !== employeeId));
       } catch (err) {
-        setError(err.response?.data?.error || "Failed to delete employee");
+        toastApiError(err, "Failed to delete employee");
       }
     }
   };
@@ -285,7 +283,7 @@ export default function EmployeeListPage() {
         const url = await uploadImageFile(file, "employees");
         setForm((f) => ({ ...f, photo: url }));
       } catch (err) {
-        toast.error(err?.response?.data?.error || err.message || "Photo upload failed");
+        toastApiError(err, "Photo upload failed");
       } finally {
         setUploadingPhoto(false);
       }
@@ -294,7 +292,7 @@ export default function EmployeeListPage() {
     const handleSubmit = async (e) => {
       e.preventDefault();
       if (!form.firstName || !form.lastName || !form.email || !form.departmentId || !form.designationId) {
-        setError("Please fill all required fields");
+        toast.error("Please fill all required fields");
         return;
       }
       setSubmitLoading(true);
@@ -433,7 +431,6 @@ export default function EmployeeListPage() {
       </PageHeader>
 
       <Card noPadding>
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 m-4 rounded-lg text-sm">{error}</div>}
         <div className="flex gap-2 flex-wrap p-4 border-b border-slate-100 items-end">
           <SearchInput
             value={search}
