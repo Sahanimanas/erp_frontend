@@ -124,14 +124,22 @@ export default function EmployeeListPage() {
     }
   };
 
+  // Permanent: removes the employee, their login and their attendance, leave,
+  // payslip and salary history. There is no undo.
   const handleDelete = async (employeeId) => {
-    if (confirm("Are you sure you want to delete this employee?")) {
-      try {
-        await apiClient.patch(`/employees/${employeeId}/deactivate`);
-        setEmployees(employees.filter(e => e.id !== employeeId));
-      } catch (err) {
-        toastApiError(err, "Failed to delete employee");
-      }
+    const emp = employees.find((e) => e.id === employeeId);
+    const who = emp ? `${emp.user?.firstName || ""} ${emp.user?.lastName || ""}`.trim() : "this employee";
+    if (!confirm(`Permanently delete ${who}?
+
+This also removes their login and all attendance, leave, payslip and salary records. This cannot be undone.`)) return;
+
+    try {
+      await apiClient.delete(`/employees/${employeeId}`);
+      setEmployees((list) => list.filter((e) => e.id !== employeeId));
+      setTotal((t) => Math.max(0, t - 1));
+      toast.success("Employee deleted");
+    } catch (err) {
+      toastApiError(err, "Failed to delete employee");
     }
   };
 
