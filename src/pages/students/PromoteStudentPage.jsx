@@ -1,6 +1,11 @@
 /**
  * Student → Promote Student
  * Load a class's students, select some, and promote them to the next class.
+ *
+ * The promotion month matters for money: fees for months BEFORE it stay priced
+ * at the old class's rate and are carried forward as a fixed "previous dues"
+ * line, while the new class's fee is charged from that month onward. Without it
+ * the whole session would be re-priced at the new class's rate.
  */
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -10,12 +15,22 @@ import { ArrowUpCircle } from "lucide-react";
 import { useGetStudentsQuery, usePromoteStudentsMutation } from "../../redux/api/studentsApi";
 import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/attendanceApi";
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// Current year ± a couple, so a session spanning a year boundary is reachable.
+const THIS_YEAR = new Date().getFullYear();
+const YEARS = [THIS_YEAR - 1, THIS_YEAR, THIS_YEAR + 1, THIS_YEAR + 2];
+
 export default function PromoteStudentPage() {
   usePageTitle("Promote Student");
   const [session, setSession] = useState("");
   const [fromClassId, setFromClassId] = useState("");
   const [toClassId, setToClassId] = useState("");
+  const [month, setMonth] = useState(MONTHS[new Date().getMonth()]);
+  const [year, setYear] = useState(String(THIS_YEAR));
   const [selected, setSelected] = useState(new Set());
+
+  // Backend month key format, e.g. "Jun-2026".
+  const effectiveMonth = month && year ? `${month}-${year}` : "";
 
   const { data: years = [] } = useGetAcademicYearsQuery();
   const { data: classes = [] } = useGetClassesQuery();
@@ -30,10 +45,16 @@ export default function PromoteStudentPage() {
 
   const submit = async () => {
     if (!toClassId) { toast.error("Select the target class"); return; }
+    if (!effectiveMonth) { toast.error("Select the month the promotion takes effect"); return; }
     if (selected.size === 0) { toast.error("Select at least one student"); return; }
     try {
-      const res = await promote({ studentIds: [...selected], toClassId }).unwrap();
-      toast.success(`Promoted ${res.promoted} student(s)`);
+      const res = await promote({ studentIds: [...selected], toClassId, effectiveMonth }).unwrap();
+      const carried = Number(res.carriedForward || 0);
+      toast.success(
+        carried > 0
+          ? `Promoted ${res.promoted} student(s) — ₹${carried.toLocaleString("en-IN")} carried forward`
+          : `Promoted ${res.promoted} student(s)`
+      );
       setSelected(new Set());
     } catch (e) {
       toast.error(e?.data?.error || "Promotion failed");
@@ -43,7 +64,7 @@ export default function PromoteStudentPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Promote Student" subtitle="Move students to the next class" icon={<ArrowUpCircle size={18} />}>
-        <Button loading={isLoading} disabled={!selected.size || !toClassId} onClick={submit}>Promote {selected.size || ""}</Button>
+        <Button loading={isLoading} disabled={!selected.size || !toClassId || !effectiveMonth} onClick={submit}>Promote {selected.size || ""}</Button>
       </PageHeader>
 
       <Card title="Search Student And Result For Promote">
@@ -54,6 +75,14 @@ export default function PromoteStudentPage() {
             options={[{ value: "", label: "Select Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
           <Select label="Promote To Class" value={toClassId} onChange={(e) => setToClassId(e.target.value)}
             options={[{ value: "", label: "Select Target Class" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
+          <Select label="Promote From Month" value={month} onChange={(e) => setMonth(e.target.value)}
+            options={MONTHS.map((m) => ({ value: m, label: m }))} />
+          <Select label="Year" value={year} onChange={(e) => setYear(e.target.value)}
+            options={YEARS.map((y) => ({ value: String(y), label: String(y) }))} />
+          <p className="text-[11.5px] text-slate-500 self-end pb-2 leading-snug">
+            New class fees are charged from <span className="font-semibold text-slate-700">{effectiveMonth || "—"}</span>.
+            Anything unpaid before that stays at the old class's rate and is carried forward as previous dues.
+          </p>
         </div>
       </Card>
 
