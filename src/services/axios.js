@@ -6,7 +6,8 @@
  *
  * Interceptors:
  *   REQUEST  → inject Bearer token from localStorage
- *   RESPONSE → on 401 → call refresh endpoint → retry once → else logout
+ *   RESPONSE → on 401 → call refresh endpoint → retry once → else fail the
+ *              request only (the session is never auto-terminated)
  */
 import axios from "axios";
 
@@ -106,12 +107,10 @@ apiClient.interceptors.response.use(
       return apiClient(original);
 
     } catch (refreshError) {
+      // NO AUTO-LOGOUT. A failed refresh only fails THIS request — the stored
+      // session is left intact and the user stays where they are. Only the
+      // explicit Logout action (Sidebar/Topbar) ends a session.
       processPendingQueue(refreshError);
-      localStorage.removeItem(LS_KEY);
-      // Also drop a Super Admin session parked by impersonation — a forced
-      // logout must not leave their refresh token behind in storage.
-      localStorage.removeItem("erp_auth_super");
-      window.location.href = "/login?expired=true";
       return Promise.reject(refreshError);
 
     } finally {

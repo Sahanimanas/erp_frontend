@@ -9,10 +9,11 @@
  * Auth flow:
  *   1. prepareHeaders injects the Bearer token from Redux state.
  *   2. baseQueryWithReauth intercepts 401 responses and tries a
- *      silent token refresh. If refresh fails → dispatch logout().
+ *      silent token refresh. If refresh fails the 401 is returned to the
+ *      caller — the session is never auto-terminated.
  */
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { tokenRefreshed, logout } from "../slices/authSlice";
+import { tokenRefreshed } from "../slices/authSlice";
 
 // ─── Base query with auto-refresh ─────────────────────────────────────────
 // Use the same API origin as the axios client (services/axios.js). Falls back to
@@ -83,12 +84,9 @@ async function baseQueryWithReauth(args, api, extraOptions) {
         }
         // Retry original query with new token
         result = await rawBaseQuery(args, api, extraOptions);
-      } else {
-        // Refresh failed → force logout
-        api.dispatch(logout());
       }
-    } else {
-      api.dispatch(logout());
+      // Refresh failed → surface the 401 to the caller. NO AUTO-LOGOUT:
+      // the session stays put and only the explicit Logout action clears it.
     }
   }
 
