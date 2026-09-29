@@ -56,6 +56,59 @@ export function getSchool() {
 const inr = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const amt = (v) => (typeof v === "number" ? inr(v) : esc(v));
 
+// ── Pieces shared by every bill layout (single, WhatsApp PDF, N-per-sheet) ──
+
+/**
+ * Letterhead: logo on the left, school name + address centred, phone
+ * number(s) on the right — like a printed school receipt. The logo/phone
+ * cells keep a fixed width even when empty so the name stays centred.
+ * Several numbers ("7549222280, 9162700991") are stacked one per line.
+ */
+function billHead(school, cors) {
+  const phones = String(school.phone || "").split(/[,/]/).map((p) => p.trim()).filter(Boolean);
+  return `<div class="head">
+      <div class="hlogo">${school.logo ? `<img src="${esc(school.logo)}" alt=""${cors} />` : ""}</div>
+      <div class="htext">
+        <h1 class="sname">${esc(school.name || "School")}</h1>
+        ${school.address ? `<div class="addr">${esc(school.address)}</div>` : ""}
+      </div>
+      <div class="phone">${phones.length ? `<span class="tel">&#9742;</span> ${phones.map(esc).join(",<br/>")}` : ""}</div>
+    </div>`;
+}
+
+/**
+ * Fee table. Two row shapes are accepted:
+ *   - `[description, amount]`  → plain Description | Amount table (receipts);
+ *   - `{ name, fee, discount, due, paid }` → itemised ledger with
+ *     Sl. | Fee Name | Fee | Discount | Due | Paid and a column-total row,
+ *     followed by the payable amount (`total`, labelled `totalLabel`).
+ */
+function billTable(rows, total, totalLabel) {
+  if (rows.length && !Array.isArray(rows[0])) {
+    const sum = (k) => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+    const body = rows.map((r, i) => `<tr>
+        <td class="sl">${i + 1}</td><td class="d">${esc(r.name)}</td>
+        <td class="n">${inr(r.fee)}</td><td class="n">${inr(r.discount)}</td>
+        <td class="n">${inr(r.due)}</td><td class="n">${inr(r.paid)}</td></tr>`).join("");
+    return `<table class="ledger">
+        <thead><tr><th class="sl">Sl.</th><th class="d">Fee Name</th><th class="n">Fee</th><th class="n">Discount</th><th class="n">Due</th><th class="n">Paid</th></tr></thead>
+        <tbody>
+          ${body}
+          <tr class="sum"><td class="d" colspan="2">Total Amount</td><td class="n">${inr(sum("fee"))}</td><td class="n">${inr(sum("discount"))}</td><td class="n">${inr(sum("due"))}</td><td class="n">${inr(sum("paid"))}</td></tr>
+          <tr class="total"><td class="d" colspan="4">${esc(totalLabel)}</td><td class="a" colspan="2">${amt(total)}</td></tr>
+        </tbody>
+      </table>`;
+  }
+  const body = rows.map(([d, a]) => `<tr><td class="d">${esc(d)}</td><td class="a">${amt(a)}</td></tr>`).join("");
+  return `<table>
+      <thead><tr><th class="d">Description</th><th class="a">Amount</th></tr></thead>
+      <tbody>
+        ${body}
+        <tr class="total"><td class="d">${esc(totalLabel)}</td><td class="a">${amt(total)}</td></tr>
+      </tbody>
+    </table>`;
+}
+
 // ── Shared single-bill markup ────────────────────────────────────────────────
 // The demand-bill / receipt look lives in ONE place so that the on-screen
 // download (printBill → browser print) and the WhatsApp PDF (billToPdfBase64 →
@@ -66,8 +119,12 @@ const BILL_CSS = `
   .bill .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .bill .wm img { width: 68%; max-width: 320px; opacity: 0.07; filter: grayscale(100%); }
   .bill .content { position: relative; z-index: 1; }
-  .bill .phone { text-align: right; font-size: 12px; font-weight: 600; letter-spacing: .3px; min-height: 16px; }
-  .bill .sname { text-align: center; font-size: 26px; font-weight: 800; letter-spacing: 1px; margin: 2px 0 0; text-transform: uppercase; }
+  .bill .head { display: grid; grid-template-columns: 86px 1fr 86px; align-items: center; gap: 6px; }
+  .bill .hlogo img { width: 58px; height: 58px; object-fit: contain; }
+  .bill .htext { text-align: center; min-width: 0; }
+  .bill .phone { text-align: right; font-size: 10.5px; font-weight: 600; line-height: 1.35; align-self: start; white-space: nowrap; }
+  .bill .phone .tel { font-size: 12px; }
+  .bill .sname { text-align: center; font-size: 22px; font-weight: 800; letter-spacing: .5px; margin: 0; text-transform: uppercase; line-height: 1.15; }
   .bill .addr { text-align: center; font-size: 12px; color: #374151; margin-top: 2px; }
   .bill .btype { text-align: center; font-size: 14px; font-weight: 600; color: #374151; margin: 8px 0 10px; }
   .bill .meta { display: flex; border: 1.5px solid #111827; }
@@ -83,6 +140,12 @@ const BILL_CSS = `
   .bill td { padding: 6px 10px; font-size: 13px; }
   .bill tr.total td { border-top: 1.5px solid #111827; font-size: 16px; font-weight: 800; padding: 10px; }
   .bill tr.total td.d { text-align: center; }
+  .bill table.ledger th, .bill table.ledger td { border: 1px solid #111827; padding: 4px 5px; font-size: 11.5px; }
+  .bill table.ledger th.n, .bill table.ledger td.n { text-align: right; white-space: nowrap; width: 15%; }
+  .bill table.ledger th.sl, .bill table.ledger td.sl { text-align: center; width: 7%; }
+  .bill table.ledger tr.sum td { font-weight: 700; }
+  .bill table.ledger tr.sum td.d { text-align: left; }
+  .bill table.ledger tr.total td { font-size: 14px; padding: 7px 5px; }
   .bill .note { font-size: 11.5px; color: #374151; border: 1.5px solid #111827; border-top: 0; padding: 6px 10px; }
   .bill .qr { display: flex; align-items: center; gap: 8px; border: 1.5px solid #111827; border-top: 0; padding: 3px 4px; min-height: 128px; }
   .bill .qr img { width: 122px; height: 122px; object-fit: contain; flex: 0 0 122px; }
@@ -115,22 +178,13 @@ function billInner({
       .filter(([, v]) => v !== null && v !== undefined && v !== "")
       .map(([l, v]) => `<div class="mrow"><span class="mk">${esc(l)}</span><span class="mv">${esc(v)}</span></div>`)
       .join("");
-  const bodyRows = rows.map(([d, a]) => `<tr><td class="d">${esc(d)}</td><td class="a">${amt(a)}</td></tr>`).join("");
   return `
     ${(school.watermark || school.logo) ? `<div class="wm"><img src="${esc(school.watermark || school.logo)}" alt="" crossorigin="anonymous" /></div>` : ""}
     <div class="content">
-      <div class="phone">${esc(school.phone || "")}</div>
-      <h1 class="sname">${esc(school.name || "School")}</h1>
-      ${school.address ? `<div class="addr">${esc(school.address)}</div>` : ""}
+      ${billHead(school, ' crossorigin="anonymous"')}
       <div class="btype">${esc(billType)}</div>
       <div class="meta"><div>${metaCol(left)}</div><div>${metaCol(right)}</div></div>
-      <table>
-        <thead><tr><th class="d">Description</th><th class="a">Amount</th></tr></thead>
-        <tbody>
-          ${bodyRows}
-          <tr class="total"><td class="d">${esc(totalLabel)}</td><td class="a">${amt(total)}</td></tr>
-        </tbody>
-      </table>
+      ${billTable(rows, total, totalLabel)}
       ${school.upiQr
         ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" crossorigin="anonymous" /><div class="qrText">${note ? `<div class="note">Note : ${esc(note)}</div>` : ""}<span class="pay">Pay on this QR</span></div></div>`
         : note ? `<div class="note">Note : ${esc(note)}</div>` : ""}
@@ -195,6 +249,7 @@ export async function billToPdfBase64(opts = {}) {
  *     date: "2026-05-31", month: "June", year: "2026-27",
  *     party: { name: "Riddhi Arya", className: "10TH", batch: "A", idNo: "CC874" },
  *     rows: [["Tuition Fee", 1200], ["Admission Fee", 0]],   // [description, amount]
+ *     // …or itemised: [{ name: "Tuition fee (Jul-2026)", fee: 900, discount: 0, due: 900, paid: 0 }]
  *     total: 1200,                              // grand total (number → ₹, or string)
  *     totalLabel: "Grand Total",
  *     note: "Kindly pay fee before 10th of the Month.",
@@ -286,19 +341,13 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
       ["Batch", b.party?.batch],
     ];
     const right = [["Date", b.date], ["Month", b.month], ["Year", b.year], ["ID No", b.party?.idNo]];
-    const body = (b.rows || []).map(([d, a]) => `<tr><td class="d">${esc(d)}</td><td class="a">${amt(a)}</td></tr>`).join("");
     return `<div class="bill">
       ${(school.watermark || school.logo) ? `<div class="wm"><img src="${esc(school.watermark || school.logo)}" alt="" /></div>` : ""}
       <div class="content">
-        <div class="phone">${esc(school.phone || "")}</div>
-        <h1 class="sname">${esc(school.name || "School")}</h1>
-        ${school.address ? `<div class="addr">${esc(school.address)}</div>` : ""}
+        ${billHead(school, "")}
         <div class="btype">${esc(b.billType || "Demand Bill")}</div>
         <div class="meta"><div>${metaCol(left)}</div><div>${metaCol(right)}</div></div>
-        <table>
-          <thead><tr><th class="d">Description</th><th class="a">Amount</th></tr></thead>
-          <tbody>${body}<tr class="total"><td class="d">${esc(b.totalLabel || "Grand Total")}</td><td class="a">${amt(b.total)}</td></tr></tbody>
-        </table>
+        ${billTable(b.rows || [], b.total, b.totalLabel || "Grand Total")}
         ${school.upiQr
           ? `<div class="qr"><img src="${esc(school.upiQr)}" alt="UPI QR" /><div class="qrText">${b.note ? `<div class="note">Note : ${esc(b.note)}</div>` : ""}<span class="pay">Pay on this QR</span></div></div>`
           : b.note ? `<div class="note">Note : ${esc(b.note)}</div>` : ""}
@@ -338,8 +387,11 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .wm img { width: 70%; max-width: 200px; opacity: 0.06; filter: grayscale(100%); }
   .content { position: relative; z-index: 1; }
-  .phone { text-align: right; font-size: 9px; font-weight: 600; min-height: 11px; }
-  .sname { text-align: center; font-size: 15px; font-weight: 800; letter-spacing: .5px; margin: 0; text-transform: uppercase; }
+  .head { display: grid; grid-template-columns: 60px 1fr 60px; align-items: center; gap: 4px; }
+  .hlogo img { width: 38px; height: 38px; object-fit: contain; }
+  .htext { text-align: center; min-width: 0; }
+  .phone { text-align: right; font-size: 7.5px; font-weight: 600; line-height: 1.3; align-self: start; white-space: nowrap; }
+  .sname { text-align: center; font-size: 14px; font-weight: 800; letter-spacing: .3px; margin: 0; text-transform: uppercase; line-height: 1.15; }
   .addr { text-align: center; font-size: 9px; color: #374151; margin-top: 1px; }
   .btype { text-align: center; font-size: 10px; font-weight: 600; color: #374151; margin: 4px 0 6px; }
   .meta { display: flex; border: 1.2px solid #111827; }
@@ -355,6 +407,12 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   td { padding: 3px 6px; font-size: 9.5px; }
   tr.total td { border-top: 1.2px solid #111827; font-size: 11.5px; font-weight: 800; padding: 5px 6px; }
   tr.total td.d { text-align: center; }
+  table.ledger th, table.ledger td { border: 1px solid #111827; padding: 2px 3px; font-size: 8.5px; }
+  table.ledger th.n, table.ledger td.n { text-align: right; white-space: nowrap; width: 15%; }
+  table.ledger th.sl, table.ledger td.sl { text-align: center; width: 7%; }
+  table.ledger tr.sum td { font-weight: 700; }
+  table.ledger tr.sum td.d { text-align: left; }
+  table.ledger tr.total td { font-size: 10.5px; padding: 4px 3px; }
   .note { font-size: 8.5px; color: #374151; border: 1.2px solid #111827; border-top: 0; padding: 3px 6px; }
   .qr { display: flex; align-items: center; gap: 5px; border: 1.2px solid #111827; border-top: 0; padding: 2px 3px; min-height: 82px; }
   .qr img { width: 78px; height: 78px; object-fit: contain; flex: 0 0 78px; }

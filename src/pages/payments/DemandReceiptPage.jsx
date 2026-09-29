@@ -75,18 +75,23 @@ export default function DemandReceiptPage() {
   };
 
   // Build ONE student's demand bill object (compact bill format). Itemises
-  // Previous Dues + each of the scoped month's configured fees so the grand
-  // total matches the student's full outstanding demand. Shared by the single
-  // "Bill" button and the multi-bill (6-per-page) print.
+  // Previous Dues + each of the scoped month's configured fees — each with its
+  // Fee | Discount | Due | Paid breakdown — so the grand total matches the
+  // student's full outstanding demand. Shared by the single "Bill" button and
+  // the multi-bill (6-per-page) print.
   const buildBillFor = (r) => {
     const now = new Date();
     const prev = Number(r.previousDue) || 0;
     const lines = Array.isArray(r.lines) ? r.lines : [];
+    // Older servers only send the due amount; treat it as the full fee then.
+    const line = (name, due, fee, discount, paid) => ({
+      name, due, fee: fee ?? due, discount: Number(discount) || 0, paid: Number(paid) || 0,
+    });
     const billRows = [
-      ["Prev. Dues", prev],
+      line("Prev. Dues", prev, r.previousFee, r.previousDiscount, r.previousPaid),
       ...(lines.length
-        ? lines.map((l) => [`${l.name}${l.month && l.month !== "Only Once" ? ` (${l.month})` : ""}`, Number(l.amount) || 0])
-        : [[`Current Dues${scopeMonth ? ` (${scopeMonth})` : ""}`, Number(r.currentDue) || 0]]),
+        ? lines.map((l) => line(`${l.name}${l.month && l.month !== "Only Once" ? ` (${l.month})` : ""}`, Number(l.amount) || 0, l.fee, l.discount, l.paid))
+        : [line(`Current Dues${scopeMonth ? ` (${scopeMonth})` : ""}`, Number(r.currentDue) || 0)]),
     ];
     return {
       billType: "Demand Bill",
