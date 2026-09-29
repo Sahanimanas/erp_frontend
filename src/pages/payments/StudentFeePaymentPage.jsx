@@ -2,13 +2,14 @@
  * Payments → Student Fee Payment
  * Search a student → profile card → class fee structure → per-installment
  * payment details (pay / discount / extra / delete) → receipt list (revert).
+ * "Quick Collect" takes any amount and auto-splits it across the dues.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { usePageTitle, useDebounce } from "../../hooks";
 import { PageHeader, Card, Button, Select, Input, SearchInput, Badge, Modal, EmptyState, Skeleton, Avatar, Textarea } from "../../components/ui";
-import { CreditCard, User, FileDown, Trash2, Pencil, Plus, Undo2, MessageCircle, ArrowLeft } from "lucide-react";
+import { CreditCard, User, FileDown, Trash2, Pencil, Plus, Undo2, MessageCircle, ArrowLeft, Wallet } from "lucide-react";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
 import {
@@ -17,6 +18,7 @@ import {
   useDeleteInstallmentPaymentMutation, useRevertReceiptMutation,
 } from "../../redux/api/paymentsApi";
 import { printBill, printBills, billToPdfBase64 } from "../../utils/printPdf";
+import { allocate } from "../../utils/feeAllocation";
 import apiClient from "../../services/axios";
 
 const MONTHLY_LIKE = ["Monthly", "Quarterly"];
@@ -38,6 +40,8 @@ export default function StudentFeePaymentPage() {
   const [selected, setSelected] = useState({}); // rowKey -> true
   const [payOpen, setPayOpen] = useState(false);
   const [payForm, setPayForm] = useState({ account: "Cash", bankName: "", txnNo: "", details: "", remarks: "", date: "" });
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickForm, setQuickForm] = useState({ amount: "", order: "category", account: "Cash", txnNo: "", remarks: "" });
   const [receipt, setReceipt] = useState(null);
   const [waConfirm, setWaConfirm] = useState(null);
   const [sendingReceiptNo, setSendingReceiptNo] = useState("");
@@ -137,6 +141,49 @@ export default function StudentFeePaymentPage() {
       setSelected({});
       setPayOpen(false);
       toast.success(`Payment recorded — ${res.receiptNo}`);
+    } catch (e) { toast.error(e?.data?.error || "Payment failed"); }
+  };
+
+  // ── quick collect (any amount, auto-split across dues) ───────────────────
+  const totalDue = Number(inst?.totals?.due ?? ledger?.totals?.due ?? 0);
+  const ledgerItems = ledger?.items ?? [];
+  // Fee-head order from the ledger, so "by category" follows the structure order.
+  const catOrder = useMemo(() => {
+    const o = {};
+    ledgerItems.forEach((it, i) => { o[it.feeTypeId] = i; });
+    return o;
+  }, [ledgerItems]);
+  const { lines: quickLines, leftover: quickLeftover } = useMemo(
+    () => allocate(rows, quickForm.amount, quickForm.order, catOrder),
+    [rows, quickForm.amount, quickForm.order, catOrder]
+  );
+  const quickAllocated = quickLines.reduce((s, l) => s + l.amount, 0);
+  // Per-category preview: due now vs. how much this payment covers vs. what remains.
+  const quickCatRows = ledgerItems
+    .filter((it) => it.due > 0)
+    .map((it) => {
+      const got = quickLines.filter((l) => l.feeTypeId === it.feeTypeId).reduce((s, l) => s + l.amount, 0);
+      return { feeTypeId: it.feeTypeId, name: it.name, frequency: it.frequency, due: it.due, allocated: got, remaining: it.due - got };
+    });
+
+  const openQuick = () => {
+    setQuickForm({ amount: "", order: "category", account: "Cash", txnNo: "", remarks: "" });
+    setQuickOpen(true);
+  };
+
+  const quickCollect = async () => {
+    if (!(Number(quickForm.amount) > 0)) { toast.error("Enter an amount greater than 0"); return; }
+    if (!quickLines.length) { toast.error("Nothing due to allocate this payment to"); return; }
+    try {
+      const res = await collect({
+        studentId, mode: quickForm.account,
+        note: [quickForm.txnNo && `Txn ${quickForm.txnNo}`, quickForm.remarks, `Auto-allocated by ${quickForm.order}`].filter(Boolean).join(" · "),
+        lines: quickLines.map(({ feeTypeId, name, month, amount }) => ({ feeTypeId, name, month, amount })),
+      }).unwrap();
+      setReceipt({ ...res, total: quickAllocated, student: st, lines: quickLines, account: quickForm.account });
+      setSelected({});
+      setQuickOpen(false);
+      toast.success(`Collected ${money(quickAllocated)} — ${res.receiptNo}`);
     } catch (e) { toast.error(e?.data?.error || "Payment failed"); }
   };
 
@@ -370,6 +417,7 @@ export default function StudentFeePaymentPage() {
         <Card noPadding title={st ? `${st.name} — Class Fee Payment Details` : "Class Fee Payment Details"}
           action={<div className="flex gap-2">
             <Button size="sm" variant="secondary" icon={<FileDown size={14} />} disabled={!dueRows.length} onClick={downloadDemandBill}>Demand Bill</Button>
+            <Button size="sm" variant="success" icon={<Wallet size={14} />} disabled={!dueRows.length} onClick={openQuick}>Quick Collect</Button>
             <Button size="sm" icon={<CreditCard size={14} />} disabled={!selectedRows.length} onClick={openPay}>Cash/Offline Payment</Button>
           </div>}>
           {isFetching ? (
@@ -543,6 +591,73 @@ export default function StudentFeePaymentPage() {
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setPayOpen(false)}>Close</Button>
             <Button loading={collecting} onClick={addPayment}>Add Payment</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Quick Collect modal — any amount, auto-split across dues */}
+      <Modal open={quickOpen} onClose={() => setQuickOpen(false)} title="Quick Collect" size="lg">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Amount Received *</label>
+              <div className="flex gap-2">
+                <Input type="number" min="0" value={quickForm.amount} onChange={(e) => setQuickForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0" autoFocus />
+                <Button variant="secondary" size="sm" onClick={() => setQuickForm((f) => ({ ...f, amount: String(totalDue) }))} title="Pay full due" disabled={totalDue <= 0}>Full</Button>
+              </div>
+            </div>
+            <Select label="Allocate By" value={quickForm.order} onChange={(e) => setQuickForm((f) => ({ ...f, order: e.target.value }))}
+              options={[{ value: "category", label: "Category (clear head by head)" }, { value: "month", label: "Month (oldest first)" }]} />
+            <Select label="Finance Account" value={quickForm.account} onChange={(e) => setQuickForm((f) => ({ ...f, account: e.target.value }))}
+              options={FINANCE_ACCOUNTS.map((a) => ({ value: a, label: a }))} />
+            <Input label="Transaction No" value={quickForm.txnNo} onChange={(e) => setQuickForm((f) => ({ ...f, txnNo: e.target.value }))} placeholder="UPI / Cheque ref" />
+          </div>
+
+          {quickLeftover > 0 && (
+            <p className="text-[12px] text-amber-600">
+              {money(quickLeftover)} of the entered amount exceeds the total due and won't be allocated. It will not be collected.
+            </p>
+          )}
+
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="w-full text-sm min-w-[560px]">
+              <thead>
+                <tr className="bg-slate-50">
+                  {["Fee Category", "Frequency", "Current Due", "Paying Now", "Remaining Due"].map((h) => (
+                    <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {quickCatRows.map((c) => (
+                  <tr key={c.feeTypeId}>
+                    <td className="px-4 py-2.5 font-semibold text-slate-800 text-[12.5px]">{c.name}</td>
+                    <td className="px-4 py-2.5 text-slate-500 text-[12px]">{c.frequency}</td>
+                    <td className="px-4 py-2.5 text-slate-700 text-[12px]">{money(c.due)}</td>
+                    <td className={`px-4 py-2.5 text-[12px] font-semibold ${c.allocated > 0 ? "text-emerald-600" : "text-slate-400"}`}>{money(c.allocated)}</td>
+                    <td className={`px-4 py-2.5 text-[12px] font-semibold ${c.remaining > 0 ? "text-red-500" : "text-emerald-600"}`}>{money(c.remaining)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-50 font-bold">
+                  <td className="px-4 py-2.5 text-slate-800 text-[12.5px]" colSpan={2}>Total</td>
+                  <td className="px-4 py-2.5 text-slate-800 text-[12.5px]">{money(totalDue)}</td>
+                  <td className="px-4 py-2.5 text-emerald-600 text-[12.5px]">{money(quickAllocated)}</td>
+                  <td className="px-4 py-2.5 text-red-500 text-[12.5px]">{money(totalDue - quickAllocated)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <Textarea label="Remarks" value={quickForm.remarks} onChange={(e) => setQuickForm((f) => ({ ...f, remarks: e.target.value }))} placeholder="Optional note for this receipt" />
+
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+            <span className="text-[13px] text-slate-600">Collecting <b className="text-emerald-600">{money(quickAllocated)}</b> across {quickLines.length} installment{quickLines.length === 1 ? "" : "s"}</span>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setQuickOpen(false)}>Close</Button>
+              <Button icon={<Wallet size={15} />} loading={collecting} disabled={!(quickAllocated > 0)} onClick={quickCollect}>Collect {money(quickAllocated)}</Button>
+            </div>
           </div>
         </div>
       </Modal>
