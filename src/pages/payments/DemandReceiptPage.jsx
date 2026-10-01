@@ -49,7 +49,8 @@ export default function DemandReceiptPage() {
   const { data: studentList } = useGetStudentsQuery({ classId, limit: 500 }, { skip: !classId });
   const [fetchDues, { isFetching }] = useLazyGetMonthlyDuesQuery();
 
-  const students = studentList?.data ?? [];
+  // Deactivated students get no demand bill, so they aren't offered here either.
+  const students = (studentList?.data ?? []).filter((s) => s.isActive !== false);
   const className = classes.find((c) => c.id === classId)?.name;
   const toggleMonth = (m) => setSelMonths((s) => (s.includes(m) ? s.filter((x) => x !== m) : [...s, m]));
   // Dues are scoped to a single month boundary. "Till Month" wins when set —

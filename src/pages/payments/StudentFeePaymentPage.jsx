@@ -28,6 +28,36 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-di
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 const rowKey = (r) => `${r.feeTypeId}|${r.month ?? ""}`;
 
+/**
+ * Month-wise arrear snapshot for a paid receipt: what was owed per month just
+ * BEFORE this payment, what the receipt paid against it, and what is still
+ * left. `rows` are the pre-payment installments, `lines` the paid lines.
+ * Months not yet due are skipped unless this payment covers them (advance).
+ * Month-bound fees are merged per month; monthless fees (Session / One-time /
+ * carried forward) get a row of their own.
+ */
+function arrearBreakdown(rows, lines) {
+  const paidBy = new Map();
+  lines.forEach((l) => paidBy.set(rowKey(l), (paidBy.get(rowKey(l)) || 0) + (Number(l.amount) || 0)));
+  const now = new Date();
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const groups = new Map();
+  for (const r of rows) {
+    const arrear = Number(r.due) || 0;
+    const paid = paidBy.get(rowKey(r)) || 0;
+    if (arrear <= 0 || (!paid && new Date(r.dueDate) > monthEnd)) continue;
+    const byMonth = !!r.month && (MONTHLY_LIKE.includes(r.frequency) || r.frequency === "Other");
+    const key = byMonth ? `m|${r.month}` : `f|${rowKey(r)}`;
+    const g = groups.get(key) || { month: byMonth ? r.monthLabel : r.name, fees: [], arrear: 0, paid: 0, balance: 0 };
+    if (byMonth && !g.fees.includes(r.name)) g.fees.push(r.name);
+    g.arrear += arrear;
+    g.paid += paid;
+    g.balance += Math.max(0, arrear - paid);
+    groups.set(key, g);
+  }
+  return [...groups.values()].map(({ fees, ...g }) => ({ ...g, detail: fees.join(", ") }));
+}
+
 export default function StudentFeePaymentPage() {
   usePageTitle("Student Fee Payment");
   const navigate = useNavigate();
@@ -131,13 +161,14 @@ export default function StudentFeePaymentPage() {
 
   const addPayment = async () => {
     const lines = selectedRows.map((r) => ({ feeTypeId: r.feeTypeId, name: r.name, month: r.month, amount: r.due }));
+    const breakdown = arrearBreakdown(rows, lines);
     try {
       const res = await collect({
         studentId, mode: payForm.account,
         note: [payForm.txnNo && `Txn ${payForm.txnNo}`, payForm.bankName, payForm.details, payForm.remarks].filter(Boolean).join(" · "),
         lines,
       }).unwrap();
-      setReceipt({ ...res, total: payTotal, student: st, lines, account: payForm.account });
+      setReceipt({ ...res, total: payTotal, student: st, lines, breakdown, account: payForm.account });
       setSelected({});
       setPayOpen(false);
       toast.success(`Payment recorded — ${res.receiptNo}`);
@@ -174,13 +205,14 @@ export default function StudentFeePaymentPage() {
   const quickCollect = async () => {
     if (!(Number(quickForm.amount) > 0)) { toast.error("Enter an amount greater than 0"); return; }
     if (!quickLines.length) { toast.error("Nothing due to allocate this payment to"); return; }
+    const breakdown = arrearBreakdown(rows, quickLines);
     try {
       const res = await collect({
         studentId, mode: quickForm.account,
         note: [quickForm.txnNo && `Txn ${quickForm.txnNo}`, quickForm.remarks, `Auto-allocated by ${quickForm.order}`].filter(Boolean).join(" · "),
         lines: quickLines.map(({ feeTypeId, name, month, amount }) => ({ feeTypeId, name, month, amount })),
       }).unwrap();
-      setReceipt({ ...res, total: quickAllocated, student: st, lines: quickLines, account: quickForm.account });
+      setReceipt({ ...res, total: quickAllocated, student: st, lines: quickLines, breakdown, account: quickForm.account });
       setSelected({});
       setQuickOpen(false);
       toast.success(`Collected ${money(quickAllocated)} — ${res.receiptNo}`);
@@ -238,7 +270,12 @@ export default function StudentFeePaymentPage() {
         batch: rc.student?.sectionName,
         idNo: rc.student?.registrationNo || rc.student?.rollNumber,
       },
-      rows: (rc.lines || []).map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, Number(l.amount) || 0]),
+      // A receipt taken right after collecting carries the month-wise arrear
+      // snapshot (Arrear | Paid | Balance); reprints from the receipt list
+      // only know the paid lines.
+      rows: rc.breakdown?.length
+        ? rc.breakdown
+        : (rc.lines || []).map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, Number(l.amount) || 0]),
       total: Number(rc.total) || 0,
       totalLabel: "Total Paid",
       note: `Received with thanks via ${rc.account || "Cash"}.`,
@@ -249,6 +286,7 @@ export default function StudentFeePaymentPage() {
 
   // Outstanding demand bill for the current student (all due installments).
   const downloadDemandBill = () => {
+    if (st?.isActive === false) { toast.error("Student is deactivated — no demand bill"); return; }
     if (!dueRows.length) { toast.error("No outstanding dues for this student"); return; }
     const now = new Date();
     printBills({ bills: [{
@@ -416,7 +454,7 @@ export default function StudentFeePaymentPage() {
       {studentId && (
         <Card noPadding title={st ? `${st.name} — Class Fee Payment Details` : "Class Fee Payment Details"}
           action={<div className="flex gap-2">
-            <Button size="sm" variant="secondary" icon={<FileDown size={14} />} disabled={!dueRows.length} onClick={downloadDemandBill}>Demand Bill</Button>
+            <Button size="sm" variant="secondary" icon={<FileDown size={14} />} disabled={!dueRows.length || st?.isActive === false} onClick={downloadDemandBill}>Demand Bill</Button>
             <Button size="sm" variant="success" icon={<Wallet size={14} />} disabled={!dueRows.length} onClick={openQuick}>Quick Collect</Button>
             <Button size="sm" icon={<CreditCard size={14} />} disabled={!selectedRows.length} onClick={openPay}>Cash/Offline Payment</Button>
           </div>}>
@@ -681,6 +719,12 @@ export default function StudentFeePaymentPage() {
             <div className="flex justify-between border-t border-slate-100 pt-2 text-[14px] font-bold">
               <span>Total Paid</span><span className="text-emerald-600">{money(receipt.total)}</span>
             </div>
+            {receipt.breakdown?.length > 0 && (
+              <div className="flex justify-between text-[12.5px] text-slate-600">
+                <span>Balance left</span>
+                <span className="font-semibold text-amber-600">{money(receipt.breakdown.reduce((t, b) => t + b.balance, 0))}</span>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="success"

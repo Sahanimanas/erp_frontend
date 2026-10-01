@@ -77,13 +77,31 @@ function billHead(school, cors) {
 }
 
 /**
- * Fee table. Two row shapes are accepted:
+ * Fee table. Three row shapes are accepted:
  *   - `[description, amount]`  → plain Description | Amount table (receipts);
  *   - `{ name, fee, discount, due, paid }` → itemised ledger with
  *     Sl. | Fee Name | Fee | Discount | Due | Paid and a column-total row,
- *     followed by the payable amount (`total`, labelled `totalLabel`).
+ *     followed by the payable amount (`total`, labelled `totalLabel`);
+ *   - `{ month, detail?, arrear, paid, balance }` → paid-receipt arrear view,
+ *     Sl. | Month | Arrear | Paid | Balance, then the amount paid (`total`)
+ *     and the balance still left to pay.
  */
 function billTable(rows, total, totalLabel) {
+  if (rows.length && !Array.isArray(rows[0]) && "arrear" in rows[0]) {
+    const sum = (k) => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+    const body = rows.map((r, i) => `<tr>
+        <td class="sl">${i + 1}</td><td class="d">${esc(r.month)}${r.detail ? `<div class="sub">${esc(r.detail)}</div>` : ""}</td>
+        <td class="n">${inr(r.arrear)}</td><td class="n">${inr(r.paid)}</td><td class="n">${inr(r.balance)}</td></tr>`).join("");
+    return `<table class="ledger">
+        <thead><tr><th class="sl">Sl.</th><th class="d">Month</th><th class="n">Arrear</th><th class="n">Paid</th><th class="n">Balance</th></tr></thead>
+        <tbody>
+          ${body}
+          <tr class="sum"><td class="d" colspan="2">Total</td><td class="n">${inr(sum("arrear"))}</td><td class="n">${inr(sum("paid"))}</td><td class="n">${inr(sum("balance"))}</td></tr>
+          <tr class="total"><td class="d" colspan="3">${esc(totalLabel)}</td><td class="a" colspan="2">${amt(total)}</td></tr>
+          <tr class="total"><td class="d" colspan="3">Balance Left</td><td class="a" colspan="2">${inr(sum("balance"))}</td></tr>
+        </tbody>
+      </table>`;
+  }
   if (rows.length && !Array.isArray(rows[0])) {
     const sum = (k) => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
     const body = rows.map((r, i) => `<tr>
@@ -117,7 +135,7 @@ const BILL_CSS = `
   * { box-sizing: border-box; }
   .bill { position: relative; width: 460px; margin: 0 auto; background: #fff; border: 2px solid #111827; padding: 14px 16px 18px; overflow: hidden; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #111827; }
   .bill .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-  .bill .wm img { width: 68%; max-width: 320px; opacity: 0.07; filter: grayscale(100%); }
+  .bill .wm img { width: 68%; max-width: 320px; opacity: 0.16; filter: grayscale(100%); }
   .bill .content { position: relative; z-index: 1; }
   .bill .head { display: grid; grid-template-columns: 86px 1fr 86px; align-items: center; gap: 6px; }
   .bill .hlogo img { width: 58px; height: 58px; object-fit: contain; }
@@ -146,6 +164,7 @@ const BILL_CSS = `
   .bill table.ledger tr.sum td { font-weight: 700; }
   .bill table.ledger tr.sum td.d { text-align: left; }
   .bill table.ledger tr.total td { font-size: 14px; padding: 7px 5px; }
+  .bill table.ledger .sub { font-size: 9.5px; font-weight: 400; color: #4b5563; }
   .bill .note { font-size: 11.5px; color: #374151; border: 1.5px solid #111827; border-top: 0; padding: 6px 10px; }
   .bill .qr { display: flex; align-items: center; gap: 8px; border: 1.5px solid #111827; border-top: 0; padding: 3px 4px; min-height: 128px; }
   .bill .qr img { width: 122px; height: 122px; object-fit: contain; flex: 0 0 122px; }
@@ -385,7 +404,7 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   .page.sparse .bill { align-self: start; }
   .bill { position: relative; background: #fff; border: 1.5px solid #111827; padding: 10px 14px 12px; overflow: hidden; break-inside: avoid; }
   .wm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-  .wm img { width: 70%; max-width: 200px; opacity: 0.06; filter: grayscale(100%); }
+  .wm img { width: 70%; max-width: 200px; opacity: 0.15; filter: grayscale(100%); }
   .content { position: relative; z-index: 1; }
   .head { display: grid; grid-template-columns: 60px 1fr 60px; align-items: center; gap: 4px; }
   .hlogo img { width: 38px; height: 38px; object-fit: contain; }
@@ -413,6 +432,7 @@ export function printBills({ bills = [], perPage = 6, school = getSchool() } = {
   table.ledger tr.sum td { font-weight: 700; }
   table.ledger tr.sum td.d { text-align: left; }
   table.ledger tr.total td { font-size: 10.5px; padding: 4px 3px; }
+  table.ledger .sub { font-size: 7.5px; font-weight: 400; color: #4b5563; }
   .note { font-size: 8.5px; color: #374151; border: 1.2px solid #111827; border-top: 0; padding: 3px 6px; }
   .qr { display: flex; align-items: center; gap: 5px; border: 1.2px solid #111827; border-top: 0; padding: 2px 3px; min-height: 82px; }
   .qr img { width: 78px; height: 78px; object-fit: contain; flex: 0 0 78px; }
