@@ -4,12 +4,50 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { selectUser } from "../../redux/slices/authSlice";
 import { usePageTitle } from "../../hooks";
 import { WelcomeBanner, StatCard, Card, ProgressBar, DateRangeFilter, Button, Modal } from "../../components/ui";
-import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Users, GraduationCap, UserCheck, AlertCircle, Clock } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Users, GraduationCap, UserCheck, AlertCircle, Clock, ChevronRight } from "lucide-react";
 import apiClient from "../../services/axios";
 import { Loader } from "../../components/loaders/PageLoader";
 
-function Tip({active,payload,label}){if(!active||!payload?.length)return null;return <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs"><p className="font-semibold text-slate-700 mb-1">{label}</p>{payload.map((p,i)=><p key={i} style={{color:p.color}}>{p.name}: ₹{Number(p.value||0).toLocaleString()}</p>)}</div>;}
+/**
+ * Default tooltip for the dashboard's charts.
+ *
+ * `total` is computed here rather than carried as a third series: in a stacked
+ * part-to-whole the whole IS the bar's height, so plotting it again would draw a
+ * flat line across the top that tells the reader nothing.
+ */
+function Tip({ active, payload, label, showTotal = false, unit = "money" }) {
+  if (!active || !payload?.length) return null;
+  // Attendance is a head-count, not an amount — the same tooltip was printing
+  // "₹0 Present", which is nonsense. Callers say which they are showing.
+  const fmt = (v) =>
+    unit === "money"
+      ? `₹${Number(v || 0).toLocaleString("en-IN")}`
+      : Number(v || 0).toLocaleString("en-IN");
+  const money = fmt;
+  const total = payload.reduce((t, p) => t + (Number(p.value) || 0), 0);
+  return (
+    <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs" style={{ border: "1px solid var(--erp-border)" }}>
+      <p className="font-semibold mb-1.5" style={{ color: "var(--erp-text)" }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} className="flex items-center gap-2 leading-5">
+          {/* The swatch carries identity; the text stays ink, never the series
+              colour — coloured text on white is the first thing to fail. */}
+          <span className="inline-block w-2.5 h-2.5 rounded-[2px]" style={{ background: p.color }} />
+          <span className="text-slate-700">{p.name}</span>
+          <span className="ml-auto font-semibold" style={{ color: "var(--erp-text)" }}>{money(p.value)}</span>
+        </p>
+      ))}
+      {showTotal && (
+        <p className="flex items-center gap-2 leading-5 mt-1.5 pt-1.5" style={{ borderTop: "1px solid var(--erp-border-soft)" }}>
+          <span className="inline-block w-2.5 h-2.5" />
+          <span className="text-slate-700">Total</span>
+          <span className="ml-auto font-bold" style={{ color: "var(--erp-text)" }}>{money(total)}</span>
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   // A Super Admin belongs to the platform tenant (no students/staff of its own),
@@ -22,6 +60,37 @@ export default function DashboardPage() {
     return <Navigate to="/super-admin/dashboard" replace />;
   }
   return <SchoolDashboard />;
+}
+
+/**
+ * A dashboard card that is also a link to the page it summarises.
+ *
+ * Rendered as a real <button> rather than a div with onClick, so it is keyboard
+ * reachable and announced as a control. The chevron is the hint that the whole
+ * card is pressable — without it, a card that moves on hover is just surprising.
+ */
+function LinkCard({ to, title, badge, children, className = "" }) {
+  const navigate = useNavigate();
+  return (
+    <Card className={`transition-shadow hover:shadow-md ${className}`} noPadding>
+      <button
+        type="button"
+        onClick={() => navigate(to)}
+        className="group w-full text-left p-4 focus:outline-none focus:ring-2 focus:ring-[var(--erp-primary)] rounded-[3px]"
+      >
+        {(title || badge) && (
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[13px] font-semibold flex items-center gap-1.5" style={{ color: "var(--erp-text)" }}>
+              {title}
+              <ChevronRight size={14} className="text-slate-400 group-hover:text-[var(--erp-primary)] group-hover:translate-x-0.5 transition-all" />
+            </span>
+            {badge}
+          </div>
+        )}
+        {children}
+      </button>
+    </Card>
+  );
 }
 
 function SchoolDashboard() {
@@ -91,65 +160,208 @@ function SchoolDashboard() {
         </div>
       </Card>
       {/* KPI cards — each one drills into its own module listing. */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Employees" value={dashboardData.employees} gradient="bg-gradient-to-br from-indigo-500 to-indigo-600" icon={Users} change={0} sparkData={[1,2,1,3,2,1,1]} onClick={()=>navigate("/employee/list")}/>
         <StatCard label="Students" value={dashboardData.students} gradient="bg-gradient-to-br from-cyan-500 to-teal-500" icon={GraduationCap} change={0} sparkData={[5,6,5,7,8,7,6]} onClick={()=>navigate("/students/list")}/>
         <StatCard label="Parents" value={dashboardData.parents} gradient="bg-gradient-to-br from-blue-500 to-blue-600" icon={UserCheck} change={0} sparkData={[8,10,9,11,12,11,10]} onClick={()=>navigate("/parents/list")}/>
+        {/* Teachers were already in the payload but had no tile; the row also
+            balances at four across. */}
+        <StatCard label="Teachers" value={dashboardData.teachers} gradient="bg-gradient-to-br from-amber-500 to-orange-600" icon={GraduationCap} change={0} sparkData={[2,3,2,4,3,4,3]} onClick={()=>navigate("/employee/list")}/>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
-        <Card title="Income Vs Expense" className="lg:col-span-2">
+        {/* The donut alone said nothing — no legend, no values, and an all-zero
+            month rendered as a single mystery ring. The net figure now sits in
+            the middle (that is the number anyone opens this card for) and both
+            series are labelled with their amounts. */}
+        <Card
+          action={
+            <button type="button" onClick={() => navigate("/reports/financial")}
+              className="group inline-flex items-center gap-1 text-[12px] font-semibold focus:outline-none"
+              style={{ color: "var(--erp-primary)" }}>
+              Financial report
+              <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          }
+          title="Income Vs Expense" subtitle="This period" className="lg:col-span-2">
           <div className="p-4">
-            {dashboardData.incomeExpense && (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={[
-                    {name:"Income",value:dashboardData.incomeExpense.income||0,color:"#22d3ee"},
-                    {name:"Expense",value:dashboardData.incomeExpense.expense||0,color:"#f43f5e"}
-                  ]} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={3} dataKey="value">
-                    {[{color:"#22d3ee"},{color:"#f43f5e"}].map((e,i)=><Cell key={i} fill={e.color}/>)}
-                  </Pie>
-                  <Tooltip/>
-                </PieChart>
-              </ResponsiveContainer>
-            )}
+            {(() => {
+              const income = Number(dashboardData.incomeExpense?.income) || 0;
+              const expense = Number(dashboardData.incomeExpense?.expense) || 0;
+              const net = income - expense;
+              const inr = (v) => `₹${Math.abs(v).toLocaleString("en-IN")}`;
+
+              if (!income && !expense) {
+                return (
+                  <div className="h-[200px] flex items-center justify-center text-[13px] text-slate-600">
+                    No income or expense recorded yet.
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  <div className="relative">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[{ name: "Income", value: income }, { name: "Expense", value: expense }]}
+                          cx="50%" cy="50%" innerRadius={62} outerRadius={86} paddingAngle={3} dataKey="value"
+                          stroke="#ffffff" strokeWidth={2}
+                        >
+                          <Cell fill="#2a78d6" />
+                          <Cell fill="#eb6834" />
+                        </Pie>
+                        <Tooltip content={<Tip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    {/* The hole is the only place a donut has for its headline. */}
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-600">Net</span>
+                      <span className="text-[19px] font-bold leading-tight"
+                            style={{ color: net < 0 ? "#eb6834" : "var(--erp-text)" }}>
+                        {net < 0 ? "−" : ""}{inr(net)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 space-y-1.5">
+                    {[
+                      { label: "Income", value: income, color: "#2a78d6" },
+                      { label: "Expense", value: expense, color: "#eb6834" },
+                    ].map((r) => (
+                      <div key={r.label} className="flex items-center gap-2 text-[12.5px]">
+                        <span className="h-2.5 w-2.5 rounded-[2px]" style={{ background: r.color }} />
+                        <span className="text-slate-700">{r.label}</span>
+                        <span className="ml-auto font-semibold" style={{ color: "var(--erp-text)" }}>{inr(r.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </Card>
-        <Card title="Monthly Fee Summary" className="lg:col-span-3">
+        {/* Monthly fees are a part-to-whole over time — collected + remaining IS
+            the month's total — so they stack. The previous three overlapping
+            area series plotted the total as its own flat line, which carried no
+            information and hid the two series that did.
+
+            Colours are categorical slots 1 and 2 of the validated palette
+            (blue / orange, CVD ΔE 24.7). */}
+        <Card
+          action={
+            <button type="button" onClick={() => navigate("/reports/fees")}
+              className="group inline-flex items-center gap-1 text-[12px] font-semibold focus:outline-none"
+              style={{ color: "var(--erp-primary)" }}>
+              Fee report
+              <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          }
+          title="Monthly Fee Summary" subtitle="Collected vs still due, month by month" className="lg:col-span-3">
           <div className="p-4">
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={dashboardData.monthlyFees || []} margin={{top:5,right:10,left:0,bottom:0}}>
-                <defs>
-                  <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/><stop offset="95%" stopColor="#6366f1" stopOpacity={0}/></linearGradient>
-                  <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3}/><stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/></linearGradient>
-                  <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/><stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/></linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/><XAxis dataKey="month" tick={{fontSize:10,fill:"#94a3b8"}} axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10,fill:"#94a3b8"}} axisLine={false} tickLine={false} tickFormatter={v=>Number(v).toLocaleString()}/>
-                <Tooltip content={<Tip/>}/><Legend iconType="circle" iconSize={8} wrapperStyle={{fontSize:11}}/>
-                <Area type="monotone" dataKey="total"     name="Total"     stroke="#6366f1" fill="url(#g1)" strokeWidth={2} dot={{r:3,fill:"#6366f1"}}/>
-                <Area type="monotone" dataKey="collected" name="Collected" stroke="#22d3ee" fill="url(#g2)" strokeWidth={2} dot={{r:3,fill:"#22d3ee"}}/>
-                <Area type="monotone" dataKey="remaining" name="Remaining" stroke="#f43f5e" fill="url(#g3)" strokeWidth={2} dot={{r:3,fill:"#f43f5e"}}/>
-              </AreaChart>
-            </ResponsiveContainer>
+            {(dashboardData.monthlyFees || []).length === 0 ? (
+              <div className="h-[220px] flex items-center justify-center text-[13px] text-slate-600">
+                No fee activity recorded yet.
+              </div>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={dashboardData.monthlyFees} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
+                    {/* Hairline, solid, horizontal only — the grid is there to
+                        read values against, not to be seen. */}
+                    <CartesianGrid vertical={false} stroke="#e1e0d9" strokeWidth={1} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#898781" }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#898781" }} axisLine={false} tickLine={false} width={56}
+                      tickFormatter={(v) => (v >= 1000 ? `₹${(v / 1000).toFixed(v % 1000 ? 1 : 0)}k` : `₹${v}`)}
+                    />
+                    <Tooltip
+                      content={<Tip showTotal />}
+                      cursor={{ fill: "rgba(42,120,214,0.06)" }}
+                    />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                    {/* Bottom of the stack: square at the baseline. */}
+                    <Bar dataKey="collected" name="Collected" stackId="fee" fill="#2a78d6" maxBarSize={24}
+                         stroke="#ffffff" strokeWidth={2} />
+                    {/* Top of the stack carries the 4px rounded data-end. */}
+                    <Bar dataKey="remaining" name="Still due" stackId="fee" fill="#eb6834" maxBarSize={24}
+                         radius={[4, 4, 0, 0]} stroke="#ffffff" strokeWidth={2} />
+                  </BarChart>
+                </ResponsiveContainer>
+
+                {/* The same numbers as text. Colour is never the only way to read
+                    this card, and a screen reader gets a real table. */}
+                <details className="mt-3">
+                  <summary className="text-[12px] cursor-pointer select-none" style={{ color: "var(--erp-primary)" }}>
+                    View as table
+                  </summary>
+                  <div className="overflow-x-auto mt-2">
+                    <table className="w-full text-[12.5px]">
+                      <thead>
+                        <tr style={{ background: "var(--erp-head)" }}>
+                          {["Month", "Collected", "Still due", "Total"].map((h, i) => (
+                            <th key={h} className={`px-3 py-2 font-semibold ${i ? "text-right" : "text-left"}`}
+                                style={{ color: "var(--erp-text)" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dashboardData.monthlyFees.map((r) => {
+                          const c = Number(r.collected) || 0, d = Number(r.remaining) || 0;
+                          const inr = (v) => `₹${v.toLocaleString("en-IN")}`;
+                          return (
+                            <tr key={r.month} style={{ borderTop: "1px solid var(--erp-border-soft)" }}>
+                              <td className="px-3 py-1.5">{r.month}</td>
+                              <td className="px-3 py-1.5 text-right">{inr(c)}</td>
+                              <td className="px-3 py-1.5 text-right">{inr(d)}</td>
+                              <td className="px-3 py-1.5 text-right font-semibold">{inr(c + d)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              </>
+            )}
           </div>
         </Card>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <Card title="Weekly Attendance">
+        <Card
+          action={
+            <button type="button" onClick={() => navigate("/attendance/report")}
+              className="group inline-flex items-center gap-1 text-[12px] font-semibold focus:outline-none"
+              style={{ color: "var(--erp-primary)" }}>
+              Attendance report
+              <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          }
+          title="Weekly Attendance">
           <div className="p-4">
-            {dashboardData.weeklyAttendance && dashboardData.weeklyAttendance.length > 0 ? (
+            {/* Rows can exist with every count at zero (a week with nothing
+                marked yet). An empty grid reads as "broken"; say what it is. */}
+            {(dashboardData.weeklyAttendance || []).some(
+              (d) => (Number(d.present) || 0) + (Number(d.absent) || 0) > 0
+            ) ? (
               <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={dashboardData.weeklyAttendance} barSize={18}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/>
-                  <XAxis dataKey="day" tick={{fontSize:11,fill:"#94a3b8"}} axisLine={false} tickLine={false}/>
-                  <YAxis tick={{fontSize:11,fill:"#94a3b8"}} axisLine={false} tickLine={false}/>
-                  <Tooltip/>
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{fontSize:11}}/>
-                  <Bar dataKey="present" name="Present" fill="#22d3ee" radius={[4,4,0,0]}/>
-                  <Bar dataKey="absent" name="Absent" fill="#f43f5e" radius={[4,4,0,0]}/>
+                <BarChart data={dashboardData.weeklyAttendance} barCategoryGap="30%" margin={{top:8,right:8,left:0,bottom:0}}>
+                  <CartesianGrid vertical={false} stroke="#e1e0d9" strokeWidth={1}/>
+                  <XAxis dataKey="day" tick={{fontSize:11,fill:"#898781"}} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{fontSize:11,fill:"#898781"}} axisLine={false} tickLine={false} width={34} allowDecimals={false}/>
+                  <Tooltip content={<Tip unit="count"/>} cursor={{fill:"rgba(42,120,214,0.06)"}}/>
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{fontSize:12,paddingTop:8}}/>
+                  {/* Same two hues as every other chart on this page, so a colour
+                      means the same thing wherever the eye lands. */}
+                  <Bar dataKey="present" name="Present" fill="#2a78d6" maxBarSize={22} radius={[4,4,0,0]} stroke="#ffffff" strokeWidth={2}/>
+                  <Bar dataKey="absent"  name="Absent"  fill="#eb6834" maxBarSize={22} radius={[4,4,0,0]} stroke="#ffffff" strokeWidth={2}/>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[180px] flex items-center justify-center text-slate-400">No data available</div>
+              <div className="h-[180px] flex flex-col items-center justify-center gap-1 text-center">
+                <p className="text-[13px] text-slate-700">No attendance marked this week</p>
+                <p className="text-[11.5px] text-slate-600">Mark it from Attendance → Student Attendance.</p>
+              </div>
             )}
           </div>
         </Card>
@@ -170,31 +382,50 @@ function SchoolDashboard() {
               <ProgressBar value={dashboardData.feeCollection?.percentage || 0} color="indigo"/>
             </button>
           </Card>
-          <Card>
-            <div className="p-4 flex gap-4 items-center">
-              <AlertCircle size={18} className="text-amber-500 flex-shrink-0"/>
+          <LinkCard to="/payments/monthly" title="Pending Fees">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <AlertCircle size={18}/>
+              </span>
               <div>
-                <p className="text-sm font-semibold text-slate-700">Pending Fees</p>
-                <p className="text-xl font-bold text-amber-600">₹{(dashboardData.pendingFees || 0).toLocaleString()}</p>
+                <p className="text-[22px] font-bold leading-none" style={{ color: "#eb6834" }}>
+                  ₹{(dashboardData.pendingFees || 0).toLocaleString("en-IN")}
+                </p>
+                <p className="text-[11px] text-slate-600 mt-1">still to be collected</p>
               </div>
             </div>
-          </Card>
-          <Card>
-            <div className="p-4">
-              <p className="text-sm font-semibold text-slate-700 mb-3">Today's Attendance</p>
-              <div className="flex gap-6">
+          </LinkCard>
+          <LinkCard
+            to="/attendance/student"
+            title="Today's Attendance"
+            badge={
+              <span className="text-[11px] font-bold" style={{ color: "var(--erp-text)" }}>
+                {dashboardData.attendance?.percentage || 0}%
+              </span>
+            }
+          >
+            <div className="flex gap-6">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-[2px]" style={{ background: "#2a78d6" }} />
                 <div>
-                  <p className="text-xl font-bold text-emerald-600">{dashboardData.attendance?.present || 0}</p>
-                  <p className="text-xs text-slate-400">Present</p>
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-red-500">{dashboardData.attendance?.absent || 0}</p>
-                  <p className="text-xs text-slate-400">Absent</p>
+                  <p className="text-[20px] font-bold leading-none" style={{ color: "var(--erp-text)" }}>
+                    {dashboardData.attendance?.present || 0}
+                  </p>
+                  <p className="text-[11px] text-slate-600">Present</p>
                 </div>
               </div>
-              <ProgressBar value={dashboardData.attendance?.percentage || 0} color="emerald" className="mt-3"/>
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-[2px]" style={{ background: "#eb6834" }} />
+                <div>
+                  <p className="text-[20px] font-bold leading-none" style={{ color: "var(--erp-text)" }}>
+                    {dashboardData.attendance?.absent || 0}
+                  </p>
+                  <p className="text-[11px] text-slate-600">Absent</p>
+                </div>
+              </div>
             </div>
-          </Card>
+            <ProgressBar value={dashboardData.attendance?.percentage || 0} color="indigo" className="mt-3"/>
+          </LinkCard>
         </div>
       </div>
       <Card title="Recent Activities" subtitle="Latest admissions & fee payments — click a row for full details">

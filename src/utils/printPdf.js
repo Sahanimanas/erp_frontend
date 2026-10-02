@@ -501,3 +501,179 @@ export function printTable({ title = "Report", subtitle = "", columns = [], rows
   win.document.close();
   return true;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEE RECEIPT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Indian-system words for an amount — receipts are signed, so the figure is
+ *  spelled out to make tampering with the digits obvious. */
+export function amountInWords(n) {
+  const num = Math.floor(Math.abs(Number(n) || 0));
+  if (num === 0) return "Zero Rupees Only";
+
+  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+  const two = (x) => (x < 20 ? ones[x] : `${tens[Math.floor(x / 10)]}${x % 10 ? ` ${ones[x % 10]}` : ""}`);
+  const three = (x) =>
+    `${x >= 100 ? `${ones[Math.floor(x / 100)]} Hundred${x % 100 ? " " : ""}` : ""}${x % 100 ? two(x % 100) : ""}`;
+
+  // Indian grouping: crore, lakh, thousand, then the last three digits.
+  const parts = [];
+  const crore = Math.floor(num / 10000000);
+  const lakh = Math.floor((num % 10000000) / 100000);
+  const thousand = Math.floor((num % 100000) / 1000);
+  const rest = num % 1000;
+  if (crore) parts.push(`${three(crore)} Crore`);
+  if (lakh) parts.push(`${three(lakh)} Lakh`);
+  if (thousand) parts.push(`${three(thousand)} Thousand`);
+  if (rest) parts.push(three(rest));
+
+  return `${parts.join(" ").replace(/\s+/g, " ").trim()} Rupees Only`;
+}
+
+const RECEIPT_CSS = `
+  * { box-sizing: border-box; }
+  body { font-family: "Times New Roman", Georgia, serif; color: #000; margin: 0; padding: 14px 18px; font-size: 12.5px; }
+  .head { display: flex; align-items: flex-start; gap: 14px; }
+  .head img { width: 62px; height: 62px; object-fit: contain; }
+  .head .mid { flex: 1; text-align: center; }
+  .sname { font-size: 20px; font-weight: 700; letter-spacing: .3px; }
+  .sline { font-size: 11px; line-height: 1.45; }
+  .phones { font-size: 11px; text-align: right; white-space: nowrap; }
+  .title { text-align: center; font-weight: 700; letter-spacing: 1px; margin: 6px 0 10px; }
+  .meta { display: flex; justify-content: space-between; gap: 24px; }
+  .meta div { line-height: 1.65; }
+  .meta b { font-weight: 700; }
+  .rule { border-top: 1px dashed #000; margin: 10px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #000; padding: 3px 6px; font-size: 12px; }
+  th { font-weight: 700; text-align: center; }
+  td.sl { width: 34px; text-align: center; }
+  td.r, th.r { text-align: right; }
+  tr.tot td { font-weight: 700; }
+  .words td { font-weight: 700; }
+  .foot { margin-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .sign { text-align: center; border-top: 1px solid #000; padding-top: 3px; width: 160px; }
+  @media print { body { padding: 8px 12px; } .noprint { display: none; } @page { margin: 8mm; } }
+`;
+
+/**
+ * The school's paper fee receipt, reproduced for print.
+ *
+ * It is NOT a list of this payment's lines — it is the student's whole
+ * installment schedule with "Paid" showing what this receipt put against each
+ * row, which is what the paper version shows and what parents check against.
+ * Feed it the payload from GET /payments/receipts/:receiptNo so the figures
+ * come from the same ledger engine as the screen.
+ */
+export function printFeeReceipt(data = {}) {
+  const win = window.open("", "_blank", "width=820,height=1100");
+  if (!win) {
+    alert("Please allow pop-ups for this site to print the receipt.");
+    return false;
+  }
+
+  const s = data.school || {};
+  const st = data.student || {};
+  const t = data.totals || { fee: 0, discount: 0, due: 0, paid: 0 };
+  const rs = (v) => `Rs. ${Number(v || 0).toLocaleString("en-IN")}`;
+  const d = (v) =>
+    v ? new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "";
+  const dt = (v) =>
+    v ? new Date(v).toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    }) : "";
+
+  const rows = (data.items || [])
+    .map(
+      (r) => `<tr>
+        <td class="sl">${r.sl}</td>
+        <td>${esc(r.name)}</td>
+        <td class="r">${rs(r.fee)}</td>
+        <td class="r">${rs(r.discount)}</td>
+        <td class="r">${rs(r.due)}</td>
+        <td class="r">${rs(r.paid)}</td>
+      </tr>`
+    )
+    .join("");
+
+  win.document.write(`<!doctype html>
+<html><head><meta charset="utf-8" /><title>Fee Receipt ${esc(data.receiptNo || "")}</title>
+<style>${RECEIPT_CSS}</style></head>
+<body>
+  <div class="head">
+    ${s.logo ? `<img src="${esc(s.logo)}" alt="" />` : "<span style='width:62px'></span>"}
+    <div class="mid">
+      <div class="sname">${esc(s.name || "")}</div>
+      <div class="sline">${esc(s.address || "")}</div>
+      ${s.registrationNumber ? `<div class="sline">Reg.no - ${esc(s.registrationNumber)}</div>` : ""}
+      ${s.schoolCode ? `<div class="sline">UDISE- ${esc(s.schoolCode)}</div>` : ""}
+      ${st.session ? `<div class="sline">Session ${esc(st.session)}</div>` : ""}
+    </div>
+    <div class="phones">${esc(s.phone || "")}</div>
+  </div>
+
+  <div class="title">FEE RECEIPT</div>
+
+  <div class="meta">
+    <div>
+      <b>Student Detail</b><br/>
+      Name : ${esc(st.name || "")}<br/>
+      Father's Name : ${esc(st.fatherName || "-")}<br/>
+      Class : ${esc([st.className, st.sectionName].filter(Boolean).join(" "))}<br/>
+      Session : ${esc(st.session || "-")}
+    </div>
+    <div>
+      Date : ${d(data.paidDate)}<br/>
+      Payment Id : ${esc(data.paymentId || "")}<br/>
+      Receipt Id : ${esc(data.receiptNo || "")}<br/>
+      Reg No : ${esc(st.registrationNo || st.admissionNumber || "-")}<br/>
+      Roll No : ${esc(st.rollNumber || "-")}
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="sl">Sl.</th><th>Fee Name</th><th class="r">Fee</th>
+        <th class="r">Discount</th><th class="r">Due</th><th class="r">Paid</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows || `<tr><td colspan="6" style="text-align:center">No fee lines</td></tr>`}
+      <tr class="tot">
+        <td colspan="2">Total Amount</td>
+        <td class="r">${rs(t.fee)}</td>
+        <td class="r">${rs(t.discount)}</td>
+        <td class="r">${rs(t.due)}</td>
+        <td class="r">${rs(t.paid)}</td>
+      </tr>
+      <tr class="words">
+        <td colspan="4">Paid: (${esc(amountInWords(data.receivedAmount))})</td>
+        <td class="r">${esc(data.mode || "CASH")}</td>
+        <td class="r">${rs(data.receivedAmount)}</td>
+      </tr>
+      <tr><td colspan="6">Collected By: ${esc(data.collectedByName || data.collectedBy || "-")}</td></tr>
+      <tr><td colspan="6">Collect Time: ${dt(data.paidDate)}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="foot">
+    <div>
+      <b>Current Dues: ${rs(data.currentDues)}</b>
+      &nbsp;&nbsp;&nbsp;&nbsp;
+      <b>Received Amount: ${rs(data.receivedAmount)}</b>
+    </div>
+    <div class="sign">Signature</div>
+  </div>
+
+  <script>window.onload = function () { window.print(); };<\/script>
+</body></html>`);
+  win.document.close();
+  return true;
+}

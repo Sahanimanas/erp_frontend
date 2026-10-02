@@ -15,8 +15,9 @@ import {
   useGetLedgerQuery, useGetInstallmentsQuery, useGetPaymentHistoryQuery,
   useCollectPaymentMutation, useAdjustInstallmentMutation,
   useDeleteInstallmentPaymentMutation, useRevertReceiptMutation,
+  useLazyGetReceiptDetailQuery,
 } from "../../redux/api/paymentsApi";
-import { printBill, billToPdfBase64 } from "../../utils/printPdf";
+import { printBill, billToPdfBase64, printFeeReceipt } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
 
 const MONTHLY_LIKE = ["Monthly", "Quarterly"];
@@ -58,6 +59,21 @@ export default function StudentFeePaymentPage() {
   const [adjust] = useAdjustInstallmentMutation();
   const [deletePayment] = useDeleteInstallmentPaymentMutation();
   const [revert] = useRevertReceiptMutation();
+  const [fetchReceipt, { isFetching: loadingReceipt }] = useLazyGetReceiptDetailQuery();
+
+  /**
+   * The school's full paper receipt: the whole installment schedule with what
+   * this payment put against each row. Fetched rather than built here, so the
+   * printed figures come from the ledger engine and cannot drift from what the
+   * collector saw on screen.
+   */
+  const printFullReceipt = async (receiptNo) => {
+    try {
+      printFeeReceipt(await fetchReceipt({ receiptNo, studentId }).unwrap());
+    } catch (err) {
+      toast.error(err?.data?.error || "Could not load the receipt");
+    }
+  };
 
   const normalizePhone = (phone) => {
     const d = String(phone || "").replace(/\D/g, "");
@@ -448,8 +464,15 @@ export default function StudentFeePaymentPage() {
                     <td className="px-4 py-2.5"><Badge variant="success">Success</Badge></td>
                     <td className="px-4 py-2.5 text-slate-500 text-[11px] max-w-[200px] truncate">{r.note || "—"}</td>
                     <td className="px-4 py-2.5">
-                      <button onClick={() => printReceipt({ receiptNo: r.receiptNo, total: r.total, student: st, account: r.mode, lines: [{ name: "Fee payment", amount: r.total }] })}
-                        className="text-indigo-600 text-[12px] hover:underline">Download</button>
+                      <div className="flex gap-3 whitespace-nowrap">
+                        <button onClick={() => printReceipt({ receiptNo: r.receiptNo, total: r.total, student: st, account: r.mode, lines: [{ name: "Fee payment", amount: r.total }] })}
+                          className="text-indigo-600 text-[12px] hover:underline">Download</button>
+                        <button onClick={() => printFullReceipt(r.receiptNo)} disabled={loadingReceipt}
+                          className="text-indigo-600 text-[12px] hover:underline disabled:opacity-50"
+                          title="Full receipt with the whole fee schedule">
+                          {loadingReceipt ? "…" : "Print Receipt"}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-2.5">
                       <button

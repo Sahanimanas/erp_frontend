@@ -71,6 +71,9 @@ export const PRIVILEGE_EXEMPT_ROLES = [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, RO
  */
 export const MODULE_PRIVILEGE = {
   dashboard:      "Home",
+  student360:     "Student",
+  "erp-billing":  "Finance",
+  support:        "Communication",
   students:       "Student",
   employee:       "Employee",
   // Leave and Salary were split out of the Employee section into their own
@@ -130,6 +133,9 @@ export const routeConfig = [
       { key: "sa-detail",    label: "School Details", path: "/super-admin/schools/:id",    icon: "Building2",       lazy: lazy("super-admin/SchoolDetailsPage"), roles: [ROLES.SUPER_ADMIN], hidden: true },
       { key: "sa-domains",   label: "Domains",        path: "/super-admin/domains",        icon: "Globe",           lazy: lazy("super-admin/DomainsPage"),       roles: [ROLES.SUPER_ADMIN] },
       { key: "sa-plans",     label: "Plans",          path: "/super-admin/plans",          icon: "CreditCard",      lazy: lazy("super-admin/PlansPage"),         roles: [ROLES.SUPER_ADMIN] },
+      { key: "sa-qr",        label: "Payments & Service", path: "/super-admin/payments", icon: "IndianRupee",  lazy: lazy("platform-billing/PlatformQrAdminPage"), roles: [ROLES.SUPER_ADMIN] },
+      { key: "sa-support",   label: "Support Inbox",  path: "/super-admin/support",        icon: "LifeBuoy",        lazy: lazy("support/SupportInboxPage"),      roles: [ROLES.SUPER_ADMIN] },
+      { key: "sa-wa-usage",  label: "WhatsApp Usage", path: "/super-admin/whatsapp-usage",  icon: "MessageCircle",   lazy: lazy("platform-usage/WhatsappUsagePage"), roles: [ROLES.SUPER_ADMIN] },
       { key: "sa-audit",     label: "Audit Logs",     path: "/super-admin/audit",          icon: "ScrollText",      lazy: lazy("super-admin/AuditLogsPage"),     roles: [ROLES.SUPER_ADMIN] },
     ],
   },
@@ -142,6 +148,48 @@ export const routeConfig = [
     icon: "LayoutDashboard",
     roles: ALL_ROLES,
     lazy: lazy("dashboard/DashboardPage"),
+  },
+
+  // ── Student Profile ───────────────────────────────────────────────────────
+  // Search a student, then read their whole record — attendance, fees, results
+  // and details — on one page. Sits directly under Dashboard because looking a
+  // student up is the most common thing the office does. Shares the "Student"
+  // privilege and ALL_STAFF roles with the Student Details section, so it
+  // reaches exactly the people who can already search students.
+  {
+    key: "student360",
+    label: "Student Profile",
+    path: "/student-360",
+    icon: "UserSearch",
+    roles: ALL_STAFF,
+    lazy: lazy("student-360/Student360Page"),
+  },
+
+  // ── ERP Subscription ──────────────────────────────────────────────────────
+  // The school's side of platform billing: the vendor's payment QR, and the
+  // payments the school reports against it. Finance roles only — a teacher has
+  // no business with what the school owes its software vendor. Gated behind the
+  // existing "Finance" privilege so no designation silently gains access.
+  {
+    key: "erp-billing",
+    label: "ERP Subscription",
+    path: "/erp-subscription",
+    icon: "QrCode",
+    roles: [ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT],
+    lazy: lazy("platform-billing/CompanyQrPage"),
+  },
+
+  // ── Help & Support ────────────────────────────────────────────────────────
+  // The school writes to the vendor here. Staff roles that actually run the
+  // school — a teacher reporting an ERP fault would have no context to answer
+  // follow-up questions, and support threads are per-school, not per-person.
+  {
+    key: "support",
+    label: "Help & Support",
+    path: "/support",
+    icon: "LifeBuoy",
+    roles: [ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT],
+    lazy: lazy("support/SupportPage"),
   },
 
   // ── Task Management ───────────────────────────────────────────────────────

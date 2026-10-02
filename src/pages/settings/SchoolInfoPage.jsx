@@ -7,17 +7,29 @@
  *             Whatsapp Chat Settings | Whatsapp Notification Config |
  *             WhatsApp Gateway | Attendance Type
  */
-import { useState } from "react";
-import { Plus, Edit2, Trash2, RefreshCw, Copy } from "lucide-react";
+import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import { Plus, Edit2, Trash2, RefreshCw, Copy, Loader2 } from "lucide-react";
+import {
+  useGetMySchoolQuery,
+  useUpdateMySchoolMutation,
+  useGetSchoolSettingsQuery,
+  useSaveSchoolSettingsMutation,
+} from "../../redux/api/schoolSettingsApi";
+import { useGetSessionsQuery } from "../../redux/api/academicApi";
 
 const inp = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
 const sel = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-indigo-400";
 
-function SaveBtn({ label="Save", onClick }) {
+function SaveBtn({ label="Save", onClick, loading=false }) {
   return (
     <div className="flex justify-center mt-5">
-      <button onClick={onClick} className="flex items-center gap-2 px-8 py-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg">
-        ➕ {label}
+      <button
+        onClick={onClick}
+        disabled={loading}
+        className="flex items-center gap-2 px-8 py-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
+      >
+        {loading ? <Loader2 size={14} className="animate-spin" /> : "➕"} {loading ? "Saving…" : label}
       </button>
     </div>
   );
@@ -38,18 +50,101 @@ function F({ label, req, children }) {
   );
 }
 
-// ── School Details (Image 7) ───────────────────────────────────────────────────
+// ── School Details ────────────────────────────────────────────────────────────
+/**
+ * The only settings page wired to the backend so far.
+ *
+ * It saves to two places, because the fields are two different kinds of thing:
+ *  - name / email / phone / city / state / address are real School columns that
+ *    the rest of the app queries by, so they go to PUT /schools;
+ *  - branch name, language, timezone, weekends, unique-roll and currency have no
+ *    column anywhere, so they are stored as the "general" settings section.
+ * One Save writes both, and reports partial failure honestly rather than
+ * claiming success because one of the two calls worked.
+ *
+ * Email is shown read-only: it identifies the tenant and is what logins resolve
+ * against, so changing it is a platform-admin job, not a school's.
+ */
 function SchoolDetails() {
-  const [session, setSession] = useState("2026-2027");
+  const { data: school, isLoading: loadingSchool } = useGetMySchoolQuery();
+  const { data: saved, isLoading: loadingSettings } = useGetSchoolSettingsQuery("general");
+  const { data: sessions = [] } = useGetSessionsQuery();
+  const [saveSchool, { isLoading: savingSchool }] = useUpdateMySchoolMutation();
+  const [saveSettings, { isLoading: savingSettings }] = useSaveSchoolSettingsMutation();
+
+  const [session, setSession] = useState("");
   const [form, setForm] = useState({
-    branchName:"GenEduServe", schoolName:"GenEduServe",
-    email:"geneduserve@gmail.com", mobile:"7739136208",
-    city:"siwan", state:"Bihar", address:"Noida",
-    language:"English", timezone:"(GMT+05:30) Asia, Kolkata",
-    weekends:"Sunday", uniqueRoll:"Section Wise", teacherRestricted:true,
-    currency:"INR"
+    branchName: "", schoolName: "", email: "", mobile: "",
+    city: "", state: "", address: "",
+    language: "English", timezone: "(GMT+05:30) Asia, Kolkata",
+    weekends: "Sunday", uniqueRoll: "Section Wise", teacherRestricted: false,
+    currency: "INR",
   });
-  const set = k => e => setForm(p=>({...p,[k]:e.target.value}));
+
+  // Seed once each source lands. Keyed on the row's identity rather than the
+  // object, so a background refetch cannot wipe what is being typed.
+  useEffect(() => {
+    if (!school) return;
+    setForm((f) => ({
+      ...f,
+      schoolName: school.name ?? "",
+      email: school.email ?? "",
+      mobile: school.phone ?? "",
+      city: school.city ?? "",
+      state: school.state ?? "",
+      address: school.address ?? "",
+    }));
+  }, [school?.id]);
+
+  useEffect(() => {
+    if (!saved) return;
+    setForm((f) => ({ ...f, ...saved }));
+  }, [saved]);
+
+  useEffect(() => {
+    if (!sessions.length || session) return;
+    const active = sessions.find((x) => x.isActive) ?? sessions[0];
+    setSession(active?.id ?? "");
+  }, [sessions, session]);
+
+  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+  const saving = savingSchool || savingSettings;
+
+  const onSave = async () => {
+    if (!form.schoolName.trim()) return toast.error("School name cannot be empty");
+
+    const results = await Promise.allSettled([
+      saveSchool({
+        name: form.schoolName,
+        phone: form.mobile,
+        city: form.city,
+        state: form.state,
+        address: form.address,
+      }).unwrap(),
+      saveSettings({
+        section: "general",
+        value: {
+          branchName: form.branchName,
+          language: form.language,
+          timezone: form.timezone,
+          weekends: form.weekends,
+          uniqueRoll: form.uniqueRoll,
+          teacherRestricted: form.teacherRestricted,
+          currency: form.currency,
+        },
+      }).unwrap(),
+    ]);
+
+    const failed = results.filter((r) => r.status === "rejected");
+    if (!failed.length) return toast.success("School settings saved");
+    // Say which half failed — "saved" when half the form did not would send the
+    // admin away believing something that is not true.
+    toast.error(failed[0].reason?.data?.error || "Some settings could not be saved");
+  };
+
+  if (loadingSchool || loadingSettings) {
+    return <div className="py-16 text-center text-sm text-slate-600">Loading school settings…</div>;
+  }
 
   return (
     <div>
@@ -57,24 +152,37 @@ function SchoolDetails() {
         <span className="text-amber-600">🏫</span>
         <span className="text-sm font-semibold text-slate-700">School Setting</span>
       </div>
+
       <SectionTitle icon="📅" title="Academic Session"/>
       <div className="flex items-center gap-3 mb-6">
         <select className={sel + " max-w-xs"} value={session} onChange={e=>setSession(e.target.value)}>
-          {["2026-2027","2025-2026","2024-2025"].map(s=><option key={s}>{s}</option>)}
+          {sessions.length === 0 && <option value="">No sessions created yet</option>}
+          {sessions.map((x) => (
+            <option key={x.id} value={x.id}>{x.name}{x.isActive ? " (active)" : ""}</option>
+          ))}
         </select>
-        <button className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-sm font-medium rounded-lg hover:bg-slate-50">✓ Change</button>
+        {/* Switching the active session changes which year every screen reads,
+            so it is deliberately left to Settings → Manage Sessions rather than
+            being a one-click control buried in a form. */}
+        <a href="/settings/sessions" className="px-3 py-2 border border-slate-200 text-sm font-medium rounded-lg hover:bg-slate-50">
+          Manage sessions
+        </a>
       </div>
 
       <SectionTitle icon="⚙" title="General Setting"/>
       {[
-        {l:"Branch Name",k:"branchName",req:true},{l:"School Name",k:"schoolName",req:true},
-        {l:"Email",k:"email",req:true},{l:"Mobile No",k:"mobile"},
+        {l:"Branch Name",k:"branchName"},{l:"School Name",k:"schoolName",req:true},
+        {l:"Mobile No",k:"mobile"},
         {l:"City",k:"city"},{l:"State",k:"state"},
       ].map(f=>(
         <F key={f.k} label={f.l} req={f.req}>
           <input className={inp} value={form[f.k]} onChange={set(f.k)}/>
         </F>
       ))}
+      <F label="Email">
+        <input className={inp + " bg-slate-50"} value={form.email} readOnly title="The school's login email is managed by the platform admin"/>
+        <p className="text-[11px] text-slate-600 mt-1">Managed by the platform admin — it identifies this school's logins.</p>
+      </F>
       <F label="Address">
         <textarea className={inp} rows={2} value={form.address} onChange={set("address")}/>
       </F>
@@ -99,7 +207,7 @@ function SchoolDetails() {
           ))}
         </div>
         <label className="flex items-center gap-2 mt-2 cursor-pointer">
-          <input type="checkbox" checked={form.teacherRestricted} onChange={e=>setForm(p=>({...p,teacherRestricted:e.target.checked}))} className="rounded accent-amber-500"/>
+          <input type="checkbox" checked={!!form.teacherRestricted} onChange={e=>setForm(p=>({...p,teacherRestricted:e.target.checked}))} className="rounded accent-amber-500"/>
           <span className="text-sm text-slate-600">Teacher Restricted</span>
         </label>
       </F>
@@ -108,7 +216,7 @@ function SchoolDetails() {
       <F label="Currency" req>
         <input className={inp} value={form.currency} onChange={set("currency")}/>
       </F>
-      <SaveBtn/>
+      <SaveBtn onClick={onSave} loading={saving}/>
     </div>
   );
 }

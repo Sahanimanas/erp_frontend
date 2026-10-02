@@ -1,21 +1,34 @@
 /**
- * Topbar.jsx — Top navigation bar
+ * Topbar.jsx — Top navigation bar (genixPay-style)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Icon actions are diamonds (see _IconButton.jsx); the user tile stays square.
+ *
+ * All three dropdowns share ONE piece of state rather than a boolean each, so
+ * "only one open at a time" is structural instead of something each handler has
+ * to remember to enforce.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { toggleDarkMode } from "../../redux/slices/uiSlice";
+import { useNavigate } from "react-router-dom";
 import { markAllRead, selectNotifications } from "../../redux/slices/notificationsSlice";
-import { logout } from "../../redux/slices/authSlice";
-import { selectUser } from "../../redux/slices/authSlice";
-import { Menu, Calendar, X } from "lucide-react";
+import { logout, selectAuth } from "../../redux/slices/authSlice";
+import {
+  Menu, Calendar, X, Maximize, Minimize, LayoutGrid, Globe, Flag, Bell,
+} from "lucide-react";
+import { DiamondButton, PhotoTile, FOCUS_RING } from "./_IconButton";
+import QuickActions from "./_QuickActions";
+import ProfileMenu from "./_ProfileMenu";
 
-function NotifPanel({ onClose }) {
+function NotifPanel({ id, onClose }) {
   const dispatch = useDispatch();
   const { items, unreadCount } = useSelector(selectNotifications);
   const typeColor = { info:"bg-blue-500", warning:"bg-amber-500", success:"bg-emerald-500", danger:"bg-red-500" };
 
   return (
-    <div className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-2xl border border-slate-100 z-50">
+    <div
+      id={id}
+      className="absolute right-0 top-[52px] z-50 w-80 max-w-[calc(100vw-1.5rem)] rounded-[3px] border border-slate-200 bg-white shadow-[0_6px_24px_rgba(0,0,0,0.14)]"
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-slate-800">Notifications</span>
@@ -25,11 +38,11 @@ function NotifPanel({ onClose }) {
         </div>
         <div className="flex gap-2 items-center">
           {unreadCount > 0 && (
-            <button onClick={() => dispatch(markAllRead())} className="text-[11px] text-indigo-600 hover:underline">
+            <button type="button" onClick={() => dispatch(markAllRead())} className={`text-[11px] text-indigo-600 hover:underline ${FOCUS_RING}`}>
               Mark all read
             </button>
           )}
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={13} /></button>
+          <button type="button" onClick={onClose} aria-label="Close notifications" className={`text-slate-400 hover:text-slate-600 ${FOCUS_RING}`}><X size={13} /></button>
         </div>
       </div>
       <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
@@ -51,45 +64,152 @@ function NotifPanel({ onClose }) {
 }
 
 export default function Topbar({ onMenuClick }) {
-  const dispatch     = useSelector ? useDispatch() : null;
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { unreadCount } = useSelector(selectNotifications);
-  const user         = useSelector(selectUser);
-  const [showNotif, setShowNotif]   = useState(false);
+  const { user } = useSelector(selectAuth);
+
+  // null | "grid" | "notif" | "profile"
+  const [openMenu, setOpenMenu] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const headerRef = useRef(null);
+
+  const toggle = (name) => setOpenMenu((cur) => (cur === name ? null : name));
+  const close = () => setOpenMenu(null);
+
+  // One listener pair for outside-click + Escape, attached only while a panel is
+  // open so the bar costs nothing when idle.
+  useEffect(() => {
+    if (!openMenu) return;
+
+    const onPointerDown = (e) => {
+      if (headerRef.current && !headerRef.current.contains(e.target)) close();
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openMenu]);
+
+  // The user can leave fullscreen with F11/Esc without touching our button, so
+  // the icon follows the document rather than our own click.
+  useEffect(() => {
+    const sync = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", sync);
+    sync();
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+
+  const toggleFullscreen = () => {
+    // Guarded: requestFullscreen rejects when the gesture isn't trusted, and is
+    // absent in some embedded webviews.
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    } else {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  };
+
+  const handleLogout = () => {
+    close();
+    dispatch(logout());
+    navigate("/login", { replace: true });
+  };
 
   const today = new Date().toLocaleDateString("en-GB", {
     day: "2-digit", month: "long", year: "numeric",
   });
 
-  const initials = user?.name
-    ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
-    : "D";
-
   return (
-    <header className="h-14 bg-white border-b border-slate-200/80 flex items-center px-4 gap-3 shrink-0 relative z-30">
-      {/* Hamburger */}
-      <button
-        onClick={onMenuClick}
-        className="lg:hidden text-slate-500 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-        aria-label="Open menu"
-      >
-        <Menu size={18} />
-      </button>
+    <header
+      ref={headerRef}
+      className="relative z-30 flex h-[58px] shrink-0 items-center gap-2 bg-gradient-to-b from-white to-slate-50
+                 px-3 shadow-[0_1px_3px_rgba(16,24,40,0.08),0_1px_0_rgba(16,24,40,0.04)] sm:px-4"
+    >
+      {/* ── Left cluster ─────────────────────────────────────────────────── */}
+      {/* `relative` scopes the grid panel's absolute position to this cluster. */}
+      <div className="relative flex shrink-0 items-center gap-2">
+        <DiamondButton icon={Menu} label="Toggle menu" onClick={onMenuClick} />
+        <DiamondButton
+          icon={isFullscreen ? Minimize : Maximize}
+          label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          onClick={toggleFullscreen}
+        />
+        <DiamondButton
+          icon={LayoutGrid}
+          label="Quick actions"
+          onClick={() => toggle("grid")}
+          active={openMenu === "grid"}
+          expanded={openMenu === "grid"}
+          controls="topbar-quick-actions"
+        />
 
-      {/* Right actions */}
-      <div className="ml-auto flex items-center gap-1">
-        {/* Date chip */}
-        <div className="hidden md:flex items-center gap-1.5 bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold">
+        {openMenu === "grid" && (
+          <QuickActions id="topbar-quick-actions" onNavigate={close} />
+        )}
+      </div>
+
+      {/* ── Right cluster ────────────────────────────────────────────────── */}
+      {/* No overflow-* here on purpose: a scroll container would clip the
+          absolutely-positioned dropdown panels. Narrow screens instead drop the
+          decorative diamonds (below), which keeps the row inside the viewport. */}
+      <div className="relative ml-auto flex min-w-0 items-center gap-2">
+        {/* Kept from the previous bar — the only place the date was shown.
+            Hidden below xl so it never competes with the icons for width. */}
+        <div className="hidden xl:flex shrink-0 items-center gap-1.5 rounded-[3px] border border-[#ddd] px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">
           <Calendar size={12} />
           <span>{today}</span>
         </div>
 
-        {/* Avatar */}
-        <button className="flex items-center gap-2 ml-1 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold">
-            {initials}
-          </div>
-          <span className="hidden md:block text-[12px] font-medium text-slate-700">{user?.name ?? "Demo"}</span>
+        {/* Language and region have no implementation in this build; shown
+            disabled rather than as buttons that silently do nothing. */}
+        <DiamondButton icon={Globe} label="Language (not configured)" disabled className="hidden sm:inline-flex" />
+        <DiamondButton icon={Calendar} label={today} disabled className="hidden sm:inline-flex" />
+        <DiamondButton icon={Flag} label="Region (not configured)" disabled className="hidden md:inline-flex" />
+
+        <DiamondButton
+          icon={Bell}
+          label="Notifications"
+          badge={unreadCount}
+          onClick={() => toggle("notif")}
+          active={openMenu === "notif"}
+          expanded={openMenu === "notif"}
+          controls="topbar-notifications"
+        />
+
+        <span className="mx-1 h-7 w-px shrink-0 bg-slate-200" aria-hidden="true" />
+
+        <button
+          type="button"
+          onClick={() => toggle("profile")}
+          aria-label="Account menu"
+          aria-haspopup="menu"
+          aria-expanded={openMenu === "profile"}
+          aria-controls={openMenu === "profile" ? "topbar-profile" : undefined}
+          className={`shrink-0 rounded-[2px] ${FOCUS_RING}`}
+        >
+          <PhotoTile src={user?.photo ?? user?.avatar} size={40} alt={user?.name ?? "User"} />
         </button>
+
+        {openMenu === "notif" && (
+          <NotifPanel id="topbar-notifications" onClose={close} />
+        )}
+        {openMenu === "profile" && (
+          <ProfileMenu
+            id="topbar-profile"
+            user={user}
+            onNavigate={close}
+            onLogout={handleLogout}
+          />
+        )}
       </div>
     </header>
   );

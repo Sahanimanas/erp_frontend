@@ -14,6 +14,22 @@ export const paymentsApi = baseApi.injectEndpoints({
       transformResponse: unwrap,
       providesTags: (_r, _e, id) => [{ type: "Ledger", id }],
     }),
+    /**
+     * Everything the printed fee receipt needs, computed server-side from the
+     * same ledger engine the screens use — a printed sheet must never disagree
+     * with what the collector saw.
+     */
+    getReceiptDetail: build.query({
+      // studentId is part of the key, not a filter: a receipt NUMBER is not
+      // unique on its own (reverting a receipt frees its number), so asking by
+      // number alone can return another student's money.
+      query: ({ receiptNo, studentId }) => ({
+        url: `/payments/receipts/${receiptNo}`,
+        params: studentId ? { studentId } : {},
+      }),
+      transformResponse: unwrap,
+    }),
+
     getPaymentHistory: build.query({
       query: (studentId) => `/payments/students/${studentId}/history`,
       transformResponse: unwrap,
@@ -107,6 +123,7 @@ export const paymentsApi = baseApi.injectEndpoints({
 export const {
   useGetLedgerQuery,
   useGetPaymentHistoryQuery,
+  useLazyGetReceiptDetailQuery,
   useGetInstallmentsQuery,
   useCollectPaymentMutation,
   useAdjustInstallmentMutation,

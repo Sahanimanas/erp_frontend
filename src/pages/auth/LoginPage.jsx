@@ -92,24 +92,39 @@ export default function LoginPage() {
     }
   };
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-10 bg-gradient-to-br from-[#0b1020] via-[#111827] to-[#1a1030] relative overflow-hidden">
-      {/* Ambient background glows */}
-      <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-indigo-600/20 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 -left-24 w-96 h-96 rounded-full bg-pink-600/10 blur-3xl" />
+    <div className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-10 relative overflow-hidden bg-[#070b16]">
+      {/* ── Backdrop ──────────────────────────────────────────────────────
+          Three slowly drifting colour fields over a faint grid. Purely
+          decorative and pointer-events-none, so it can never sit between the
+          user and the form. It stops moving under prefers-reduced-motion. */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="aurora absolute -top-1/4 -left-1/4 w-[70vw] h-[70vw] rounded-full blur-[120px]
+                        bg-[radial-gradient(circle,rgba(249,115,22,.34),transparent_62%)]" />
+        <div className="aurora-2 absolute -bottom-1/3 -right-1/4 w-[65vw] h-[65vw] rounded-full blur-[120px]
+                        bg-[radial-gradient(circle,rgba(244,63,94,.26),transparent_62%)]" />
+        <div className="aurora absolute top-1/3 left-1/2 w-[45vw] h-[45vw] rounded-full blur-[130px]
+                        bg-[radial-gradient(circle,rgba(56,189,248,.18),transparent_65%)]" />
+        <div className="absolute inset-0 opacity-[0.05]"
+             style={{
+               backgroundImage:
+                 "linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)",
+               backgroundSize: "56px 56px",
+             }} />
+      </div>
 
       {/* ── Welcome text — upper middle, close to the form ───────────────── */}
       <header className="relative z-10 w-full text-center mb-6">
-        <p className="text-indigo-300/80 text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase">Welcome to</p>
+        <p className="text-amber-200/70 text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase">Welcome to</p>
         {/* Show the school's logo in place of its name. Fall back to the name
             (or platform icon) when a school has not uploaded a logo. */}
         {brandLogo ? (
           <img
             src={brandLogo}
             alt={brandName}
-            className="mx-auto mt-4 block max-h-24 w-auto rounded-2xl bg-white object-contain p-2 shadow-lg shadow-indigo-500/20"
+            className="mx-auto mt-4 block max-h-24 w-auto rounded-2xl bg-white object-contain p-2 shadow-lg shadow-orange-500/25"
           />
         ) : (
-          <h1 className="text-3xl sm:text-5xl font-extrabold mt-2 bg-gradient-to-r from-indigo-300 via-violet-300 to-pink-300 bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-5xl font-extrabold mt-2 bg-gradient-to-r from-amber-200 via-orange-300 to-rose-300 bg-clip-text text-transparent">
             {brandName}
           </h1>
         )}
@@ -117,18 +132,18 @@ export default function LoginPage() {
 
       {/* ── Login form — bigger, centered right under the heading ────────── */}
       <main className="relative z-10 w-full flex justify-center">
-        <form onSubmit={handle} className="w-full max-w-md bg-[#111827]/80 backdrop-blur-xl border border-slate-800/60 rounded-2xl shadow-2xl p-8 sm:p-10 space-y-5">
+        <form onSubmit={handle} className="w-full max-w-md rounded-2xl p-8 sm:p-10 space-y-5 border border-[#e8dcc2] bg-gradient-to-br from-[#fffdf6] via-[#fdf6e6] to-[#f7ecd6] shadow-[0_30px_80px_-20px_rgba(0,0,0,.65)]">
           <div className="text-center mb-1">
-            <h2 className="text-xl font-bold text-white">Sign in</h2>
-            <p className="text-slate-500 text-xs mt-1">Enter your credentials to continue</p>
+            <h2 className="text-xl font-bold text-[#2d2418]">Sign in</h2>
+            <p className="text-[#8a7b60] text-xs mt-1">Enter your credentials to continue</p>
           </div>
-          {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2.5 text-red-400 text-xs">{error}</div>}
-          <div className="relative"><User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" /><input type="email" placeholder="Email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="w-full pl-10 pr-4 py-3.5 bg-slate-800/60 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all" /></div>
-          <div className="relative"><Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" /><input type={showPass ? "text" : "password"} placeholder="Password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className="w-full pl-10 pr-11 py-3.5 bg-slate-800/60 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all" /><button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">{showPass ? <EyeOff size={15} /> : <Eye size={15} />}</button></div>
-          <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/30 disabled:opacity-70">
+          {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 text-red-700 text-xs">{error}</div>}
+          <div className="relative"><User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#a89878]" /><input type="email" placeholder="Email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="w-full pl-10 pr-4 py-3.5 bg-white/80 border border-[#e3d6ba] rounded-xl text-[#2d2418] text-sm placeholder-[#a89878] focus:outline-none focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-500/10 transition-all" /></div>
+          <div className="relative"><Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#a89878]" /><input type={showPass ? "text" : "password"} placeholder="Password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className="w-full pl-10 pr-11 py-3.5 bg-white/80 border border-[#e3d6ba] rounded-xl text-[#2d2418] text-sm placeholder-[#a89878] focus:outline-none focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-500/10 transition-all" /><button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#a89878] hover:text-[#2d2418]">{showPass ? <EyeOff size={15} /> : <Eye size={15} />}</button></div>
+          <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:via-orange-500 hover:to-rose-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-orange-500/40 hover:shadow-orange-500/60 disabled:opacity-70">
             {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><ArrowRight size={16} /><span>Login</span></>}
           </button>
-          <p className="text-center text-[11px] text-slate-600 pt-1">© 2026 {brandName} School Management</p>
+          <p className="text-center text-[11px] text-[#a09070] pt-1">© 2026 {brandName} School Management</p>
         </form>
       </main>
     </div>
