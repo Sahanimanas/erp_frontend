@@ -1,7 +1,46 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@layer base { * { box-sizing: border-box; } body { @apply font-sans text-slate-800 bg-slate-100 antialiased; } }
+
+/* ── ERP theme tokens ─────────────────────────────────────────────────────
+   The client's reference product is a Bootstrap/AdminLTE-era school ERP: flat
+   grey page, square-ish white panels with a thin border and a blue rule under
+   the panel title, labels above fields with a red required mark, and solid blue
+   buttons. Every one of those values lives here so a shade can be corrected in
+   one place instead of across the component kit.
+
+   Consumed by src/components/ui/index.jsx and the layout chrome. Tailwind's
+   slate palette is still used for incidental greys. */
+:root {
+  --erp-bg:          #eceff4;  /* page background behind the panels */
+  --erp-surface:     #ffffff;  /* panel / card fill */
+  --erp-border:      #d2d6de;  /* field + panel border */
+  --erp-border-soft: #e6e9ee;  /* internal dividers, table rules */
+  --erp-head:        #f7f8fa;  /* table header fill */
+
+  --erp-primary:     #3c8dbc;  /* brand blue — buttons, active state, title rule */
+  --erp-primary-dk:  #357ca5;  /* its hover / border */
+  --erp-primary-sf:  #eaf3f9;  /* its tint, for selected rows and soft chips */
+
+  --erp-danger:      #dd4b39;
+  --erp-success:     #00a65a;
+  --erp-warning:     #f39c12;
+  --erp-info:        #00c0ef;
+
+  --erp-text:        #24282e;  /* body copy */
+  --erp-muted:       #596069;  /* secondary copy, placeholders — kept dark
+                                  enough to stay readable on the grey page */
+  --erp-radius:      3px;      /* the whole product is square-ish, not rounded */
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    @apply font-sans antialiased;
+    color: var(--erp-text);
+    background: var(--erp-bg);
+  }
+}
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
@@ -215,4 +254,54 @@ table thead th { background-color: #f8fafc; }
 
 @media (prefers-reduced-motion: reduce) {
   .marquee-track, .ai-pulse::before { animation: none; }
+}
+
+/* ── Readability on the grey page ─────────────────────────────────────────
+   The reference design puts white panels on a grey page, and Tailwind's two
+   lightest text ramps (slate-300/400) wash out against it — the client could
+   not read them. Rather than edit ~335 page files, the ramps are pulled darker
+   inside the content area only.
+
+   Scoped to #main-content on purpose: the sidebar has its own dark theme where
+   those same light greys sit on a dark fill and must stay light. The id+class
+   selector outranks Tailwind's single-class utility, so no !important needed. */
+#main-content .text-slate-300 { color: #6b7280; }
+#main-content .text-slate-400 { color: #596069; }
+#main-content .text-slate-500 { color: #4b5058; }
+
+/* ── Sign-in page motion ──────────────────────────────────────────────────
+   Kept here rather than as Tailwind arbitrary values because these run for the
+   lifetime of the page; a named keyframe is cheaper to read and to tune. The
+   whole set is disabled under prefers-reduced-motion — a login screen that
+   drifts and pulses is exactly what that setting exists to stop. */
+@keyframes auroraDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(6%, -8%, 0) scale(1.12); }
+  66%      { transform: translate3d(-5%, 6%, 0) scale(0.95); }
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-9px); }
+}
+@keyframes sheen {
+  0%   { transform: translateX(-120%) skewX(-18deg); }
+  60%, 100% { transform: translateX(240%) skewX(-18deg); }
+}
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.aurora   { animation: auroraDrift 18s ease-in-out infinite; }
+.aurora-2 { animation: auroraDrift 24s ease-in-out infinite reverse; }
+.float-y  { animation: floatY 5s ease-in-out infinite; }
+.rise-in  { animation: riseIn .5s cubic-bezier(.22,1,.36,1) both; }
+.sheen::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+  animation: sheen 3.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora, .aurora-2, .float-y, .rise-in, .sheen::after { animation: none; }
 }

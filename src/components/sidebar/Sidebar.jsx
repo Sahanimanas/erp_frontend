@@ -11,12 +11,12 @@
  *   ✓ Expand/collapse state persisted in Redux uiSlice
  *   ✓ Mobile: slides in/out as a drawer
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  selectSidebarCollapsed, selectExpandedSections, selectDarkMode,
-  toggleSidebar, toggleSection, openSection, toggleDarkMode,
+  selectSidebarCollapsed, selectDarkMode,
+  toggleSidebar, toggleDarkMode,
 } from "../../redux/slices/uiSlice";
 import { selectUserRole, selectUser, selectUserPermissions, logout } from "../../redux/slices/authSlice";
 import { routeConfig, canAccessSection } from "../../routes/routeConfig";
@@ -81,94 +81,133 @@ function NavLeaf({ item, collapsed, onNavigate, dim = false }) {
   );
 }
 
-// ─── Nav parent item (expandable) ─────────────────────────────────────────
-function NavParent({ item, collapsed, onNavigate }) {
-  const dispatch         = useDispatch();
-  const location         = useLocation();
-  const expandedSections = useSelector(selectExpandedSections);
-  const isExpanded       = expandedSections.includes(item.key);
-  const isParentActive   = item.children?.some((c) => location.pathname.startsWith(c.path));
+// ─── Nav parent item (opens a side flyout) ────────────────────────────────
+/**
+ * A section opens its children in a panel BESIDE the sidebar rather than
+ * expanding inside it.
+ *
+ * Why: expanding in place pushed every section below it down the list, so
+ * opening "Admission" moved "Employee" under the user's cursor. A flyout leaves
+ * the sidebar still and keeps the whole menu reachable, and it is the only shape
+ * that works when the sidebar is collapsed to icons.
+ *
+ * It is positioned `fixed` because the nav scrolls and clips — a panel rendered
+ * inside it could not escape its own overflow.
+ */
+function NavParent({ item, collapsed, onNavigate, openKey, setOpenKey }) {
+  const location = useLocation();
+  const btnRef   = useRef(null);
+  const panelRef = useRef(null);
+  const [pos, setPos] = useState(null);
 
-  // Auto-expand if a child route is active
+  const isOpen         = openKey === item.key;
+  const isParentActive = item.children?.some((c) => location.pathname.startsWith(c.path));
+  const kids           = item.children.filter((c) => !c.hidden);
+
+  const place = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const PANEL_H = Math.min(kids.length * 40 + 52, window.innerHeight - 24);
+    setPos({
+      left: r.right + 8,
+      // Keep the panel on screen when a section sits near the bottom.
+      top: Math.max(12, Math.min(r.top, window.innerHeight - PANEL_H - 12)),
+    });
+  };
+
+  const open = () => { place(); setOpenKey(item.key); };
+
+  // Close on Escape or a click outside; re-place on resize. Listeners exist only
+  // while this panel is open, so a closed sidebar costs nothing.
   useEffect(() => {
-    if (isParentActive && !expandedSections.includes(item.key)) {
-      dispatch(openSection(item.key));
-    }
-  }, [location.pathname]); // eslint-disable-line
+    if (!isOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setOpenKey(null); };
+    const onDown = (e) => {
+      if (panelRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return;
+      setOpenKey(null);
+    };
+    const onResize = () => place();
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [isOpen]); // eslint-disable-line
 
   return (
     <div>
-      {/* Parent button */}
       <button
-        onClick={() => {
-          // Collapsed the submenu has nowhere to render, so a click here used to
-          // do nothing at all — leaving every section unreachable while the menu
-          // was closed. Re-open the sidebar and expand this section instead.
-          if (collapsed) {
-            dispatch(toggleSidebar());
-            dispatch(openSection(item.key));
-            return;
-          }
-          dispatch(toggleSection(item.key));
-        }}
+        ref={btnRef}
+        onClick={() => (isOpen ? setOpenKey(null) : open())}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
         className={`
           w-full flex items-center py-2.5 rounded-lg transition-all duration-150 text-left border-t
           ${collapsed ? "justify-center px-0" : "gap-3.5 px-3.5"}
-          ${isExpanded || isParentActive
+          ${isOpen || isParentActive
             ? "bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 text-white font-bold border-indigo-500 shadow-sm"
             : "text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 border-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-300 dark:border-slate-700"
           }
         `}
         title={collapsed ? item.label : undefined}
       >
-        <span className="flex-shrink-0">
-          <Icon name={item.icon} size={18} />
-        </span>
+        <span className="flex-shrink-0"><Icon name={item.icon} size={18} /></span>
         {!collapsed && (
           <>
             <span className="text-[14px] font-bold grow whitespace-nowrap">{item.label}</span>
-            <span
-              className="transition-transform duration-200 flex-shrink-0"
-              style={{ transform: isExpanded ? "rotate(180deg)" : "none" }}
-            >
-              <Icons.ChevronDown size={15} />
-            </span>
+            <Icons.ChevronRight
+              size={15}
+              className="flex-shrink-0 transition-transform duration-200"
+              style={{ transform: isOpen ? "translateX(2px)" : "none" }}
+            />
           </>
         )}
       </button>
 
-      {/* Children (animated height) */}
-      {!collapsed && (
-        // 36px per flush menu row, plus 16px for the panel's own margin,
-        // padding and borders, or the last item clips.
+      {isOpen && pos && (
         <div
-          className="overflow-hidden transition-all duration-200"
-          style={{ maxHeight: isExpanded ? `${item.children.length * 36 + 16}px` : "0px" }}
+          ref={panelRef}
+          role="menu"
+          aria-label={item.label}
+          style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 60 }}
+          // A surface of its own, not the sidebar's. In dark mode the panel used
+          // to be slate-900 beside a slate-900 sidebar, so the two merged into
+          // one dark slab. A rose surface separates by HUE as well as by
+          // lightness, which survives both themes.
+          className="w-[250px] max-h-[calc(100vh-24px)] overflow-y-auto rounded-xl overflow-hidden
+                     bg-rose-50/95 dark:bg-rose-950
+                     ring-1 ring-rose-300/80 dark:ring-rose-400/30
+                     shadow-[0_22px_60px_rgba(136,19,55,.35)]
+                     animate-[fadeSlideIn_.14s_ease-out] origin-left"
         >
-          {/* Open submenu: flat desktop-menu style — one shaded panel, rows
-              flush against each other with no pills, borders or gaps. The row
-              itself is the hover/active target, edge to edge. */}
-          <div className="-mx-2.5 mt-1 bg-indigo-50 border-y border-indigo-100 py-1 dark:bg-slate-950/60 dark:border-slate-800">
-            {item.children
-              .filter((c) => !c.hidden)
-              .map((child) => (
-                <NavLink
-                  key={child.key}
-                  to={child.path}
-                  end
-                  onClick={onNavigate}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 pl-6 pr-3 py-2 text-[13.5px] font-bold transition-colors duration-100
-                     ${isActive
-                       ? "bg-indigo-600 text-white"
-                       : "text-slate-700 hover:bg-indigo-100 hover:text-indigo-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-                     }`
-                  }
-                >
-                  <span className="whitespace-nowrap">{child.label}</span>
-                  <Icons.ChevronRight size={14} className="ml-auto shrink-0 opacity-60" />
-                </NavLink>
-              ))}
+          <div className="px-4 py-2.5 flex items-center gap-2
+                          bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 text-white">
+            <Icon name={item.icon} size={15} />
+            <span className="text-[13px] font-bold">{item.label}</span>
+          </div>
+
+          <div className="py-1 divide-y divide-rose-100 dark:divide-rose-900/60">
+            {kids.map((child) => (
+              <NavLink
+                key={child.key}
+                to={child.path}
+                end
+                onClick={() => { setOpenKey(null); onNavigate?.(); }}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold transition-colors
+                   ${isActive
+                     ? "bg-rose-600 text-white"
+                     : "text-rose-950 hover:bg-white dark:text-rose-100 dark:hover:bg-rose-900 dark:hover:text-white"
+                   }`
+                }
+              >
+                <span className="whitespace-nowrap">{child.label}</span>
+                <Icons.ChevronRight size={13} className="ml-auto shrink-0 opacity-50" />
+              </NavLink>
+            ))}
           </div>
         </div>
       )}
@@ -176,7 +215,6 @@ function NavParent({ item, collapsed, onNavigate }) {
   );
 }
 
-// ─── Sidebar root ─────────────────────────────────────────────────────────
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const dispatch         = useDispatch();
   const collapsedPref    = useSelector(selectSidebarCollapsed);
@@ -195,10 +233,14 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   // Sidebar-only dark theme: the `dark` class goes on the <aside> below, so every
   // `dark:` variant in this file resolves inside the sidebar and nowhere else.
   const darkMode         = useSelector(selectDarkMode);
-  const expandedSections = useSelector(selectExpandedSections);
+  // Which section's flyout is open. Held here rather than inside each item so
+  // opening one closes the others without them having to know about each other.
+  const [openFlyout, setOpenFlyout] = useState(null);
   // True once the user opens any expandable section — used to drop the Dashboard
   // highlight so two items aren't shown "selected" at the same time.
-  const anyExpanded      = expandedSections.length > 0;
+  // Dashboard recedes while a section's flyout is open, so the open panel is
+  // clearly where attention is.
+  const anyExpanded      = Boolean(openFlyout);
   const userRole         = useSelector(selectUserRole);
   const user             = useSelector(selectUser);
   const permissions      = useSelector(selectUserPermissions);
@@ -247,7 +289,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   // Explicit sidebar ordering: core school modules pinned right under Dashboard,
   // and the generic/utility modules pushed to the bottom. Anything not listed
   // keeps its original routeConfig order, placed in between.
-  const HEAD_ORDER = ["dashboard", "admission", "students", "class-management", "employee", "leave", "salary", "fee-management", "payments", "attendance", "timetable", "exams", "result-management", "certificate", "parents", "library"];
+  const HEAD_ORDER = ["dashboard", "student360", "admission", "students", "class-management", "employee", "leave", "salary", "fee-management", "payments", "attendance", "timetable", "exams", "result-management", "certificate", "parents", "library"];
   const TAIL_ORDER = ["tasks", "house", "inventory", "license"];
   const weightFor = (item, idx) => {
     const head = HEAD_ORDER.indexOf(item.key);
@@ -342,7 +384,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
         {visibleNav.map((item) =>
           item.children ? (
-            <NavParent key={item.key} item={item} collapsed={collapsed} onNavigate={onMobileClose} />
+            <NavParent key={item.key} item={item} collapsed={collapsed} onNavigate={onMobileClose}
+                       openKey={openFlyout} setOpenKey={setOpenFlyout} />
           ) : (
             <NavLeaf
               key={item.key}

@@ -17,15 +17,21 @@ export function Button({
   children, variant = "primary", size = "md",
   className = "", loading = false, icon, ...props
 }) {
-  const base = "inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed select-none";
+  // Flat solid fills with a one-step-darker border, the way the reference
+  // product draws every button. Colours come from the :root tokens so a shade
+  // is corrected in index.css, not here.
+  const base = "inline-flex items-center justify-center gap-2 font-medium border transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed select-none";
+  const solid = (fill, border) => ({
+    background: `var(${fill})`, borderColor: `var(${border})`, color: "#fff",
+  });
   const variants = {
-    primary:   "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200",
-    secondary: "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200",
-    ghost:     "hover:bg-slate-100 text-slate-600",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    success:   "bg-emerald-600 hover:bg-emerald-700 text-white",
-    outline:   "border border-indigo-300 text-indigo-600 hover:bg-indigo-50",
-    warning:   "bg-amber-500 hover:bg-amber-600 text-white",
+    primary:   { style: solid("--erp-primary", "--erp-primary-dk"), cls: "hover:brightness-95" },
+    danger:    { style: solid("--erp-danger", "--erp-danger"),      cls: "hover:brightness-95" },
+    success:   { style: solid("--erp-success", "--erp-success"),    cls: "hover:brightness-95" },
+    warning:   { style: solid("--erp-warning", "--erp-warning"),    cls: "hover:brightness-95" },
+    secondary: { style: { background: "#f4f4f4", borderColor: "var(--erp-border)", color: "var(--erp-text)" }, cls: "hover:bg-slate-200" },
+    outline:   { style: { background: "#fff", borderColor: "var(--erp-primary)", color: "var(--erp-primary)" }, cls: "hover:bg-[var(--erp-primary-sf)]" },
+    ghost:     { style: { background: "transparent", borderColor: "transparent", color: "var(--erp-muted)" }, cls: "hover:bg-slate-100" },
   };
   const sizes = {
     xs: "px-2.5 py-1 text-[11px]",
@@ -33,9 +39,11 @@ export function Button({
     md: "px-4 py-2 text-sm",
     lg: "px-5 py-2.5 text-sm",
   };
+  const v = variants[variant] ?? variants.primary;
   return (
     <button
-      className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${base} ${v.cls} ${sizes[size]} ${className}`}
+      style={{ borderRadius: "var(--erp-radius)", ...v.style }}
       disabled={loading || props.disabled}
       {...props}
     >
@@ -68,7 +76,12 @@ export function Badge({ children, variant = "default", dot = false }) {
     indigo: "bg-indigo-500", cyan: "bg-cyan-500",
   };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${variants[variant]}`}>
+    // Square-ish label, not a pill — the reference product's status chips are
+    // small rectangles sitting inside table cells.
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold ${variants[variant]}`}
+      style={{ borderRadius: "var(--erp-radius)" }}
+    >
       {dot && <span className={`w-1.5 h-1.5 rounded-full ${dotColors[variant]}`} />}
       {children}
     </span>
@@ -80,12 +93,21 @@ export function Badge({ children, variant = "default", dot = false }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export function Card({ children, className = "", title, subtitle, action, noPadding = false }) {
   return (
-    <div className={`bg-white rounded-xl border border-slate-100 shadow-sm ${className}`}>
+    // A "panel": square-ish, hairline border, no lift. The title sits on a blue
+    // rule, which is how the reference product separates a panel head from its
+    // body — so the heading reads as a section, not as a floating card label.
+    <div
+      className={`bg-white ${className}`}
+      style={{ border: "1px solid var(--erp-border)", borderRadius: "var(--erp-radius)" }}
+    >
       {(title || action) && (
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div
+          className="flex items-center justify-between px-4 py-3"
+          style={{ borderBottom: "2px solid var(--erp-primary)" }}
+        >
           <div>
-            {title && <h3 className="text-sm font-semibold text-slate-800">{title}</h3>}
-            {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+            {title && <h3 className="text-[15px] font-semibold" style={{ color: "var(--erp-text)" }}>{title}</h3>}
+            {subtitle && <p className="text-[12px] mt-0.5" style={{ color: "var(--erp-muted)" }}>{subtitle}</p>}
           </div>
           {action && <div className="flex gap-2">{action}</div>}
         </div>
@@ -112,7 +134,7 @@ export function StatCard({ label, value, icon: Icon, gradient, change, sparkData
     >
       <div className="flex items-start justify-between mb-2">
         <div>
-          <p className="text-[11px] text-slate-500 font-medium mb-1">{label}</p>
+          <p className="text-[11px] text-slate-700 font-medium mb-1">{label}</p>
           <p className="text-2xl font-bold text-slate-800">
             {typeof value === "number" ? value.toLocaleString() : value}
           </p>
@@ -124,7 +146,7 @@ export function StatCard({ label, value, icon: Icon, gradient, change, sparkData
       {change !== undefined && (
         <p className={`text-[10px] font-semibold ${isPos ? "text-emerald-600" : "text-red-500"}`}>
           {isPos ? "▲" : "▼"} {Math.abs(change)}%
-          <span className="text-slate-400 font-normal"> vs last month</span>
+          <span className="text-slate-600 font-normal"> vs last month</span>
         </p>
       )}
       {sparkData.length > 0 && (
@@ -147,19 +169,25 @@ export function StatCard({ label, value, icon: Icon, gradient, change, sparkData
 // ─────────────────────────────────────────────────────────────────────────────
 export function PageHeader({ title, subtitle, icon, children }) {
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-4">
+    <div
+      className="flex items-center justify-between mb-5 bg-white px-4 py-3"
+      style={{ border: "1px solid var(--erp-border)", borderRadius: "var(--erp-radius)" }}
+    >
+      <div className="flex items-center gap-3">
         {icon && (
           // Pages pass their own icon at assorted sizes (14–20px); normalise to
-          // 22px here so every page header badge matches without touching all
-          // ~177 call sites.
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0 [&_svg]:w-[22px] [&_svg]:h-[22px]">
+          // 20px here so every page header matches without touching all ~177
+          // call sites. Square tile with a hairline border, not a rounded chip.
+          <div
+            className="w-10 h-10 flex items-center justify-center flex-shrink-0 [&_svg]:w-[20px] [&_svg]:h-[20px]"
+            style={{ border: "1px solid var(--erp-border)", borderRadius: "var(--erp-radius)", color: "var(--erp-primary)" }}
+          >
             {icon}
           </div>
         )}
         <div>
-          <h1 className="text-[22px] leading-tight font-bold text-slate-800">{title}</h1>
-          {subtitle && <p className="text-[13px] text-slate-500 mt-1">{subtitle}</p>}
+          <h1 className="text-[20px] leading-tight font-normal" style={{ color: "var(--erp-text)" }}>{title}</h1>
+          {subtitle && <p className="text-[12.5px] mt-0.5" style={{ color: "var(--erp-muted)" }}>{subtitle}</p>}
         </div>
       </div>
       {children && <div className="flex items-center gap-2">{children}</div>}
@@ -170,27 +198,48 @@ export function PageHeader({ title, subtitle, icon, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // INPUT
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Field label in the reference product's style: normal-weight dark text above
+ * the control, with a red asterisk when the field is required. `required` is a
+ * native input attribute, so marking a field required also marks it visually —
+ * no second prop to keep in sync.
+ */
+function FieldLabel({ label, required }) {
+  if (!label) return null;
+  return (
+    <label className="block text-[13px] mb-1" style={{ color: "var(--erp-text)" }}>
+      {label}
+      {required && <span style={{ color: "var(--erp-danger)" }}> *</span>}
+    </label>
+  );
+}
+
+const fieldStyle = (error) => ({
+  borderRadius: "var(--erp-radius)",
+  border: `1px solid ${error ? "var(--erp-danger)" : "var(--erp-border)"}`,
+  color: "var(--erp-text)",
+  background: "#fff",
+});
+
+const FIELD_CLS =
+  "w-full px-3 py-2 text-[13.5px] transition-colors focus:outline-none " +
+  "focus:border-[var(--erp-primary)] placeholder-[var(--erp-muted)]";
+
 export function Input({ label, error, className = "", icon, ...props }) {
   return (
-    <div className="space-y-1">
-      {label && <label className="block text-[11px] font-semibold text-slate-600">{label}</label>}
+    <div>
+      <FieldLabel label={label} required={props.required} />
       <div className="relative">
         {icon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{icon}</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--erp-muted)" }}>{icon}</span>
         )}
         <input
-          className={`
-            w-full px-3 py-2 text-sm border rounded-lg
-            focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100
-            transition-all placeholder-slate-400 text-slate-700
-            ${error ? "border-red-400 bg-red-50" : "border-slate-200 bg-white hover:border-slate-300"}
-            ${icon ? "pl-9" : ""}
-            ${className}
-          `}
+          className={`${FIELD_CLS} ${icon ? "pl-9" : ""} ${className}`}
+          style={fieldStyle(error)}
           {...props}
         />
       </div>
-      {error && <p className="text-[10px] text-red-500">{error}</p>}
+      {error && <p className="text-[11px] mt-1" style={{ color: "var(--erp-danger)" }}>{error}</p>}
     </div>
   );
 }
@@ -200,23 +249,18 @@ export function Input({ label, error, className = "", icon, ...props }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export function Select({ label, options = [], error, className = "", ...props }) {
   return (
-    <div className="space-y-1">
-      {label && <label className="block text-[11px] font-semibold text-slate-600">{label}</label>}
+    <div>
+      <FieldLabel label={label} required={props.required} />
       <select
-        className={`
-          w-full px-3 py-2 text-sm border rounded-lg bg-white
-          focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100
-          transition-all text-slate-700
-          ${error ? "border-red-400" : "border-slate-200 hover:border-slate-300"}
-          ${className}
-        `}
+        className={`${FIELD_CLS} ${className}`}
+        style={fieldStyle(error)}
         {...props}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      {error && <p className="text-[10px] text-red-500">{error}</p>}
+      {error && <p className="text-[11px] mt-1" style={{ color: "var(--erp-danger)" }}>{error}</p>}
     </div>
   );
 }
@@ -226,20 +270,15 @@ export function Select({ label, options = [], error, className = "", ...props })
 // ─────────────────────────────────────────────────────────────────────────────
 export function Textarea({ label, error, className = "", rows = 3, ...props }) {
   return (
-    <div className="space-y-1">
-      {label && <label className="block text-[11px] font-semibold text-slate-600">{label}</label>}
+    <div>
+      <FieldLabel label={label} required={props.required} />
       <textarea
         rows={rows}
-        className={`
-          w-full px-3 py-2 text-sm border rounded-lg resize-none
-          focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100
-          transition-all placeholder-slate-400 text-slate-700
-          ${error ? "border-red-400 bg-red-50" : "border-slate-200 hover:border-slate-300"}
-          ${className}
-        `}
+        className={`${FIELD_CLS} resize-none ${className}`}
+        style={fieldStyle(error)}
         {...props}
       />
-      {error && <p className="text-[10px] text-red-500">{error}</p>}
+      {error && <p className="text-[11px] mt-1" style={{ color: "var(--erp-danger)" }}>{error}</p>}
     </div>
   );
 }
@@ -247,7 +286,13 @@ export function Textarea({ label, error, className = "", rows = 3, ...props }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // DATA TABLE
 // ─────────────────────────────────────────────────────────────────────────────
-export function DataTable({ columns = [], data = [], loading = false, emptyText = "No data available" }) {
+/**
+ * `onRowClick` is optional: pass it and the whole row becomes the control that
+ * opens the record, so a table does not need a trailing "open" button. Rows then
+ * take keyboard focus and respond to Enter/Space. Omit it and the table behaves
+ * exactly as before.
+ */
+export function DataTable({ columns = [], data = [], loading = false, emptyText = "No data available", onRowClick }) {
   const [sortKey, setSortKey]   = useState(null);
   const [sortDir, setSortDir]   = useState("asc");
 
@@ -286,13 +331,13 @@ export function DataTable({ columns = [], data = [], loading = false, emptyText 
     <div className="overflow-x-auto">
       <table className="w-full text-sm min-w-[600px]">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-100">
+          <tr style={{ background: "var(--erp-head)", borderBottom: "1px solid var(--erp-border)" }}>
             {columns.map((col) => (
               <th
                 key={col.key}
                 onClick={() => col.sortable !== false && handleSort(col.key)}
                 className={`
-                  px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider
+                  px-4 py-2.5 text-left text-[12px] font-semibold text-[var(--erp-text)]
                   ${col.sortable !== false ? "cursor-pointer select-none hover:text-slate-700" : ""}
                   ${col.width ? `w-${col.width}` : ""}
                 `}
@@ -307,18 +352,33 @@ export function DataTable({ columns = [], data = [], loading = false, emptyText 
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
+        <tbody className="divide-y divide-[var(--erp-border-soft)]">
           {sorted.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center text-xs text-slate-400">
+              <td colSpan={columns.length} className="px-4 py-12 text-center text-xs text-slate-600">
                 {emptyText}
               </td>
             </tr>
           ) : (
             sorted.map((row, ri) => (
-              <tr key={row.id ?? ri} className="hover:bg-slate-50/70 transition-colors">
+              <tr
+                key={row.id ?? ri}
+                {...(onRowClick
+                  ? {
+                      onClick: () => onRowClick(row),
+                      onKeyDown: (e) => {
+                        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(row); }
+                      },
+                      tabIndex: 0,
+                      role: "button",
+                    }
+                  : {})}
+                className={`hover:bg-slate-50/70 transition-colors ${
+                  onRowClick ? "cursor-pointer focus:outline-none focus:bg-indigo-50/70" : ""
+                }`}
+              >
                 {columns.map((col) => (
-                  <td key={col.key} className="px-4 py-3 text-slate-700 text-[12.5px]">
+                  <td key={col.key} className="px-4 py-2.5 text-[13px]" style={{ color: "var(--erp-text)" }}>
                     {col.render ? col.render(row[col.key], row) : (row[col.key] ?? "—")}
                   </td>
                 ))}
@@ -345,18 +405,18 @@ export function Pagination({ page, total, pageSize, onPageChange }) {
 
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-      <span className="text-[11px] text-slate-500">
+      <span className="text-[11px] text-slate-700">
         Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total.toLocaleString()}
       </span>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
-          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft size={14} />
         </button>
-        {start > 1 && <span className="text-[11px] text-slate-400 px-1">…</span>}
+        {start > 1 && <span className="text-[11px] text-slate-600 px-1">…</span>}
         {pages.map((p) => (
           <button
             key={p}
@@ -369,11 +429,11 @@ export function Pagination({ page, total, pageSize, onPageChange }) {
             {p}
           </button>
         ))}
-        {end < totalPages && <span className="text-[11px] text-slate-400 px-1">…</span>}
+        {end < totalPages && <span className="text-[11px] text-slate-600 px-1">…</span>}
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page === totalPages}
-          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronRight size={14} />
         </button>
@@ -445,7 +505,7 @@ export function Modal({ open, onClose, title, children, size = "md" }) {
       <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${sizes[size]} max-h-[90vh] overflow-hidden flex flex-col`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h2 className="text-[14px] font-bold text-slate-800">{title}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-600 transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -461,7 +521,7 @@ export function Modal({ open, onClose, title, children, size = "md" }) {
 export function SearchInput({ value, onChange, placeholder = "Search...", className = "" }) {
   return (
     <div className={`relative ${className}`}>
-      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
       <input
         type="text"
         value={value}
@@ -470,7 +530,7 @@ export function SearchInput({ value, onChange, placeholder = "Search...", classN
         className="w-full pl-8 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 bg-white transition-all placeholder-slate-400"
       />
       {value && (
-        <button onClick={() => onChange({ target: { value: "" } })} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+        <button onClick={() => onChange({ target: { value: "" } })} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600">
           <X size={12} />
         </button>
       )}
@@ -486,7 +546,7 @@ export function EmptyState({ icon, title, description, action }) {
     <div className="flex flex-col items-center justify-center py-16 text-center">
       {icon && <div className="text-4xl mb-4">{icon}</div>}
       <h3 className="text-sm font-semibold text-slate-700 mb-1">{title}</h3>
-      {description && <p className="text-xs text-slate-400 max-w-xs">{description}</p>}
+      {description && <p className="text-xs text-slate-600 max-w-xs">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -507,7 +567,7 @@ export function ProgressBar({ value, max = 100, color = "indigo", height = "h-2"
   return (
     <div>
       {label && (
-        <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+        <div className="flex justify-between text-[10px] text-slate-700 mb-1">
           <span>{label}</span>
           <span>{pct.toFixed(1)}%</span>
         </div>
@@ -527,19 +587,26 @@ export function ProgressBar({ value, max = 100, color = "indigo", height = "h-2"
 // ─────────────────────────────────────────────────────────────────────────────
 export function Tabs({ tabs = [], active, onChange }) {
   return (
-    <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
-      {tabs.map((tab) => (
-        <button
-          key={tab.key}
-          onClick={() => onChange(tab.key)}
-          className={`
-            px-4 py-1.5 rounded-lg text-[12px] font-semibold transition-all
-            ${active === tab.key ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}
-          `}
-        >
-          {tab.label}
-        </button>
-      ))}
+    // Underlined tabs on a white strip: the active one is marked by a blue rule
+    // that lines up with the panel rules, rather than by a floating pill.
+    <div className="flex bg-white" style={{ border: "1px solid var(--erp-border)", borderRadius: "var(--erp-radius)" }}>
+      {tabs.map((tab) => {
+        const on = active === tab.key;
+        return (
+          <button
+            key={tab.key}
+            onClick={() => onChange(tab.key)}
+            className="px-4 py-2 text-[13px] transition-colors focus:outline-none focus:bg-[var(--erp-primary-sf)]"
+            style={{
+              color: on ? "var(--erp-primary)" : "var(--erp-muted)",
+              borderBottom: `2px solid ${on ? "var(--erp-primary)" : "transparent"}`,
+              fontWeight: on ? 600 : 400,
+            }}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -625,7 +692,7 @@ export function DateRangeFilter({ from, to, onChange, label = "Date" }) {
       {(from || to) && (
         <button
           onClick={() => onChange({ from: "", to: "" })}
-          className="px-3 py-2 text-[12px] text-slate-500 hover:text-indigo-600 font-semibold"
+          className="px-3 py-2 text-[12px] text-slate-700 hover:text-indigo-600 font-semibold"
         >
           Clear
         </button>
@@ -686,7 +753,7 @@ export function ExportButton({ filename = "export.csv", rows = [], columns, labe
       <Download size={16} className="text-indigo-600 shrink-0" />
       <span className="flex-1">
         <span className="block text-[13px] font-semibold text-slate-800">{loading ? "Preparing…" : title}</span>
-        <span className="block text-[11px] text-slate-400">{desc}</span>
+        <span className="block text-[11px] text-slate-600">{desc}</span>
       </span>
     </button>
   );
@@ -698,7 +765,7 @@ export function ExportButton({ filename = "export.csv", rows = [], columns, labe
       </Button>
       <Modal open={open} onClose={() => { if (!busy) setOpen(false); }} title="Export to Excel" size="sm">
         <div className="space-y-3">
-          <p className="text-[12.5px] text-slate-500">Choose what to export to <b>{filename}</b>.</p>
+          <p className="text-[12.5px] text-slate-700">Choose what to export to <b>{filename}</b>.</p>
           <Option scope="current" title="Export current page" desc={`Only the rows shown now (${rows.length})`} />
           <Option
             scope="all"

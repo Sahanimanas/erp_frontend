@@ -3,3 +3,6 @@ dist
 .env
 .env.local
 .env.*.local
+
+# Local backups of replaced brand assets — kept on the machine, not in the repo.
+public/brand/_old/

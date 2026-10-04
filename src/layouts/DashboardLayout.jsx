@@ -4,11 +4,16 @@
  * The shell that wraps every authenticated page:
  *
  *   ┌───────────┬─────────────────────────────────┐
- *   │  Sidebar  │  <Outlet />  (page content)     │
+ *   │           │  Topbar                         │
+ *   │  Sidebar  ├─────────────────────────────────┤
+ *   │           │  <Outlet />  (page content)     │
  *   └───────────┴─────────────────────────────────┘
  *
- * There is deliberately NO top bar: the brand and the menu toggle live inside
- * the sidebar, so page content keeps the full viewport height.
+ * The top bar carries the menu toggle, the quick-actions grid, notifications
+ * and the profile menu, matching the reference design. It replaces the
+ * mobile-only floating hamburger that used to be the only way to open the
+ * sidebar on a phone — the bar is that affordance at every width now, which is
+ * why <main> no longer reserves top padding for it.
  *
  * Sidebar width transitions via CSS class (not inline style) so Tailwind
  * JIT can purge unused classes correctly.
@@ -16,10 +21,11 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Menu, UserCheck, LogOut } from "lucide-react";
+import { UserCheck, LogOut } from "lucide-react";
 import { setMobileOpen } from "../redux/slices/uiSlice";
 import { selectImpersonation, selectUser, impersonationEnd } from "../redux/slices/authSlice";
 import Sidebar from "../components/sidebar/Sidebar";
+import Topbar from "../components/navbar/Topbar";
 
 export default function DashboardLayout() {
   const dispatch = useDispatch();
@@ -37,7 +43,7 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-100 font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="flex h-screen overflow-hidden bg-[var(--erp-bg)] font-['Plus_Jakarta_Sans',sans-serif]">
 
       {/* ── Mobile overlay ─────────────────────────────────────────────── */}
       {mobileSidebarOpen && (
@@ -54,21 +60,9 @@ export default function DashboardLayout() {
         onMobileClose={closeMobile}
       />
 
-      {/* Mobile-only floating menu button. The sidebar is off-screen on mobile,
-          so without this there is no way to open it — but it FLOATS over the
-          content instead of being a bar, so it costs the page no height. */}
-      {!mobileSidebarOpen && (
-        <button
-          onClick={openMobile}
-          aria-label="Open menu"
-          className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg bg-white text-slate-700 border border-slate-200 shadow-md hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-        >
-          <Menu size={20} />
-        </button>
-      )}
-
       {/* ── Main area ──────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden transition-all duration-300">
+        <Topbar onMenuClick={openMobile} />
         {/* Impersonation banner. An impersonated session is otherwise
             indistinguishable from the Super Admin's own — and account-scoped
             actions (Change Password above all) act on whoever the token says
@@ -94,7 +88,7 @@ export default function DashboardLayout() {
         )}
 
         <main
-          className="flex-1 overflow-y-auto p-4 pt-16 sm:p-6 sm:pt-16 lg:p-8"
+          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
           id="main-content"
         >
           {/* `min-h-full flex flex-col` lets a page stretch to the full viewport
