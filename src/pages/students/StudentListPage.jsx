@@ -13,7 +13,7 @@ import { Users, Plus, Eye, Edit2, Trash2, Filter, Upload, UserX, UserCheck } fro
 import { filterByDateRange } from "../../utils/exportExcel";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import {
-  useGetStudentsQuery, useCreateStudentMutation, useDeleteStudentMutation,
+  useGetStudentsQuery, useLazyGetStudentsQuery, useCreateStudentMutation, useDeleteStudentMutation,
   useDeactivateStudentMutation, useActivateStudentMutation,
 } from "../../redux/api/studentsApi";
 
@@ -57,14 +57,18 @@ export default function StudentListPage() {
 
   // Students via RTK Query — same params/behaviour as before, but cached so
   // returning to this page is instant and edits/deletes auto-refresh the list.
-  const { data: studentsResp, isFetching, isError, error: fetchErr } = useGetStudentsQuery({
-    page,
-    limit: PAGE_SIZE,
+  const filterParams = {
     ...(search && { search }),
     ...(cls && { classId: cls }),
     ...(section && { sectionId: section }),
     ...(status && { status }),
+  };
+  const { data: studentsResp, isFetching, isError, error: fetchErr } = useGetStudentsQuery({
+    page,
+    limit: PAGE_SIZE,
+    ...filterParams,
   });
+  const [fetchAllStudents] = useLazyGetStudentsQuery();
   const students = studentsResp?.data ?? [];
   const total = studentsResp?.pagination?.total ?? 0;
   const loading = isFetching;
@@ -113,7 +117,7 @@ export default function StudentListPage() {
   };
 
   // Format student data for display
-  const displayStudents = students.map(s => ({
+  const toDisplay = (s) => ({
     id: s.id,
     roll: s.rollNumber,
     name: `${s.user?.firstName || ''} ${s.user?.lastName || ''}`,
@@ -132,7 +136,8 @@ export default function StudentListPage() {
     createdAt: s.createdAt,
     admissionDate: s.admissionDate,
     original: s
-  }));
+  });
+  const displayStudents = students.map(toDisplay);
 
   // Client-side date-wise filter (by admission/created date) on the current page.
   const filteredStudents = filterByDateRange(
@@ -140,6 +145,17 @@ export default function StudentListPage() {
     (r) => r.admissionDate || r.createdAt,
     dateRange.from, dateRange.to
   );
+
+  // For "Export all data": re-run the active filters with a huge limit so every
+  // matching student (across all pages) is exported, not just the current page.
+  const exportAll = async () => {
+    const res = await fetchAllStudents({ ...filterParams, page: 1, limit: 100000 }).unwrap();
+    return filterByDateRange(
+      (res?.data ?? []).map(toDisplay),
+      (r) => r.admissionDate || r.createdAt,
+      dateRange.from, dateRange.to
+    );
+  };
 
   // Columns used both for the table and the Excel export.
   const EXPORT_COLS = [
@@ -279,7 +295,7 @@ export default function StudentListPage() {
     <div>
       <PageHeader title="Student Details" subtitle="Manage all enrolled students" icon={<Users size={18}/>}>
         <Button variant="secondary" size="sm" icon={<Upload size={13}/>} onClick={() => navigate("/students/upload")}>Import</Button>
-        <ExportButton filename="students.csv" rows={filteredStudents} columns={EXPORT_COLS} />
+        <ExportButton filename="students.csv" rows={filteredStudents} columns={EXPORT_COLS} fetchAll={exportAll} />
         <Button size="sm" icon={<Plus size={13}/>} onClick={()=>setAddOpen(true)}>Add Student</Button>
       </PageHeader>
       

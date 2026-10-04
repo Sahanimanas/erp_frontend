@@ -14,7 +14,7 @@ import { useGetClassesQuery, useGetAcademicYearsQuery } from "../../redux/api/at
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useLazyGetMonthlyDuesQuery } from "../../redux/api/paymentsApi";
 import { academicMonths } from "../fee-management/_feeShared";
-import { printBill, printBills, billToPdfBase64 } from "../../utils/printPdf";
+import { printBills, billToPdfBase64 } from "../../utils/printPdf";
 import apiClient from "../../services/axios";
 
 const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -49,7 +49,8 @@ export default function DemandReceiptPage() {
   const { data: studentList } = useGetStudentsQuery({ classId, limit: 500 }, { skip: !classId });
   const [fetchDues, { isFetching }] = useLazyGetMonthlyDuesQuery();
 
-  const students = studentList?.data ?? [];
+  // Deactivated students get no demand bill, so they aren't offered here either.
+  const students = (studentList?.data ?? []).filter((s) => s.isActive !== false);
   const className = classes.find((c) => c.id === classId)?.name;
   const toggleMonth = (m) => setSelMonths((s) => (s.includes(m) ? s.filter((x) => x !== m) : [...s, m]));
   // Dues are scoped to a single month boundary. "Till Month" wins when set —
@@ -75,18 +76,23 @@ export default function DemandReceiptPage() {
   };
 
   // Build ONE student's demand bill object (compact bill format). Itemises
-  // Previous Dues + each of the scoped month's configured fees so the grand
-  // total matches the student's full outstanding demand. Shared by the single
-  // "Bill" button and the multi-bill (6-per-page) print.
+  // Previous Dues + each of the scoped month's configured fees — each with its
+  // Fee | Discount | Due | Paid breakdown — so the grand total matches the
+  // student's full outstanding demand. Shared by the single "Bill" button and
+  // the multi-bill (6-per-page) print.
   const buildBillFor = (r) => {
     const now = new Date();
     const prev = Number(r.previousDue) || 0;
     const lines = Array.isArray(r.lines) ? r.lines : [];
+    // Older servers only send the due amount; treat it as the full fee then.
+    const line = (name, due, fee, discount, paid) => ({
+      name, due, fee: fee ?? due, discount: Number(discount) || 0, paid: Number(paid) || 0,
+    });
     const billRows = [
-      ["Prev. Dues", prev],
+      line("Prev. Dues", prev, r.previousFee, r.previousDiscount, r.previousPaid),
       ...(lines.length
-        ? lines.map((l) => [`${l.name}${l.month && l.month !== "Only Once" ? ` (${l.month})` : ""}`, Number(l.amount) || 0])
-        : [[`Current Dues${scopeMonth ? ` (${scopeMonth})` : ""}`, Number(r.currentDue) || 0]]),
+        ? lines.map((l) => line(`${l.name}${l.month && l.month !== "Only Once" ? ` (${l.month})` : ""}`, Number(l.amount) || 0, l.fee, l.discount, l.paid))
+        : [line(`Current Dues${scopeMonth ? ` (${scopeMonth})` : ""}`, Number(r.currentDue) || 0)]),
     ];
     return {
       billType: "Demand Bill",
@@ -102,7 +108,11 @@ export default function DemandReceiptPage() {
     };
   };
 
-  const printDemandBill = (r) => printBill(buildBillFor(r));
+  // One bill prints through the SAME compact sheet layout as the bulk print, so
+  // a single slip comes out the same size as one from a 6-per-page sheet
+  // (top-left of the sheet) instead of being blown up to fill the whole page.
+  const printDemandBill = (r) =>
+    printBills({ bills: [buildBillFor(r)], perPage: Math.max(1, Number(billsPerPage) || 6) });
 
   const normalizeWhatsAppNumber = (phone) => {
     const digits = String(phone || "").replace(/\D/g, "");

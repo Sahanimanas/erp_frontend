@@ -2,13 +2,14 @@
  * Payments → Student Fee Payment
  * Search a student → profile card → class fee structure → per-installment
  * payment details (pay / discount / extra / delete) → receipt list (revert).
+ * "Quick Collect" takes any amount and auto-splits it across the dues.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { usePageTitle, useDebounce } from "../../hooks";
 import { PageHeader, Card, Button, Select, Input, SearchInput, Badge, Modal, EmptyState, Skeleton, Avatar, Textarea } from "../../components/ui";
-import { CreditCard, User, FileDown, Trash2, Pencil, Plus, Undo2, MessageCircle, ArrowLeft } from "lucide-react";
+import { CreditCard, User, FileDown, Trash2, Pencil, Plus, Undo2, MessageCircle, ArrowLeft, Wallet } from "lucide-react";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
 import {
@@ -17,7 +18,8 @@ import {
   useDeleteInstallmentPaymentMutation, useRevertReceiptMutation,
   useLazyGetReceiptDetailQuery,
 } from "../../redux/api/paymentsApi";
-import { printBill, billToPdfBase64, printFeeReceipt } from "../../utils/printPdf";
+import { printBill, printBills, billToPdfBase64, printFeeReceipt } from "../../utils/printPdf";
+import { allocate } from "../../utils/feeAllocation";
 import apiClient from "../../services/axios";
 
 const MONTHLY_LIKE = ["Monthly", "Quarterly"];
@@ -26,6 +28,36 @@ const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 const rowKey = (r) => `${r.feeTypeId}|${r.month ?? ""}`;
+
+/**
+ * Month-wise arrear snapshot for a paid receipt: what was owed per month just
+ * BEFORE this payment, what the receipt paid against it, and what is still
+ * left. `rows` are the pre-payment installments, `lines` the paid lines.
+ * Months not yet due are skipped unless this payment covers them (advance).
+ * Month-bound fees are merged per month; monthless fees (Session / One-time /
+ * carried forward) get a row of their own.
+ */
+function arrearBreakdown(rows, lines) {
+  const paidBy = new Map();
+  lines.forEach((l) => paidBy.set(rowKey(l), (paidBy.get(rowKey(l)) || 0) + (Number(l.amount) || 0)));
+  const now = new Date();
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const groups = new Map();
+  for (const r of rows) {
+    const arrear = Number(r.due) || 0;
+    const paid = paidBy.get(rowKey(r)) || 0;
+    if (arrear <= 0 || (!paid && new Date(r.dueDate) > monthEnd)) continue;
+    const byMonth = !!r.month && (MONTHLY_LIKE.includes(r.frequency) || r.frequency === "Other");
+    const key = byMonth ? `m|${r.month}` : `f|${rowKey(r)}`;
+    const g = groups.get(key) || { month: byMonth ? r.monthLabel : r.name, fees: [], arrear: 0, paid: 0, balance: 0 };
+    if (byMonth && !g.fees.includes(r.name)) g.fees.push(r.name);
+    g.arrear += arrear;
+    g.paid += paid;
+    g.balance += Math.max(0, arrear - paid);
+    groups.set(key, g);
+  }
+  return [...groups.values()].map(({ fees, ...g }) => ({ ...g, detail: fees.join(", ") }));
+}
 
 export default function StudentFeePaymentPage() {
   usePageTitle("Student Fee Payment");
@@ -39,6 +71,8 @@ export default function StudentFeePaymentPage() {
   const [selected, setSelected] = useState({}); // rowKey -> true
   const [payOpen, setPayOpen] = useState(false);
   const [payForm, setPayForm] = useState({ account: "Cash", bankName: "", txnNo: "", details: "", remarks: "", date: "" });
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickForm, setQuickForm] = useState({ amount: "", order: "category", account: "Cash", txnNo: "", remarks: "" });
   const [receipt, setReceipt] = useState(null);
   const [waConfirm, setWaConfirm] = useState(null);
   const [sendingReceiptNo, setSendingReceiptNo] = useState("");
@@ -143,16 +177,61 @@ export default function StudentFeePaymentPage() {
 
   const addPayment = async () => {
     const lines = selectedRows.map((r) => ({ feeTypeId: r.feeTypeId, name: r.name, month: r.month, amount: r.due }));
+    const breakdown = arrearBreakdown(rows, lines);
     try {
       const res = await collect({
         studentId, mode: payForm.account,
         note: [payForm.txnNo && `Txn ${payForm.txnNo}`, payForm.bankName, payForm.details, payForm.remarks].filter(Boolean).join(" · "),
         lines,
       }).unwrap();
-      setReceipt({ ...res, total: payTotal, student: st, lines, account: payForm.account });
+      setReceipt({ ...res, total: payTotal, student: st, lines, breakdown, account: payForm.account });
       setSelected({});
       setPayOpen(false);
       toast.success(`Payment recorded — ${res.receiptNo}`);
+    } catch (e) { toast.error(e?.data?.error || "Payment failed"); }
+  };
+
+  // ── quick collect (any amount, auto-split across dues) ───────────────────
+  const totalDue = Number(inst?.totals?.due ?? ledger?.totals?.due ?? 0);
+  const ledgerItems = ledger?.items ?? [];
+  // Fee-head order from the ledger, so "by category" follows the structure order.
+  const catOrder = useMemo(() => {
+    const o = {};
+    ledgerItems.forEach((it, i) => { o[it.feeTypeId] = i; });
+    return o;
+  }, [ledgerItems]);
+  const { lines: quickLines, leftover: quickLeftover } = useMemo(
+    () => allocate(rows, quickForm.amount, quickForm.order, catOrder),
+    [rows, quickForm.amount, quickForm.order, catOrder]
+  );
+  const quickAllocated = quickLines.reduce((s, l) => s + l.amount, 0);
+  // Per-category preview: due now vs. how much this payment covers vs. what remains.
+  const quickCatRows = ledgerItems
+    .filter((it) => it.due > 0)
+    .map((it) => {
+      const got = quickLines.filter((l) => l.feeTypeId === it.feeTypeId).reduce((s, l) => s + l.amount, 0);
+      return { feeTypeId: it.feeTypeId, name: it.name, frequency: it.frequency, due: it.due, allocated: got, remaining: it.due - got };
+    });
+
+  const openQuick = () => {
+    setQuickForm({ amount: "", order: "category", account: "Cash", txnNo: "", remarks: "" });
+    setQuickOpen(true);
+  };
+
+  const quickCollect = async () => {
+    if (!(Number(quickForm.amount) > 0)) { toast.error("Enter an amount greater than 0"); return; }
+    if (!quickLines.length) { toast.error("Nothing due to allocate this payment to"); return; }
+    const breakdown = arrearBreakdown(rows, quickLines);
+    try {
+      const res = await collect({
+        studentId, mode: quickForm.account,
+        note: [quickForm.txnNo && `Txn ${quickForm.txnNo}`, quickForm.remarks, `Auto-allocated by ${quickForm.order}`].filter(Boolean).join(" · "),
+        lines: quickLines.map(({ feeTypeId, name, month, amount }) => ({ feeTypeId, name, month, amount })),
+      }).unwrap();
+      setReceipt({ ...res, total: quickAllocated, student: st, lines: quickLines, breakdown, account: quickForm.account });
+      setSelected({});
+      setQuickOpen(false);
+      toast.success(`Collected ${money(quickAllocated)} — ${res.receiptNo}`);
     } catch (e) { toast.error(e?.data?.error || "Payment failed"); }
   };
 
@@ -207,7 +286,12 @@ export default function StudentFeePaymentPage() {
         batch: rc.student?.sectionName,
         idNo: rc.student?.registrationNo || rc.student?.rollNumber,
       },
-      rows: (rc.lines || []).map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, Number(l.amount) || 0]),
+      // A receipt taken right after collecting carries the month-wise arrear
+      // snapshot (Arrear | Paid | Balance); reprints from the receipt list
+      // only know the paid lines.
+      rows: rc.breakdown?.length
+        ? rc.breakdown
+        : (rc.lines || []).map((l) => [`${l.name}${l.month ? ` (${l.month})` : ""}`, Number(l.amount) || 0]),
       total: Number(rc.total) || 0,
       totalLabel: "Total Paid",
       note: `Received with thanks via ${rc.account || "Cash"}.`,
@@ -218,9 +302,10 @@ export default function StudentFeePaymentPage() {
 
   // Outstanding demand bill for the current student (all due installments).
   const downloadDemandBill = () => {
+    if (st?.isActive === false) { toast.error("Student is deactivated — no demand bill"); return; }
     if (!dueRows.length) { toast.error("No outstanding dues for this student"); return; }
     const now = new Date();
-    printBill({
+    printBills({ bills: [{
       billType: "Demand Bill",
       billNo: `DB-${(st?.rollNumber || studentId || "").toString().slice(-6).toUpperCase()}-${now.getDate()}${now.getMonth() + 1}`,
       date: fmtDate(now),
@@ -233,11 +318,17 @@ export default function StudentFeePaymentPage() {
         batch: st?.sectionName,
         idNo: st?.registrationNo || st?.rollNumber,
       },
-      rows: dueRows.map((r) => [`${r.name}${r.month ? ` (${r.monthLabel})` : ""}`, Number(r.due) || 0]),
+      rows: dueRows.map((r) => ({
+        name: `${r.name}${r.month ? ` (${r.monthLabel})` : ""}`,
+        fee: Number(r.totalAmount) || 0,
+        discount: Number(r.discount) || 0,
+        due: Number(r.due) || 0,
+        paid: Number(r.paid) || 0,
+      })),
       total: Number(inst?.totals?.due) || dueRows.reduce((s, r) => s + Number(r.due || 0), 0),
       totalLabel: "Grand Total",
       note: "Kindly pay fee before 10th of the Month.",
-    });
+    }] });
   };
 
   // ── class fee structure (one row per fee type) ────────────────────────────
@@ -379,7 +470,8 @@ export default function StudentFeePaymentPage() {
       {studentId && (
         <Card noPadding title={st ? `${st.name} — Class Fee Payment Details` : "Class Fee Payment Details"}
           action={<div className="flex gap-2">
-            <Button size="sm" variant="secondary" icon={<FileDown size={14} />} disabled={!dueRows.length} onClick={downloadDemandBill}>Demand Bill</Button>
+            <Button size="sm" variant="secondary" icon={<FileDown size={14} />} disabled={!dueRows.length || st?.isActive === false} onClick={downloadDemandBill}>Demand Bill</Button>
+            <Button size="sm" variant="success" icon={<Wallet size={14} />} disabled={!dueRows.length} onClick={openQuick}>Quick Collect</Button>
             <Button size="sm" icon={<CreditCard size={14} />} disabled={!selectedRows.length} onClick={openPay}>Cash/Offline Payment</Button>
           </div>}>
           {isFetching ? (
@@ -564,6 +656,73 @@ export default function StudentFeePaymentPage() {
         </div>
       </Modal>
 
+      {/* Quick Collect modal — any amount, auto-split across dues */}
+      <Modal open={quickOpen} onClose={() => setQuickOpen(false)} title="Quick Collect" size="lg">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Amount Received *</label>
+              <div className="flex gap-2">
+                <Input type="number" min="0" value={quickForm.amount} onChange={(e) => setQuickForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0" autoFocus />
+                <Button variant="secondary" size="sm" onClick={() => setQuickForm((f) => ({ ...f, amount: String(totalDue) }))} title="Pay full due" disabled={totalDue <= 0}>Full</Button>
+              </div>
+            </div>
+            <Select label="Allocate By" value={quickForm.order} onChange={(e) => setQuickForm((f) => ({ ...f, order: e.target.value }))}
+              options={[{ value: "category", label: "Category (clear head by head)" }, { value: "month", label: "Month (oldest first)" }]} />
+            <Select label="Finance Account" value={quickForm.account} onChange={(e) => setQuickForm((f) => ({ ...f, account: e.target.value }))}
+              options={FINANCE_ACCOUNTS.map((a) => ({ value: a, label: a }))} />
+            <Input label="Transaction No" value={quickForm.txnNo} onChange={(e) => setQuickForm((f) => ({ ...f, txnNo: e.target.value }))} placeholder="UPI / Cheque ref" />
+          </div>
+
+          {quickLeftover > 0 && (
+            <p className="text-[12px] text-amber-600">
+              {money(quickLeftover)} of the entered amount exceeds the total due and won't be allocated. It will not be collected.
+            </p>
+          )}
+
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="w-full text-sm min-w-[560px]">
+              <thead>
+                <tr className="bg-slate-50">
+                  {["Fee Category", "Frequency", "Current Due", "Paying Now", "Remaining Due"].map((h) => (
+                    <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {quickCatRows.map((c) => (
+                  <tr key={c.feeTypeId}>
+                    <td className="px-4 py-2.5 font-semibold text-slate-800 text-[12.5px]">{c.name}</td>
+                    <td className="px-4 py-2.5 text-slate-500 text-[12px]">{c.frequency}</td>
+                    <td className="px-4 py-2.5 text-slate-700 text-[12px]">{money(c.due)}</td>
+                    <td className={`px-4 py-2.5 text-[12px] font-semibold ${c.allocated > 0 ? "text-emerald-600" : "text-slate-400"}`}>{money(c.allocated)}</td>
+                    <td className={`px-4 py-2.5 text-[12px] font-semibold ${c.remaining > 0 ? "text-red-500" : "text-emerald-600"}`}>{money(c.remaining)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-50 font-bold">
+                  <td className="px-4 py-2.5 text-slate-800 text-[12.5px]" colSpan={2}>Total</td>
+                  <td className="px-4 py-2.5 text-slate-800 text-[12.5px]">{money(totalDue)}</td>
+                  <td className="px-4 py-2.5 text-emerald-600 text-[12.5px]">{money(quickAllocated)}</td>
+                  <td className="px-4 py-2.5 text-red-500 text-[12.5px]">{money(totalDue - quickAllocated)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <Textarea label="Remarks" value={quickForm.remarks} onChange={(e) => setQuickForm((f) => ({ ...f, remarks: e.target.value }))} placeholder="Optional note for this receipt" />
+
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+            <span className="text-[13px] text-slate-600">Collecting <b className="text-emerald-600">{money(quickAllocated)}</b> across {quickLines.length} installment{quickLines.length === 1 ? "" : "s"}</span>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setQuickOpen(false)}>Close</Button>
+              <Button icon={<Wallet size={15} />} loading={collecting} disabled={!(quickAllocated > 0)} onClick={quickCollect}>Collect {money(quickAllocated)}</Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
       {/* Receipt confirmation modal */}
       <Modal open={!!receipt} onClose={() => setReceipt(null)} title="Payment Receipt" size="md">
         {receipt && (
@@ -583,6 +742,12 @@ export default function StudentFeePaymentPage() {
             <div className="flex justify-between border-t border-slate-100 pt-2 text-[14px] font-bold">
               <span>Total Paid</span><span className="text-emerald-600">{money(receipt.total)}</span>
             </div>
+            {receipt.breakdown?.length > 0 && (
+              <div className="flex justify-between text-[12.5px] text-slate-600">
+                <span>Balance left</span>
+                <span className="font-semibold text-amber-600">{money(receipt.breakdown.reduce((t, b) => t + b.balance, 0))}</span>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="success"
