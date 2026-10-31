@@ -39,7 +39,7 @@ function CreateHouseForm({ onSave, onCancel }) {
       <div className="flex flex-col gap-5">
         {/* Name */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Name <span className="text-red-500">*</span></label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Name <span className="text-red-500">*</span></label>
           <input
             value={form.name}
             onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
@@ -50,7 +50,7 @@ function CreateHouseForm({ onSave, onCancel }) {
 
         {/* Color */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Color</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Color</label>
           <input
             type="color"
             value={form.color}
@@ -61,7 +61,7 @@ function CreateHouseForm({ onSave, onCancel }) {
 
         {/* Motto */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Motto</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Motto</label>
           <input
             value={form.motto}
             onChange={e => setForm(p => ({ ...p, motto: e.target.value }))}
@@ -72,7 +72,7 @@ function CreateHouseForm({ onSave, onCancel }) {
 
         {/* Emblem */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Emblem <span className="text-slate-400 font-normal">(PNG / JPG)</span></label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Emblem <span className="text-slate-400 font-normal">(PNG / JPG)</span></label>
           <input
             type="file"
             accept="image/png,image/jpeg"
@@ -83,7 +83,7 @@ function CreateHouseForm({ onSave, onCancel }) {
 
         {/* Teacher In Charge */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Teacher In Charge</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Teacher In Charge</label>
           <div className="relative">
             <select
               value={form.teacherInCharge}
@@ -98,7 +98,7 @@ function CreateHouseForm({ onSave, onCancel }) {
 
         {/* Vice Teacher */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Vice Teacher</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Vice Teacher</label>
           <div className="relative">
             <select
               value={form.viceTeacher}
@@ -113,7 +113,7 @@ function CreateHouseForm({ onSave, onCancel }) {
 
         {/* Sort Order */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Sort Order</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Sort Order</label>
           <input
             type="number"
             value={form.sortOrder}
@@ -235,7 +235,7 @@ export default function HouseDashboard() {
             <p className="text-[11px] font-semibold text-slate-500 mb-4 uppercase tracking-wider">Award Bonus Or Deduction</p>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">House</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">House</label>
                 <div className="relative">
                   <select
                     value={qaHouse}
@@ -250,7 +250,7 @@ export default function HouseDashboard() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Points <span className="text-slate-400 font-normal">(negative for deduction)</span></label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Points <span className="text-slate-400 font-normal">(negative for deduction)</span></label>
                 <input
                   type="number"
                   value={qaPoints}
@@ -260,7 +260,7 @@ export default function HouseDashboard() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Reason</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Reason</label>
                 <input
                   value={qaReason}
                   onChange={e => setQaReason(e.target.value)}
@@ -281,7 +281,7 @@ export default function HouseDashboard() {
               {/* Month + Year row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Month</label>
+                  <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Month</label>
                   <div className="relative">
                     <select
                       value={qaMonth}
@@ -294,7 +294,7 @@ export default function HouseDashboard() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Year</label>
+                  <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Year</label>
                   <input
                     type="number"
                     value={qaYear}
@@ -312,7 +312,7 @@ export default function HouseDashboard() {
               {/* Select exam + Exam Topper row */}
               <div className="flex gap-3 items-end">
                 <div className="flex-1">
-                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Exam</label>
+                  <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Exam</label>
                   <div className="relative">
                     <select
                       value={qaExam}

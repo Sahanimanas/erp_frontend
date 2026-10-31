@@ -1,73 +1,168 @@
 /**
- * AttendanceReportsPage.jsx — attendance statistics over a date range
- * GET /attendance/statistics?startDate&endDate  →  { student: {PRESENT,ABSENT,...}, employee: {...} }
+ * Attendance Report — student attendance over a period: overall rate, class by
+ * class, day by day, and the students below a threshold, plus a staff summary.
+ * PRESENT and LATE count as attended (the Student Profile / mobile rule).
  */
-import { useState, useEffect, useCallback } from "react";
-import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, ProgressBar } from "../../components/ui";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { UserCheck } from "lucide-react";
-import apiClient from "../../services/axios";
+import { usePageTitle } from "../../hooks";
+import { PageHeader, Badge } from "../../components/ui";
+import { useGetAttendanceReportQuery } from "../../redux/api/reportsApi";
+import {
+  usePeriod, PeriodBar, ReportError, Kpi, KpiRow, ReportTable, BarsChart, useReportClass, ClassSelect,
+  num, pctText, fmtDate, dayLabel, monthLabel, BLUE, ORANGE,
+} from "./_shared";
 
-const startOfMonth = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); };
-const today = () => new Date().toISOString().slice(0, 10);
+const rateBadge = (p) => <Badge variant={p >= 75 ? "success" : p >= 60 ? "warning" : "danger"}>{pctText(p)}</Badge>;
 
-function Breakdown({ title, stats }) {
-  const present = stats?.PRESENT || 0;
-  const absent = stats?.ABSENT || 0;
-  const late = stats?.LATE || 0;
-  const leave = stats?.LEAVE || 0;
-  const totalMarked = present + absent + late + leave + (stats?.HALF_DAY || 0);
-  const rate = totalMarked ? Math.round((present / totalMarked) * 100) : 0;
-  return (
-    <Card title={title}>
-      <ProgressBar value={rate} max={100} color="indigo" label={`${rate}% present`} />
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-        {[["Present", present, "text-emerald-600"], ["Absent", absent, "text-red-600"], ["Late", late, "text-amber-600"], ["Leave", leave, "text-blue-600"]].map(([l, v, c]) => (
-          <div key={l} className="bg-slate-50 rounded-lg p-3 text-center">
-            <p className={`text-xl font-bold ${c}`}>{v}</p>
-            <p className="text-[10px] text-slate-400 font-medium uppercase">{l}</p>
-          </div>
-        ))}
-      </div>
-      {totalMarked === 0 && <p className="text-center text-slate-400 text-sm mt-4">No records in this period.</p>}
-    </Card>
-  );
-}
+const selectStyle = { borderColor: "var(--erp-border)", borderRadius: "var(--erp-radius)" };
 
 export default function AttendanceReportsPage() {
-  usePageTitle("Attendance Reports");
-  const [range, setRange] = useState({ startDate: startOfMonth(), endDate: today() });
-  const [data, setData] = useState({ student: {}, employee: {} });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  usePageTitle("Attendance Report");
+  const navigate = useNavigate();
+  const period = usePeriod("month");
+  // The class lives in the URL so the Reports home can open this on a class.
+  const cls = useReportClass();
+  const classId = cls.classId;
+  const [threshold, setThreshold] = useState(75);
+  const { data, isFetching, error } = useGetAttendanceReportQuery({ from: period.from, to: period.to, classId, threshold });
 
-  const load = useCallback(async () => {
-    setLoading(true); setError("");
-    try {
-      const res = await apiClient.get(`/attendance/statistics?startDate=${range.startDate}&endDate=${range.endDate}`);
-      if (res.data.success) setData(res.data.data || { student: {}, employee: {} });
-    } catch (err) {
-      setError(err.response?.data?.error || err.message || "Failed to load report");
-    } finally { setLoading(false); }
-  }, [range]);
+  const t = data?.totals;
+  const span = `${fmtDate(period.from)} – ${fmtDate(period.to)}`;
 
-  useEffect(() => { load(); }, []);
+  // More than ~6 weeks of daily bars is unreadable — roll those up by month.
+  const trend = useMemo(() => {
+    const days = data?.daily ?? [];
+    if (days.length <= 45) return { rows: days, key: "date", fmt: dayLabel, title: "Day by day" };
+    const byMonth = new Map();
+    for (const d of days) {
+      const k = d.date.slice(0, 7);
+      const m = byMonth.get(k) || { month: k, attended: 0, absent: 0 };
+      m.attended += d.attended;
+      m.absent += d.absent;
+      byMonth.set(k, m);
+    }
+    return { rows: [...byMonth.values()], key: "month", fmt: monthLabel, title: "Month by month" };
+  }, [data]);
+
+  const studentCols = [
+    { key: "name", label: "Student", render: (r) => <span className="font-semibold">{r.name}</span>, value: (r) => r.name },
+    { key: "rollNumber", label: "Roll No" },
+    { key: "className", label: "Class" },
+    { key: "fatherName", label: "Father" },
+    { key: "phone", label: "Phone" },
+    { key: "present", label: "Present" },
+    { key: "late", label: "Late" },
+    { key: "absent", label: "Absent" },
+    { key: "leave", label: "Leave" },
+    { key: "total", label: "Marked" },
+    { key: "pct", label: "Attendance", value: (r) => `${r.pct}%`, render: (r) => rateBadge(r.pct) },
+  ];
 
   return (
     <div>
-      <PageHeader title="Attendance Reports" subtitle="Present/absent statistics" icon={<UserCheck size={18} />} />
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
-      <Card className="mb-5">
-        <div className="flex flex-wrap items-end gap-3">
-          <Input label="From" type="date" value={range.startDate} onChange={e => setRange(r => ({ ...r, startDate: e.target.value }))} />
-          <Input label="To" type="date" value={range.endDate} onChange={e => setRange(r => ({ ...r, endDate: e.target.value }))} />
-          <Button onClick={load} disabled={loading}>{loading ? "Loading…" : "Generate"}</Button>
-        </div>
-      </Card>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Breakdown title="Student Attendance" stats={data.student} />
-        <Breakdown title="Staff Attendance" stats={data.employee} />
-      </div>
+      <PageHeader title="Attendance Report" subtitle="Student and staff attendance" icon={<UserCheck />} />
+      <PeriodBar period={period}>
+        <ClassSelect cls={cls} />
+        <label className="text-[14px] font-bold text-[#24282e]">
+          <span className="block mb-1">Low attendance below</span>
+          <select value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} aria-label="Low attendance threshold"
+            className="px-2.5 py-1.5 text-[13px] border bg-white focus:outline-none" style={selectStyle}>
+            {[60, 65, 70, 75, 80, 85, 90].map((n) => <option key={n} value={n}>{n}%</option>)}
+          </select>
+        </label>
+      </PeriodBar>
+      <ReportError error={error} />
+
+      <KpiRow cols={6}>
+        <Kpi label="Attendance" value={t?.total ? pctText(t.pct) : "—"}
+             sub={t?.total ? `${num((t.present ?? 0) + (t.late ?? 0))} of ${num(t.total)} marked` : "Not marked in this period"}
+             tone={!t?.total ? "var(--erp-text)" : t.pct >= 75 ? "var(--erp-success)" : "var(--erp-danger)"} loading={isFetching} />
+        <Kpi label="Present" value={num(t?.present)} sub={`Late ${num(t?.late)}`} loading={isFetching} />
+        <Kpi label="Absent" value={num(t?.absent)} tone="var(--erp-danger)" loading={isFetching} />
+        <Kpi label="Leave / half day" value={`${num(t?.leave)} / ${num(t?.halfDay)}`} loading={isFetching} />
+        <Kpi label="Days marked" value={num(t?.markedDays)} sub={`${num(t?.students)} students`} loading={isFetching} />
+        <Kpi label={`Below ${data?.threshold ?? threshold}%`} value={num(data?.lowAttendance?.length)} sub="students"
+             tone="var(--erp-warning)" loading={isFetching} />
+      </KpiRow>
+
+      <BarsChart
+        title={trend.title}
+        subtitle={span}
+        data={trend.rows}
+        xKey={trend.key}
+        xFmt={trend.fmt}
+        unit="count"
+        stacked
+        series={[
+          { key: "attended", name: "Attended", color: BLUE },
+          { key: "absent", name: "Absent", color: ORANGE },
+        ]}
+      />
+
+      <ReportTable
+        title="Class-wise attendance"
+        filename={`class-attendance-${period.from}-to-${period.to}`}
+        printSubtitle={span}
+        loading={isFetching}
+        rows={data?.classes ?? []}
+        emptyText="No attendance marked in this period."
+        columns={[
+          { key: "className", label: "Class", render: (r) => <span className="font-semibold">{r.className}{r.section ? `-${r.section}` : ""}</span>, value: (r) => `${r.className}${r.section ? `-${r.section}` : ""}` },
+          { key: "students", label: "Students" },
+          { key: "present", label: "Present" },
+          { key: "late", label: "Late" },
+          { key: "absent", label: "Absent" },
+          { key: "leave", label: "Leave" },
+          { key: "total", label: "Marked" },
+          { key: "pct", label: "Attendance", value: (r) => `${r.pct}%`, render: (r) => rateBadge(r.pct) },
+        ]}
+      />
+
+      <ReportTable
+        title={`Students below ${data?.threshold ?? threshold}%`}
+        subtitle="Lowest first · click a row to open the student's profile"
+        filename={`low-attendance-${period.from}-to-${period.to}`}
+        printSubtitle={span}
+        loading={isFetching}
+        searchable
+        rows={data?.lowAttendance ?? []}
+        emptyText="All good — no student is below the attendance threshold."
+        onRowClick={(r) => navigate(`/student-360?id=${r.studentId}`)}
+        columns={studentCols}
+      />
+
+      <ReportTable
+        title="All students"
+        filename={`student-attendance-${period.from}-to-${period.to}`}
+        printSubtitle={span}
+        loading={isFetching}
+        searchable
+        rows={data?.students ?? []}
+        onRowClick={(r) => navigate(`/student-360?id=${r.studentId}`)}
+        columns={studentCols}
+      />
+
+      {!classId && (
+        <ReportTable
+          title="Staff attendance"
+          filename={`staff-attendance-${period.from}-to-${period.to}`}
+          printSubtitle={span}
+          loading={isFetching}
+          rows={data?.staff?.total ? [data.staff] : []}
+          emptyText="No staff attendance marked in this period."
+          columns={[
+            { key: "present", label: "Present" },
+            { key: "late", label: "Late" },
+            { key: "absent", label: "Absent" },
+            { key: "leave", label: "Leave" },
+            { key: "halfDay", label: "Half day" },
+            { key: "total", label: "Marked" },
+            { key: "pct", label: "Attendance", value: (r) => `${r.pct}%`, render: (r) => rateBadge(r.pct) },
+          ]}
+        />
+      )}
     </div>
   );
 }

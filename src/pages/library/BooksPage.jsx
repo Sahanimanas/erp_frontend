@@ -20,7 +20,7 @@ function CreateBook({ onSave, onCancel }) {
 
   const F = ({label,req,children}) => (
     <div className="grid grid-cols-3 items-center gap-4 mb-4">
-      <label className="text-sm text-slate-600 font-medium text-right">{label}{req&&<span className="text-red-500 ml-0.5">*</span>}</label>
+      <label className="text-[14px] font-bold text-[#24282e] text-right">{label}{req&&<span className="text-red-500 ml-0.5">*</span>}</label>
       <div className="col-span-2">{children}</div>
     </div>
   );
@@ -42,7 +42,7 @@ function CreateBook({ onSave, onCancel }) {
       <F label="Description"><input className={inp} value={form.description} onChange={set("description")}/></F>
       <F label="Price" req><input className={inp} type="number" value={form.price} onChange={set("price")}/></F>
       <div className="grid grid-cols-3 items-start gap-4 mb-4">
-        <label className="text-sm text-slate-600 font-medium text-right pt-2">Cover Image</label>
+        <label className="text-[14px] font-bold text-[#24282e] text-right pt-2">Cover Image</label>
         <div className="col-span-2">
           <div className="border-2 border-dashed border-slate-300 rounded-xl p-10 flex flex-col items-center cursor-pointer hover:border-indigo-400 transition-colors">
             <Upload size={28} className="text-slate-400 mb-2"/>

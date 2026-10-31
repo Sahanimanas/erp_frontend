@@ -46,7 +46,7 @@ export const dayCount = (from, to) => {
 export function RadioGroup({ label, name, value, options, onChange }) {
   return (
     <div className="space-y-1">
-      {label && <label className="block text-[11px] font-semibold text-slate-600">{label}</label>}
+      {label && <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{label}</label>}
       <div className="flex flex-wrap items-center gap-4 pt-1.5">
         {options.map((o) => (
           <label key={o.value} className="inline-flex items-center gap-1.5 cursor-pointer">

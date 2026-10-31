@@ -39,7 +39,7 @@ export default function ClassesPage() {
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
                 Class <span className="text-red-500 normal-case">*</span>
               </label>
               <select className={sel} value={cls} onChange={e=>{setCls(e.target.value);setSec("")}}>
@@ -48,7 +48,7 @@ export default function ClassesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
                 Section <span className="text-red-500 normal-case">*</span>
               </label>
               <select className={sel} value={sec} onChange={e=>setSec(e.target.value)}>
@@ -57,7 +57,7 @@ export default function ClassesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
                 Class Teacher <span className="text-red-500 normal-case">*</span>
               </label>
               <select className={sel} value={teacher} onChange={e=>setTeacher(e.target.value)}>

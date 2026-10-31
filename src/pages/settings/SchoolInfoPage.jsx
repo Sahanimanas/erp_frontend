@@ -331,11 +331,11 @@ function AppSlider() {
         {!allClasses && <p className="text-xs text-slate-400 mt-1">If unchecked, select one or more classes below.</p>}
       </div>
       <div className="mb-4">
-        <label className="block text-xs font-semibold text-slate-500 mb-1">Title (optional)</label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Title (optional)</label>
         <input className={inp} placeholder="e.g. Admissions Open 2023-24" value={title} onChange={e=>setTitle(e.target.value)}/>
       </div>
       <div className="mb-4">
-        <label className="block text-xs font-semibold text-slate-500 mb-1">Image <span className="text-red-500">*</span></label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Image <span className="text-red-500">*</span></label>
         <input type="file" accept="image/*" className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-200 rounded-lg p-1"/>
       </div>
       <button onClick={()=>{if(title){setSliders(p=>[...p,{id:Date.now(),title}]);setTitle("");}}} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 mb-5">
@@ -409,7 +409,7 @@ function PaymentSettings() {
   const PaypalForm = () => (
     <div className="space-y-3">
       {[["Paypal Username",""],["Paypal Password","password"],["Paypal Signature",""],["Paypal Email","email"]].map(([l,t])=>(
-        <div key={l}><label className="block text-xs font-semibold text-slate-500 mb-1">{l}</label>
+        <div key={l}><label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{l}</label>
           <input className={inp} type={t||"text"}/></div>
       ))}
       <label className="flex items-center gap-2 cursor-pointer">
@@ -423,7 +423,7 @@ function PaymentSettings() {
   const GenericForm = ({name}) => (
     <div className="space-y-3">
       {["API Key","Secret Key","Mode"].map(f=>(
-        <div key={f}><label className="block text-xs font-semibold text-slate-500 mb-1">{f}</label>
+        <div key={f}><label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{f}</label>
           <input className={inp}/></div>
       ))}
       <SaveBtn/>
@@ -501,7 +501,7 @@ function SmsSettings() {
           <div className="p-5 border border-slate-200 rounded-xl mb-4">
             <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2 mb-4">💬 SMS Gateway</h4>
             <div className="max-w-sm">
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Activated Sms Gateway <span className="text-red-500">*</span></label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Activated Sms Gateway <span className="text-red-500">*</span></label>
               <select className={sel} value={gateway} onChange={e=>setGateway(e.target.value)}>
                 <option>Disabled</option>
                 {SMS_GATEWAYS.map(g=><option key={g}>{g}</option>)}
@@ -520,7 +520,7 @@ function SmsSettings() {
                 {expanded===g && (
                   <div className="px-5 pb-5 border-t border-slate-100 pt-4 space-y-3">
                     {["API Key","Secret","Sender ID"].map(f=>(
-                      <div key={f}><label className="block text-xs font-semibold text-slate-500 mb-1">{f}</label>
+                      <div key={f}><label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{f}</label>
                         <input className={inp}/></div>
                     ))}
                     <SaveBtn/>
@@ -717,7 +717,7 @@ function WhatsappNotificationConfig() {
           <div className="p-5 border border-slate-200 rounded-xl mb-4">
             <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2 mb-4">💬 WhatsApp Service Provider</h4>
             <div className="max-w-sm">
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Activated Whatsapp Gateway <span className="text-red-500">*</span></label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Activated Whatsapp Gateway <span className="text-red-500">*</span></label>
               <select className={sel} value={gateway} onChange={e=>setGateway(e.target.value)}>
                 <option>Disabled</option><option>Twilio</option><option>Meta Cloud API</option>
               </select>
@@ -732,7 +732,7 @@ function WhatsappNotificationConfig() {
               </button>
               {g.exp && <div className="px-5 pb-5 border-t border-slate-100 pt-4 space-y-3">
                 {["API Key","Account SID","Auth Token"].map(f=>(
-                  <div key={f}><label className="block text-xs font-semibold text-slate-500 mb-1">{f}</label><input className={inp}/></div>
+                  <div key={f}><label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{f}</label><input className={inp}/></div>
                 ))}
                 <SaveBtn/>
               </div>}
@@ -770,12 +770,12 @@ function WhatsAppGateway() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Microservice URL <span className="text-red-500">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Microservice URL <span className="text-red-500">*</span></label>
             <input className={inp} value={microUrl} onChange={e=>setMicroUrl(e.target.value)}/>
             <p className="text-xs text-slate-400 mt-1">Base URL of the <code className="bg-slate-100 px-1 rounded">whatsapp-bridge-service</code> (no trailing slash).</p>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">API Key</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">API Key</label>
             <input className={inp} placeholder="Saved — paste new to change"/>
             <p className="text-xs text-slate-400 mt-1">🔒 Key is saved. Leave blank to keep it; paste a new key to change.</p>
           </div>

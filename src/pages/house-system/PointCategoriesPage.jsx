@@ -106,7 +106,7 @@ export default function HouseCategories() {
           <div className="flex flex-col gap-4">
             {/* Name */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Name <span className="text-red-500">*</span></label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Name <span className="text-red-500">*</span></label>
               <input
                 value={form.name}
                 onChange={e => set("name", e.target.value)}
@@ -117,7 +117,7 @@ export default function HouseCategories() {
 
             {/* Description */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Description</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Description</label>
               <input
                 value={form.description}
                 onChange={e => set("description", e.target.value)}
@@ -128,17 +128,17 @@ export default function HouseCategories() {
             {/* Default Points / Min / Max */}
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Default Points</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Default Points</label>
                 <input type="number" value={form.defaultPoints} onChange={e => set("defaultPoints", +e.target.value)}
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Min</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Min</label>
                 <input type="number" value={form.min} onChange={e => set("min", +e.target.value)}
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Max</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Max</label>
                 <input type="number" value={form.max} onChange={e => set("max", +e.target.value)}
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
               </div>
@@ -162,7 +162,7 @@ export default function HouseCategories() {
 
             {/* Auto Rule */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Auto Rule</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Auto Rule</label>
               <div className="relative">
                 <select
                   value={form.autoRule}
@@ -177,7 +177,7 @@ export default function HouseCategories() {
 
             {/* Icon */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Icon</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Icon</label>
               <input
                 value={form.icon}
                 onChange={e => set("icon", e.target.value)}
@@ -187,7 +187,7 @@ export default function HouseCategories() {
 
             {/* Sort Order */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Sort Order</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Sort Order</label>
               <input
                 type="number"
                 value={form.sortOrder}

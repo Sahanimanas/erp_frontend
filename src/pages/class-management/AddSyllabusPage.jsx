@@ -65,7 +65,7 @@ export default function AddSyllabusPage() {
           <label className="flex items-center gap-2 text-[13px] text-slate-600 select-none mt-7"><input type="checkbox" checked={form.enabled} onChange={(e) => set("enabled", e.target.checked)} className="w-4 h-4 accent-emerald-600" /> Enabled</label>
         </div>
         <div className="px-5 pb-5">
-          <label className="block text-[13px] font-medium text-slate-600 mb-1.5">Syllabus Content</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Syllabus Content</label>
           <textarea value={form.content} onChange={(e) => set("content", e.target.value)} rows={10} placeholder="Type something…"
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 resize-y" />
         </div>

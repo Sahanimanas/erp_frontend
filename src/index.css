@@ -305,3 +305,53 @@ table thead th { background-color: #f8fafc; }
 @media (prefers-reduced-motion: reduce) {
   .aurora, .aurora-2, .float-y, .rise-in, .sheen::after { animation: none; }
 }
+
+/* ── Classic form & table look, every module and every role ──────────────────
+   All panels (admin, teacher, accountant, student, parent, super admin) render
+   inside the dashboard <main>, popups included, so these rules reach every
+   page. Fields: tall, square, 15px. Labels: bold. Tables: bordered with a
+   grey header. Fields inside table cells stay compact so mark-entry and
+   attendance grids keep their density. */
+main input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=hidden]),
+main select:not(.x-),
+main textarea:not(.x-) {
+  font-size: 15px;
+  border-radius: var(--erp-radius) !important;
+  border-color: var(--erp-border);
+}
+main input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=hidden]),
+main select:not(.x-) {
+  min-height: 44px;
+}
+main table input:not([type=checkbox]):not([type=radio]),
+main table select {
+  min-height: 34px !important;
+  font-size: 14px !important;
+}
+main input::placeholder,
+main textarea::placeholder { color: #8a9099; }
+
+main label:not(.x-):not(:has(input[type=checkbox], input[type=radio], input[type=file])) {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--erp-text);
+}
+
+main table { border-collapse: collapse; }
+main table thead th:not(.x-) {
+  background: var(--erp-head);
+  color: var(--erp-text);
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 1px solid var(--erp-border);
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+main table tbody td:not(.x-) {
+  font-size: 14px;
+  border: 1px solid var(--erp-border-soft);
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+main table tbody tr:nth-child(even) td:not(.x-) { background: #fafbfc; }
+

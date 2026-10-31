@@ -29,7 +29,7 @@ const ALL_ASSIGNEES = ["Ramesh K.","Priya S.","Anil M.","Sunita J.","Vivek G."];
 const DEFAULT_TASK = { id:null, title:"", category:"Administration", priority:"Medium", dueDate:"", assignees:"Ramesh K.", progress:0, status:"Pending" };
 
 function Sel({label,value,onChange,options}){
-  return <div><label className="block text-[11px] font-semibold text-slate-500 mb-1">{label}</label>
+  return <div><label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{label}</label>
     <select value={value} onChange={e=>onChange(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 bg-white">
       {options.map(o=><option key={o} value={o}>{o}</option>)}
     </select></div>;
@@ -69,40 +69,40 @@ function TaskForm({task,onSave,onCancel}){
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div>
-        <label className="block text-[11px] font-semibold text-slate-500 mb-1">Title *</label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Title *</label>
         <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} placeholder="Task title" className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 ${errors.title?"border-red-400 bg-red-50 border-red-400":"border-slate-200"}`}/>
         {errors.title&&<p className="text-[10px] text-red-500 mt-1">{errors.title}</p>}
       </div>
       <div>
-        <label className="block text-[11px] font-semibold text-slate-500 mb-1">Category</label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Category</label>
         <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 bg-white">
           {["Administration","Finance","Academic","Library","HR"].map(o=><option key={o}>{o}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-[11px] font-semibold text-slate-500 mb-1">Priority</label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Priority</label>
         <select value={form.priority} onChange={e=>setForm(p=>({...p,priority:e.target.value}))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 bg-white">
           {["Low","Medium","High","Urgent"].map(o=><option key={o}>{o}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-[11px] font-semibold text-slate-500 mb-1">Due Date</label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Due Date</label>
         <input type="date" value={form.dueDate} onChange={e=>setForm(p=>({...p,dueDate:e.target.value}))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"/>
       </div>
       <div>
-        <label className="block text-[11px] font-semibold text-slate-500 mb-1">Assignee</label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Assignee</label>
         <select value={form.assignees} onChange={e=>setForm(p=>({...p,assignees:e.target.value}))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 bg-white">
           {ALL_ASSIGNEES.map(o=><option key={o}>{o}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status</label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Status</label>
         <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 bg-white">
           {["Pending","In Progress","Completed","Cancelled"].map(o=><option key={o}>{o}</option>)}
         </select>
       </div>
       <div className="lg:col-span-3">
-        <label className="block text-[11px] font-semibold text-slate-500 mb-1">Progress ({form.progress}%)</label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Progress ({form.progress}%)</label>
         <input type="range" min={0} max={100} value={form.progress} onChange={e=>setForm(p=>({...p,progress:+e.target.value}))} className="w-full accent-indigo-600"/>
       </div>
     </div>

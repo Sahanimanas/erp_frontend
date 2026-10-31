@@ -14,7 +14,7 @@ const TOOLBAR = ["⚡▾","Arial▾","14▾","T▾","B","I","U","abc","A","▾",
 function FileField({ label }) {
   return (
     <div className="grid grid-cols-3 items-center gap-4 mb-4">
-      <label className="text-sm text-slate-600 font-medium text-right">{label}</label>
+      <label className="text-[14px] font-bold text-[#24282e] text-right">{label}</label>
       <div className="col-span-2 flex gap-2 items-center">
         <input readOnly className={inp + " flex-1 cursor-pointer bg-slate-50"} value="" placeholder="No file chosen"/>
         <button type="button" className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg whitespace-nowrap">Select file</button>
@@ -31,18 +31,18 @@ function AddAdmitCardForm({ onSave, onCancel }) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-3 items-center gap-4 mb-4">
-        <label className="text-sm text-slate-600 font-medium text-right">Admit Card Name <span className="text-red-500">*</span></label>
+        <label className="text-[14px] font-bold text-[#24282e] text-right">Admit Card Name <span className="text-red-500">*</span></label>
         <div className="col-span-2"><input className={inp} value={form.name} onChange={set("name")}/></div>
       </div>
       <div className="grid grid-cols-3 items-center gap-4 mb-4">
-        <label className="text-sm text-slate-600 font-medium text-right">Page Layout <span className="text-red-500">*</span></label>
+        <label className="text-[14px] font-bold text-[#24282e] text-right">Page Layout <span className="text-red-500">*</span></label>
         <div className="col-span-2 grid grid-cols-2 gap-2">
           <input className={inp} placeholder="Layout Width (mm)" value={form.width} onChange={set("width")}/>
           <input className={inp} placeholder="Layout Height (mm)" value={form.height} onChange={set("height")}/>
         </div>
       </div>
       <div className="grid grid-cols-3 items-center gap-4 mb-4">
-        <label className="text-sm text-slate-600 font-medium text-right">QR Code Text <span className="text-red-500">*</span></label>
+        <label className="text-[14px] font-bold text-[#24282e] text-right">QR Code Text <span className="text-red-500">*</span></label>
         <div className="col-span-2">
           <select className={sel} value={form.qrCode} onChange={set("qrCode")}>
             <option value="">Select</option>
@@ -51,7 +51,7 @@ function AddAdmitCardForm({ onSave, onCancel }) {
         </div>
       </div>
       <div className="grid grid-cols-3 items-center gap-4 mb-4">
-        <label className="text-sm text-slate-600 font-medium text-right">User Photo Style <span className="text-red-500">*</span></label>
+        <label className="text-[14px] font-bold text-[#24282e] text-right">User Photo Style <span className="text-red-500">*</span></label>
         <div className="col-span-2 grid grid-cols-2 gap-2">
           <select className={sel} value={form.photoStyle} onChange={set("photoStyle")}>
             <option>Square</option><option>Circle</option><option>Rounded</option>
@@ -60,7 +60,7 @@ function AddAdmitCardForm({ onSave, onCancel }) {
         </div>
       </div>
       <div className="grid grid-cols-3 items-start gap-4 mb-4">
-        <label className="text-sm text-slate-600 font-medium text-right pt-2">Layout Spacing <span className="text-red-500">*</span></label>
+        <label className="text-[14px] font-bold text-[#24282e] text-right pt-2">Layout Spacing <span className="text-red-500">*</span></label>
         <div className="col-span-2 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <input className={inp} placeholder="Top Space (px)" value={form.topSpace} onChange={set("topSpace")}/>
@@ -76,7 +76,7 @@ function AddAdmitCardForm({ onSave, onCancel }) {
       <FileField label="Logo Image"/>
       <FileField label="Background Image"/>
       <div className="grid grid-cols-3 items-start gap-4 mb-4">
-        <label className="text-sm text-slate-600 font-medium text-right pt-2">Certificate Content <span className="text-red-500">*</span></label>
+        <label className="text-[14px] font-bold text-[#24282e] text-right pt-2">Certificate Content <span className="text-red-500">*</span></label>
         <div className="col-span-2">
           <div className="border border-slate-200 rounded-lg overflow-hidden">
             <div className="flex flex-wrap gap-0.5 p-2 bg-slate-50 border-b border-slate-200">

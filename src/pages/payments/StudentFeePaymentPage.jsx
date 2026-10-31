@@ -661,7 +661,7 @@ export default function StudentFeePaymentPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Amount Received *</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Amount Received *</label>
               <div className="flex gap-2">
                 <Input type="number" min="0" value={quickForm.amount} onChange={(e) => setQuickForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0" autoFocus />
                 <Button variant="secondary" size="sm" onClick={() => setQuickForm((f) => ({ ...f, amount: String(totalDue) }))} title="Pay full due" disabled={totalDue <= 0}>Full</Button>

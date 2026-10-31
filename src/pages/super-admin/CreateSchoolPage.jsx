@@ -129,7 +129,7 @@ export default function CreateSchoolPage() {
         {/* ── Domain ── */}
         <Card title="Domain" subtitle="Custom subdomain on the platform">
           <div className="p-5 space-y-2">
-            <label className="block text-[11px] font-semibold text-slate-600">Subdomain *</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Subdomain *</label>
             <div className="flex items-stretch gap-0 max-w-md">
               <input
                 value={form.subdomain}
@@ -177,7 +177,7 @@ export default function CreateSchoolPage() {
             )}
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-2">Enabled Modules</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Enabled Modules</label>
               <div className="flex flex-wrap gap-2">
                 {(modules ?? []).map((m) => {
                   const on = enabledModules.includes(m.key);

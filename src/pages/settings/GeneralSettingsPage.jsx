@@ -27,7 +27,7 @@ const TABS = [
 function F({ label, req, children }) {
   return (
     <div className="grid grid-cols-3 items-start gap-4 mb-4">
-      <label className="text-sm text-slate-600 font-medium pt-2 text-right">
+      <label className="text-[14px] font-bold text-[#24282e] pt-2 text-right">
         {label}{req && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="col-span-2">{children}</div>
@@ -159,7 +159,7 @@ function ThemeTab() {
       </F>
       <p className="text-xs text-slate-500 mb-5 ml-[34%]">v3 me topbar/sidebar customizer panel enable hota hai (bottom-right gear icon). Switch karte hi saari pages pe naya design apply hoga.</p>
       <div className="grid grid-cols-3 items-start gap-4 mb-5">
-        <label className="text-sm text-slate-600 font-medium pt-2 text-right">Theme</label>
+        <label className="text-[14px] font-bold text-[#24282e] pt-2 text-right">Theme</label>
         <div className="col-span-2 grid grid-cols-2 gap-3">
           {[{k:"light",label:"Light"},{k:"dark",label:"Dark"}].map(t=>(
             <div key={t.k} onClick={()=>setTheme(t.k)}
@@ -176,7 +176,7 @@ function ThemeTab() {
         </div>
       </div>
       <div className="grid grid-cols-3 items-start gap-4 mb-5">
-        <label className="text-sm text-slate-600 font-medium pt-2 text-right">Border</label>
+        <label className="text-[14px] font-bold text-[#24282e] pt-2 text-right">Border</label>
         <div className="col-span-2 grid grid-cols-2 gap-3">
           {[{k:"borderless",label:"Borderless"},{k:"bordered",label:"Bordered"}].map(b=>(
             <div key={b.k} onClick={()=>setBorder(b.k)}
@@ -300,11 +300,11 @@ function UploadTab() {
         <h3 className="text-sm font-bold text-amber-600 mb-3">🖼 Settings For Image</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Allowed Extension <span className="text-red-500">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Allowed Extension <span className="text-red-500">*</span></label>
             <textarea className={inp} rows={2} value={imgExt} onChange={e=>setImgExt(e.target.value)}/>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Upload Size (in KB) <span className="text-red-500">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Upload Size (in KB) <span className="text-red-500">*</span></label>
             <input className={inp} value={imgSize} onChange={e=>setImgSize(e.target.value)}/>
           </div>
         </div>
@@ -321,7 +321,7 @@ function UploadTab() {
             {l:"Skip-recompress PNG below (KB)",v:skipPng,sv:setSkipPng,hint:"Iss size se chhote PNG files as-is save honge. Recommended: 500 KB."},
           ].map(f=>(
             <div key={f.l}>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">{f.l}</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{f.l}</label>
               <input className={inp} value={f.v} onChange={e=>f.sv(e.target.value)}/>
               {f.hint && <p className="text-xs text-slate-400 mt-0.5">{f.hint}</p>}
             </div>
@@ -338,11 +338,11 @@ function UploadTab() {
         <h3 className="text-sm font-bold text-amber-600 mb-3">📁 Settings For Files</h3>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Allowed Extension <span className="text-red-500">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Allowed Extension <span className="text-red-500">*</span></label>
             <textarea className={inp} rows={2} value={fileExt} onChange={e=>setFileExt(e.target.value)}/>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Upload Size (in KB)</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Upload Size (in KB)</label>
             <input className={inp} value={fileSize} onChange={e=>setFileSize(e.target.value)}/>
           </div>
         </div>

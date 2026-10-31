@@ -104,7 +104,7 @@ export const baseApi = createApi({
     "Attendance", "Fees", "Exams", "Library",
     "Transport", "Hostel", "HR", "Accounting",
     "Settings", "Notifications", "Inventory",
-    "Communication", "Reports",
+    "Communication", "Reports", "Certificates",
     // Super Admin (platform) tags
     "SaAnalytics", "SaSchools", "SaSchool", "SaPlans",
     "SaDomains", "SaAudit", "SaSubscription", "SaUsers",

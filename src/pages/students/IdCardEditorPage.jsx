@@ -249,7 +249,7 @@ export default function IdCardEditorPage() {
             <div className="p-4 space-y-3">
               <Input label="Header Text (school / title)" value={cfg.headerText} onChange={(e) => set("headerText", e.target.value)} />
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Sub-header (multi-line)</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Sub-header (multi-line)</label>
                 <textarea value={cfg.subHeader} onChange={(e) => set("subHeader", e.target.value)} rows={2}
                   placeholder="Address line 1&#10;Address line 2"
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 resize-y" />
@@ -306,7 +306,7 @@ export default function IdCardEditorPage() {
               </label>
               {!user?.schoolLogo && <p className="text-[11px] text-amber-600">No school logo set — add one in My Profile → Edit School Info.</p>}
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Transparency · {Math.round(cfg.watermarkOpacity * 100)}%</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Transparency · {Math.round(cfg.watermarkOpacity * 100)}%</label>
                 <input type="range" min="0" max="0.5" step="0.01" value={cfg.watermarkOpacity}
                   onChange={(e) => set("watermarkOpacity", Number(e.target.value))} disabled={!cfg.watermark}
                   className="w-full accent-indigo-600 disabled:opacity-40" />
@@ -355,7 +355,7 @@ export default function IdCardEditorPage() {
 function ColorField({ label, value, onChange }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-slate-600 mb-1">{label}</label>
+      <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{label}</label>
       <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-2 py-1.5">
         <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent p-0" />
         <span className="text-[11px] font-mono text-slate-500 uppercase">{value}</span>
@@ -367,7 +367,7 @@ function ColorField({ label, value, onChange }) {
 function NumField({ label, value, onChange, min = 6, max = 48 }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-slate-600 mb-1">{label} (px)</label>
+      <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{label} (px)</label>
       <input type="number" min={min} max={max} value={value ?? ""} onChange={(e) => onChange(Number(e.target.value))}
         className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" />
     </div>

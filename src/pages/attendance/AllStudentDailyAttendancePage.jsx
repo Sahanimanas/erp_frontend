@@ -35,7 +35,7 @@ export default function AllStudentDailyAttendancePage() {
       <Card>
         <div className="p-5 flex flex-wrap items-end gap-4">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Attendance Date *</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Attendance Date *</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
               className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" />
           </div>

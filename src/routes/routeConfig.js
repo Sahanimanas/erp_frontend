@@ -19,6 +19,10 @@
  *   children  – nested routes (rendered as sub-menu in sidebar)
  *   index     – true → renders as the <Route index> for a parent
  *   hidden    – true → has a route but not shown in sidebar
+ *   standalone– true → the page brings its own full-screen layout; it is
+ *               routed at `path/*` outside DashboardLayout (Dashboard v2)
+ *   section   – privilege section to gate this page by, when it is not the
+ *               sidebar section it sits in
  */
 
 // ─── Lazy page factories ───────────────────────────────────────────────────
@@ -53,6 +57,8 @@ export const ROLES = {
 
 const ALL_STAFF = [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.TEACHER];
 const ADMIN_ONLY = [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL];
+/** Who may open the Reports section (mirrors the backend /reports role gates). */
+const REPORT_ROLES = [ROLES.SCHOOL_ADMIN, ROLES.PRINCIPAL, ROLES.ACCOUNTANT];
 const ALL_ROLES = Object.values(ROLES);
 
 /**
@@ -141,13 +147,20 @@ export const routeConfig = [
   },
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
+  // Two dashboards: the classic one every role lands on, and Dashboard v2 — a
+  // reports-only dashboard with its own full-screen layout and menu, one
+  // complete report per item. v2 reads the Reports APIs, so it carries the
+  // Reports roles and is gated by the "Reports" privilege, not Home's.
   {
     key: "dashboard",
     label: "Dashboard",
     path: "/dashboard",
     icon: "LayoutDashboard",
     roles: ALL_ROLES,
-    lazy: lazy("dashboard/DashboardPage"),
+    children: [
+      { key: "dashboard-home", label: "Dashboard",    path: "/dashboard",    icon: "LayoutDashboard", lazy: lazy("dashboard/DashboardPage"),       roles: ALL_ROLES },
+      { key: "dashboard-v2",   label: "Dashboard v2", path: "/dashboard/v2", icon: "PieChart",        lazy: lazy("dashboard-v2/DashboardV2Page"), roles: REPORT_ROLES, section: "reports", standalone: true },
+    ],
   },
 
   // ── Student Profile ───────────────────────────────────────────────────────
@@ -380,6 +393,8 @@ export const routeConfig = [
   },
 
   // ── Certificate ───────────────────────────────────────────────────────────
+  // School Leaving and Bonafide certificates in the school's paper format,
+  // prefilled from the student's records, numbered and kept for reprint.
   {
     key: "certificate",
     label: "Certificate",
@@ -387,9 +402,8 @@ export const routeConfig = [
     icon: "Award",
     roles: ADMIN_ONLY,
     children: [
-      { key: "cert-template",  label: "Certificate Template", path: "/certificate/templates",         icon: "FileText", lazy: lazy("certificates/CertificateTemplatePage"),  roles: ADMIN_ONLY },
-      { key: "cert-student",   label: "Generate Student",     path: "/certificate/generate-student",  icon: "GraduationCap", lazy: lazy("certificates/GenerateStudentCertPage"), roles: ADMIN_ONLY },
-      { key: "cert-employee",  label: "Generate Employee",    path: "/certificate/generate-employee", icon: "Briefcase", lazy: lazy("certificates/GenerateEmployeeCertPage"), roles: ADMIN_ONLY },
+      { key: "cert-leaving",  label: "School Leaving",   path: "/certificate/school-leaving", icon: "FileText",      lazy: lazy("certificates/SchoolLeavingCertPage"), roles: ADMIN_ONLY },
+      { key: "cert-bonafide", label: "Student Bonafide", path: "/certificate/bonafide",       icon: "GraduationCap", lazy: lazy("certificates/BonafideCertPage"),      roles: ADMIN_ONLY },
     ],
   },
 
@@ -759,18 +773,26 @@ export const routeConfig = [
   },
 
   // ── Reports ───────────────────────────────────────────────────────────────
+  // Read-only analytics over the school's own data (GET /reports/*). Every
+  // page is open to the same three roles, because the sidebar does not filter
+  // a section's children by role — a narrower child role would only be a link
+  // that ends in 403. (The section previously listed ROLES.ADMIN, which does
+  // not exist, so school admins and principals never saw Reports at all.)
   {
     key: "reports",
     label: "Reports",
     path: "/reports",
     icon: "Printer",
-    roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ACCOUNTANT],
+    roles: REPORT_ROLES,
     children: [
-      { key: "rep-students",    label: "Student Reports",     path: "/reports/students",    icon: "Users",      lazy: lazy("reports/StudentReportsPage"),     roles: ADMIN_ONLY },
-      { key: "rep-fees",        label: "Fees Reports",        path: "/reports/fees",        icon: "DollarSign", lazy: lazy("reports/FeesReportsPage"),        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ACCOUNTANT] },
-      { key: "rep-attendance",  label: "Attendance Reports",  path: "/reports/attendance",  icon: "UserCheck",  lazy: lazy("reports/AttendanceReportsPage"),  roles: ADMIN_ONLY },
-      { key: "rep-financial",   label: "Financial Reports",   path: "/reports/financial",   icon: "BarChart2",  lazy: lazy("reports/FinancialReportsPage"),   roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ACCOUNTANT] },
-      { key: "rep-exam",        label: "Examination",         path: "/reports/examination", icon: "FileText",   lazy: lazy("reports/ExamReportsPage"),        roles: ALL_STAFF },
+      { key: "rep-home",       label: "Reports Dashboard",     path: "/reports/overview",    icon: "LayoutDashboard", lazy: lazy("reports/ReportsHomePage"),       roles: REPORT_ROLES },
+      { key: "rep-income",     label: "Income Report",         path: "/reports/income",      icon: "TrendingUp",      lazy: lazy("reports/IncomeReportPage"),      roles: REPORT_ROLES },
+      { key: "rep-expense",    label: "Expense Report",        path: "/reports/expense",     icon: "TrendingDown",    lazy: lazy("reports/ExpenseReportPage"),     roles: REPORT_ROLES },
+      { key: "rep-financial",  label: "Income vs Expense",     path: "/reports/financial",   icon: "BarChart2",       lazy: lazy("reports/FinancialReportsPage"),  roles: REPORT_ROLES },
+      { key: "rep-fees",       label: "Fee Dues & Defaulters", path: "/reports/fees",        icon: "Wallet",          lazy: lazy("reports/FeesReportsPage"),       roles: REPORT_ROLES },
+      { key: "rep-attendance", label: "Attendance Report",     path: "/reports/attendance",  icon: "UserCheck",       lazy: lazy("reports/AttendanceReportsPage"), roles: REPORT_ROLES },
+      { key: "rep-exam",       label: "Exam Result Analysis",  path: "/reports/examination", icon: "FileText",        lazy: lazy("reports/ExamReportsPage"),       roles: REPORT_ROLES },
+      { key: "rep-students",   label: "Student Strength",      path: "/reports/students",    icon: "Users",           lazy: lazy("reports/StudentReportsPage"),    roles: REPORT_ROLES },
     ],
   },
 

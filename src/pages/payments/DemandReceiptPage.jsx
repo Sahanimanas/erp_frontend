@@ -225,7 +225,7 @@ export default function DemandReceiptPage() {
               options={[{ value: "", label: "Select" }, ...months.map((m) => ({ value: m, label: m }))]} />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1.5">Select Month *</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Select Month *</label>
             <div className="flex flex-wrap gap-1.5">
               {months.map((m) => (
                 <button key={m} type="button" onClick={() => toggleMonth(m)}

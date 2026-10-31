@@ -143,7 +143,7 @@ export default function AssignStudentToRoutePage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Select Student</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Select Student</label>
                 <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search students by name or registration no…" />
                 <div className="mt-2 max-h-64 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
                   {filteredStudents.length === 0 && (

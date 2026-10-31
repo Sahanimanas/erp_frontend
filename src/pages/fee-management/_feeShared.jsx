@@ -109,7 +109,7 @@ export function FeeTypeManager({ title, subtitle, icon, isTransport }) {
           <p className="text-[11px] text-red-500 -mt-1">*Note: Without mapping to a finance income head, payment entries will not be saved in the finance module.</p>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-2">Frequency *</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Frequency *</label>
             <div className="flex flex-wrap gap-5">
               {FREQUENCIES.map((f) => (
                 <label key={f} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
@@ -123,7 +123,7 @@ export function FeeTypeManager({ title, subtitle, icon, isTransport }) {
           {MONTHLY_LIKE.includes(form.frequency) && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-[11px] font-semibold text-slate-600">Month / Year *</label>
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Month / Year *</label>
                 <button type="button" onClick={toggleAllMonths}
                   className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700">
                   {allMonthsSelected ? "Clear all" : "Select all months"}

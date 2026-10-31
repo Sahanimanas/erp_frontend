@@ -417,21 +417,24 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
         <div className="p-5 flex flex-col lg:flex-row gap-6">
           {/* Photo */}
           <div className="flex flex-col items-center gap-3 shrink-0">
-            <div className="relative w-36 h-44 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
+            <div className="bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.18)]" style={{ border: "1px solid var(--erp-border)" }}>
+            <div className="relative w-48 h-48 overflow-hidden flex items-center justify-center bg-[#ececec]" style={{ border: "1px solid var(--erp-border)" }}>
               {form.photo ? (
                 <>
                   <img src={form.photo} alt="Student" className="w-full h-full object-cover" />
                   <button type="button" onClick={() => setForm((f) => ({ ...f, photo: "" }))}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-slate-600 shadow hover:bg-white">
+                    className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-slate-600 shadow hover:bg-white" aria-label="Remove photo">
                     <X size={13} />
                   </button>
                 </>
               ) : (
-                <div className="flex flex-col items-center gap-1 text-slate-400">
-                  <Camera size={26} />
-                  <span className="text-[10px]">{uploading ? "Uploading…" : "No photo"}</span>
-                </div>
+                <svg viewBox="0 0 100 100" className="w-full h-full" aria-hidden="true">
+                  <circle cx="50" cy="38" r="20" fill="#a4a6a9" />
+                  <path d="M8 100 C 10 72 28 62 50 62 C 72 62 90 72 92 100 Z" fill="#a4a6a9" />
+                </svg>
               )}
+              {uploading && <span className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[11px] text-center py-1">Uploading…</span>}
+            </div>
             </div>
             {!isView && (
               <>
@@ -553,7 +556,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
           {form.transportAllotted && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[11px] font-semibold text-slate-600">
+                <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
                   Transport Months <span className="text-slate-400 font-normal">— pick the months the student uses transport</span>
                 </label>
                 <button type="button" onClick={toggleAllTransportMonths} className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700">

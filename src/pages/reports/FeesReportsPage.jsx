@@ -1,88 +1,166 @@
 /**
- * FeesReportsPage.jsx — fee collection report over a date range
- * GET /fees/reports/collection?startDate&endDate
+ * Fee Dues & Defaulters — class-wise fee position for the session and the list
+ * of students who owe money as of a month, straight from the fee ledger engine
+ * (the same numbers as Fee Payment and the demand bills).
+ *
+ * Replaces the earlier page, which read the legacy FeeCollection table that
+ * the fee module no longer writes to, so it showed ₹0 for every school.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Wallet, X } from "lucide-react";
 import { usePageTitle } from "../../hooks";
-import { PageHeader, Card, Button, Input, Badge, ExportButton } from "../../components/ui";
-import { DollarSign } from "lucide-react";
-import apiClient from "../../services/axios";
+import { PageHeader, Card, Badge } from "../../components/ui";
+import { useGetFeesDueReportQuery } from "../../redux/api/reportsApi";
+import { ReportError, Note, Kpi, KpiRow, ReportTable, useReportClass, money, num, pctText } from "./_shared";
 
-const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
-const firstOfYear = () => `${new Date().getFullYear()}-01-01`;
-const today = () => new Date().toISOString().slice(0, 10);
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** April → March of the current session, as the fee engine labels them ("Oct-2026"). */
+function sessionMonths(now = new Date()) {
+  const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  return Array.from({ length: 12 }, (_, i) => {
+    const m = (3 + i) % 12;
+    const y = startYear + (3 + i >= 12 ? 1 : 0);
+    return `${MONTHS[m]}-${y}`;
+  });
+}
+const thisMonth = () => { const d = new Date(); return `${MONTHS[d.getMonth()]}-${d.getFullYear()}`; };
 
 export default function FeesReportsPage() {
-  usePageTitle("Fees Reports");
-  const [range, setRange] = useState({ startDate: firstOfYear(), endDate: today() });
-  const [data, setData] = useState({ collections: [] });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  usePageTitle("Fee Dues & Defaulters");
+  const navigate = useNavigate();
+  const [month, setMonth] = useState(thisMonth());
+  const [classFilter, setClassFilter] = useState(null);
+  // The class picked here (or carried from the Reports home) is applied on the
+  // server; clicking a class row below narrows the defaulters on screen.
+  const cls = useReportClass();
+  const { data, isFetching, error } = useGetFeesDueReportQuery({ month, classId: cls.classId });
 
-  const load = useCallback(async () => {
-    setLoading(true); setError("");
-    try {
-      const res = await apiClient.get(`/fees/reports/collection?startDate=${range.startDate}&endDate=${range.endDate}`);
-      if (res.data.success) setData(res.data.data || { collections: [] });
-    } catch (err) {
-      setError(err.response?.data?.error || err.message || "Failed to load report");
-    } finally { setLoading(false); }
-  }, [range]);
-
-  useEffect(() => { load(); }, []); // initial load
-
-  const collections = data.collections || [];
-  const completed = collections.filter(c => c.status === "COMPLETED");
-  const collected = completed.reduce((s, c) => s + Number(c.amount), 0);
-  const pending = collections.filter(c => c.status === "PENDING").reduce((s, c) => s + Number(c.amount), 0);
-
-  const exportColumns = [
-    { label: "Receipt", get: (c) => c.receiptNo || "" },
-    { label: "Amount", get: (c) => Number(c.amount || 0) },
-    { label: "Status", get: (c) => c.status },
-    { label: "Paid Date", get: (c) => (c.paidDate ? new Date(c.paidDate).toLocaleDateString("en-IN") : "") },
-  ];
+  const t = data?.totals;
+  const months = useMemo(() => sessionMonths(), []);
+  const defaulters = useMemo(
+    () => (data?.defaulters ?? []).filter((d) => !classFilter || d.classId === classFilter.id),
+    [data, classFilter]
+  );
+  const shownDue = defaulters.reduce((s, d) => s + d.overdue, 0);
 
   return (
     <div>
-      <PageHeader title="Fees Reports" subtitle="Collection over a period" icon={<DollarSign size={18} />} />
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 mb-4 rounded-lg text-sm">{error}</div>}
-      <Card className="mb-5">
-        <div className="flex flex-wrap items-end gap-3">
-          <Input label="From" type="date" value={range.startDate} onChange={e => setRange(r => ({ ...r, startDate: e.target.value }))} />
-          <Input label="To" type="date" value={range.endDate} onChange={e => setRange(r => ({ ...r, endDate: e.target.value }))} />
-          <Button onClick={load} disabled={loading}>{loading ? "Loading…" : "Generate"}</Button>
-        </div>
-      </Card>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-        <Card><p className="text-xs text-slate-400 font-semibold mb-1">Collected</p><p className="text-2xl font-bold text-emerald-600">{fmt(collected)}</p></Card>
-        <Card><p className="text-xs text-slate-400 font-semibold mb-1">Pending</p><p className="text-2xl font-bold text-amber-600">{fmt(pending)}</p></Card>
-        <Card><p className="text-xs text-slate-400 font-semibold mb-1">Transactions</p><p className="text-2xl font-bold text-slate-800">{collections.length}</p></Card>
-      </div>
-      <Card title="Collections" noPadding>
-        <div className="flex justify-end p-3 border-b border-slate-100">
-          <ExportButton filename="fees-collection-report.csv" rows={collections} columns={exportColumns} />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className="bg-slate-50 border-b border-slate-100">
-              {["Receipt", "Amount", "Status", "Paid Date"].map(h => <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">{h}</th>)}
-            </tr></thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? <tr><td colSpan={4} className="px-4 py-10 text-center text-slate-400">Loading…</td></tr>
-              : collections.length === 0 ? <tr><td colSpan={4} className="px-4 py-10 text-center text-slate-400">No collections in this period.</td></tr>
-              : collections.map(c => (
-                <tr key={c.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3 font-mono text-[11px] text-indigo-600">{c.receiptNo || "—"}</td>
-                  <td className="px-4 py-3 font-medium text-slate-700">{fmt(c.amount)}</td>
-                  <td className="px-4 py-3"><Badge variant={c.status === "COMPLETED" ? "success" : "warning"}>{c.status}</Badge></td>
-                  <td className="px-4 py-3 text-slate-600">{c.paidDate ? new Date(c.paidDate).toLocaleDateString("en-IN") : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <PageHeader title="Fee Dues & Defaulters" icon={<Wallet />}
+        subtitle={cls.className ? `${cls.className} — who owes how much` : "Who owes how much, class by class"}>
+        <label className="text-[12px] font-semibold text-slate-600 flex items-center gap-2">
+          Class
+          <select value={cls.classId} onChange={(e) => { setClassFilter(null); cls.set(e.target.value); }} aria-label="Class"
+            className="px-2.5 py-1.5 text-[13px] border bg-white font-semibold text-slate-800 focus:outline-none"
+            style={{ borderColor: "var(--erp-border)", borderRadius: "var(--erp-radius)" }}>
+            <option value="">All classes</option>
+            {cls.classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+        <label className="text-[12px] font-semibold text-slate-600 flex items-center gap-2">
+          Due till
+          <select value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Due till month"
+            className="px-2.5 py-1.5 text-[13px] border bg-white font-semibold text-slate-800 focus:outline-none"
+            style={{ borderColor: "var(--erp-border)", borderRadius: "var(--erp-radius)" }}>
+            {months.map((m) => <option key={m} value={m}>{m.replace("-", " ")}</option>)}
+          </select>
+        </label>
+      </PageHeader>
+      <ReportError error={error} />
+
+      <KpiRow cols={5}>
+        <Kpi label={`Due till ${month.replace("-", " ")}`} value={money(t?.overdue)} sub={`${num(t?.defaulters)} students`} tone="var(--erp-danger)" loading={isFetching} />
+        <Kpi label="Session fee" value={money(t?.sessionFee)} sub={`${num(t?.students)} students`} loading={isFetching} />
+        <Kpi label="Paid against session fee" value={money(t?.collected)} tone="var(--erp-success)" loading={isFetching} />
+        <Kpi label="Remaining for session" value={money(t?.remaining)} sub="Includes months not due yet" tone="var(--erp-warning)" loading={isFetching} />
+        <Kpi label="Collection rate" value={pctText(t?.collectionRate)} sub="of session fee" loading={isFetching} />
+      </KpiRow>
+
+      <Note>
+        <b>Due till {month.replace("-", " ")}</b> = only fees whose month has already arrived (not future months). This is the same calculation shown in
+        Fee Payment and the demand bill. “Paid against session fee” can differ from the Income Report — the Income Report shows
+        <i>all</i> money received in the selected dates, while this shows only money paid against this session’s fee structure.
+      </Note>
+
+      <ReportTable
+        title="Class-wise position"
+        subtitle="Click a class to see only its defaulters"
+        filename={`class-fee-position-${month}`}
+        printTitle={`Class-wise Fee Position — due till ${month.replace("-", " ")}`}
+        loading={isFetching}
+        rows={data?.classes ?? []}
+        emptyText="No students with a fee structure yet."
+        onRowClick={(r) => setClassFilter((c) => (c?.id === r.classId ? null : { id: r.classId, name: r.className }))}
+        columns={[
+          {
+            key: "className", label: "Class", value: (r) => r.className,
+            render: (r) => <span className="font-semibold" style={{ color: classFilter?.id === r.classId ? "var(--erp-primary)" : undefined }}>{r.className}</span>,
+          },
+          { key: "students", label: "Students" },
+          { key: "sessionFee", label: "Session fee", money: true },
+          { key: "collected", label: "Paid", money: true },
+          { key: "remaining", label: "Remaining", money: true },
+          {
+            key: "overdue", label: "Due till month", value: (r) => r.overdue,
+            render: (r) => <span className="font-bold" style={{ color: r.overdue > 0 ? "var(--erp-danger)" : "var(--erp-success)" }}>{money(r.overdue)}</span>,
+          },
+          { key: "defaulters", label: "Defaulters" },
+          {
+            key: "collectionRate", label: "Collected", value: (r) => `${r.collectionRate}%`,
+            render: (r) => <Badge variant={r.collectionRate >= 75 ? "success" : r.collectionRate >= 40 ? "warning" : "danger"}>{pctText(r.collectionRate)}</Badge>,
+          },
+        ]}
+        footer={{
+          items: [
+            { label: "Session fee", value: money(t?.sessionFee) },
+            { label: "Paid", value: money(t?.collected), tone: "var(--erp-success)" },
+            { label: "Due till month", value: money(t?.overdue), tone: "var(--erp-danger)" },
+          ],
+          print: `Session fee ${money(t?.sessionFee)}  ·  Paid ${money(t?.collected)}  ·  Due ${money(t?.overdue)}`,
+        }}
+      />
+
+      {classFilter && (
+        <Card className="mb-3">
+          <div className="px-4 py-2 flex items-center gap-2 text-[13px]">
+            Showing defaulters of <b>{classFilter.name}</b>
+            <button type="button" onClick={() => setClassFilter(null)} className="inline-flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--erp-primary)" }}>
+              <X size={13} /> Show all classes
+            </button>
+          </div>
+        </Card>
+      )}
+
+      <ReportTable
+        title={`Defaulters — due till ${month.replace("-", " ")}`}
+        subtitle={`${num(defaulters.length)} students · ${money(shownDue)} · highest due first · click a row to collect fee`}
+        filename={`defaulters-${classFilter?.name || "all"}-${month}`}
+        printTitle={`Fee Defaulters — due till ${month.replace("-", " ")}${classFilter ? ` — ${classFilter.name}` : ""}`}
+        loading={isFetching}
+        searchable
+        rows={defaulters}
+        emptyText="No defaulters — all fees are paid."
+        onRowClick={(r) => navigate(`/payments/student-fee?id=${r.studentId}`)}
+        columns={[
+          { key: "name", label: "Student", render: (r) => <span className="font-semibold">{r.name}</span>, value: (r) => r.name },
+          { key: "rollNumber", label: "Roll No" },
+          { key: "className", label: "Class" },
+          { key: "fatherName", label: "Father" },
+          { key: "phone", label: "Phone" },
+          { key: "previousDue", label: "Previous due", money: true },
+          { key: "currentDue", label: "This month", money: true },
+          {
+            key: "overdue", label: "Total due", value: (r) => r.overdue,
+            render: (r) => <span className="font-bold" style={{ color: "var(--erp-danger)" }}>{money(r.overdue)}</span>,
+          },
+          { key: "paid", label: "Paid (session)", money: true },
+        ]}
+        footer={{
+          items: [{ label: "Total due", value: money(shownDue), tone: "var(--erp-danger)" }],
+          print: `Total due: ${money(shownDue)}`,
+        }}
+      />
     </div>
   );
 }

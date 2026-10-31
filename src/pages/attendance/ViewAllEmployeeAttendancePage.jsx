@@ -37,12 +37,12 @@ export default function ViewAllEmployeeAttendancePage() {
       <Card>
         <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start Date *</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Start Date *</label>
             <input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">End Date *</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">End Date *</label>
             <input type="date" value={form.endDate} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" />
           </div>

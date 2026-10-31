@@ -99,7 +99,7 @@ export default function LateFeeRulePage() {
             <Select label="Session *" value={form.session} onChange={set("session")}
               options={[{ value: "", label: "Select" }, ...years.map((y) => ({ value: y.name, label: y.name }))]} />
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1.5">Applicable Fee Type For Late Fine *</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Applicable Fee Type For Late Fine *</label>
               <div className="flex flex-wrap gap-1.5">
                 {feeTypes.length === 0 && <span className="text-[11px] text-slate-400">No fee types yet</span>}
                 {feeTypes.map((t) => (

@@ -13,7 +13,7 @@ const sel = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-whit
 function F({ label, req, children }) {
   return (
     <div className="grid grid-cols-3 items-start gap-4 mb-4">
-      <label className="text-sm text-slate-600 font-medium pt-2 text-right">
+      <label className="text-[14px] font-bold text-[#24282e] pt-2 text-right">
         {label}{req && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="col-span-2">{children}</div>
