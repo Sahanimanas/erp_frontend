@@ -48,6 +48,8 @@ function safeLazy(factory) {
 
 function buildRoutes(items, parentSectionKey = null) {
   return items.flatMap((item) => {
+    // Full-screen pages are routed outside DashboardLayout (standaloneRoutes).
+    if (item.standalone) return [];
     // The top-level item establishes the "section" used for privilege gating;
     // its children inherit it so every page maps back to one sidebar section.
     const sectionKey = parentSectionKey ?? item.key;
@@ -55,7 +57,9 @@ function buildRoutes(items, parentSectionKey = null) {
       const firstVisible = item.children.find((c) => !c.hidden);
       return (
         <Route key={item.key} path={item.path}>
-          {firstVisible && <Route index element={<Navigate to={firstVisible.path} replace />} />}
+          {/* No redirect when the first page IS the section's own path
+              (Dashboard) — it would point at itself. */}
+          {firstVisible && firstVisible.path !== item.path && <Route index element={<Navigate to={firstVisible.path} replace />} />}
           {buildRoutes(item.children, sectionKey)}
         </Route>
       );
@@ -65,7 +69,7 @@ function buildRoutes(items, parentSectionKey = null) {
       return (
         <Route key={item.key} path={item.path}
           element={
-            <RoleRoute allowedRoles={item.roles} sectionKey={sectionKey}>
+            <RoleRoute allowedRoles={item.roles} sectionKey={item.section ?? sectionKey}>
               <Suspense fallback={<PageLoader />}><Page /></Suspense>
             </RoleRoute>
           }
@@ -73,6 +77,31 @@ function buildRoutes(items, parentSectionKey = null) {
       );
     }
     return [];
+  });
+}
+
+/**
+ * Pages that bring their own full-screen layout (Dashboard v2). Guarded exactly
+ * like any other page, but not wrapped in DashboardLayout, and matched at
+ * `path/*` so the page can route its own sub-pages.
+ */
+function standaloneRoutes(items, parentSectionKey = null) {
+  return items.flatMap((item) => {
+    const sectionKey = parentSectionKey ?? item.key;
+    if (item.children?.length) return standaloneRoutes(item.children, sectionKey);
+    if (!item.standalone || !item.lazy) return [];
+    const Page = safeLazy(item.lazy);
+    return (
+      <Route key={item.key} path={`${item.path}/*`}
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={item.roles} sectionKey={item.section ?? sectionKey}>
+              <Suspense fallback={<PageLoader />}><Page /></Suspense>
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
+    );
   });
 }
 
@@ -131,6 +160,9 @@ export default function AppRoutes() {
           );
         })}
       </Route>
+
+      {/* Full-screen pages with their own layout */}
+      {standaloneRoutes(routeConfig)}
 
       <Route path="/403" element={<ForbiddenPage />} />
       <Route path="*"    element={<NotFoundPage />} />

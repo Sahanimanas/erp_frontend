@@ -65,11 +65,11 @@ function SmsTemplateList({ templates, setTemplates }) {
       ) : (
         <div className="p-6 max-w-2xl mx-auto">
           <div className="grid grid-cols-3 items-center gap-4 mb-4">
-            <label className="text-sm text-slate-600 font-medium text-right">Name <span className="text-red-500">*</span></label>
+            <label className="text-[14px] font-bold text-[#24282e] text-right">Name <span className="text-red-500">*</span></label>
             <div className="col-span-2"><input className={inp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
           </div>
           <div className="grid grid-cols-3 items-start gap-4 mb-2">
-            <label className="text-sm text-slate-600 font-medium text-right pt-2">Message <span className="text-red-500">*</span></label>
+            <label className="text-[14px] font-bold text-[#24282e] text-right pt-2">Message <span className="text-red-500">*</span></label>
             <div className="col-span-2">
               <textarea className={inp+" min-h-[80px] resize-y"} value={form.message}
                 onChange={e=>setForm(p=>({...p,message:e.target.value.slice(0,160)}))}/>
@@ -77,7 +77,7 @@ function SmsTemplateList({ templates, setTemplates }) {
             </div>
           </div>
           <div className="grid grid-cols-3 items-center gap-4 mb-4">
-            <label className="text-sm text-slate-600 font-medium text-right">Dynamic Tag :</label>
+            <label className="text-[14px] font-bold text-[#24282e] text-right">Dynamic Tag :</label>
             <div className="col-span-2 flex flex-wrap gap-1.5">
               {DYNAMIC_TAGS.map(tag=>(
                 <button key={tag} onClick={()=>setForm(p=>({...p,message:(p.message+tag).slice(0,160)}))}
@@ -140,11 +140,11 @@ function EmailTemplateList({ templates, setTemplates }) {
       ) : (
         <div className="p-6 max-w-2xl mx-auto">
           <div className="grid grid-cols-3 items-center gap-4 mb-4">
-            <label className="text-sm text-slate-600 font-medium text-right">Name <span className="text-red-500">*</span></label>
+            <label className="text-[14px] font-bold text-[#24282e] text-right">Name <span className="text-red-500">*</span></label>
             <div className="col-span-2"><input className={inp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
           </div>
           <div className="grid grid-cols-3 items-start gap-4 mb-2">
-            <label className="text-sm text-slate-600 font-medium text-right pt-2">Message <span className="text-red-500">*</span></label>
+            <label className="text-[14px] font-bold text-[#24282e] text-right pt-2">Message <span className="text-red-500">*</span></label>
             <div className="col-span-2">
               <div className="border border-slate-200 rounded-lg overflow-hidden">
                 <div className="flex flex-wrap gap-0.5 p-2 bg-slate-50 border-b border-slate-200">
@@ -155,7 +155,7 @@ function EmailTemplateList({ templates, setTemplates }) {
             </div>
           </div>
           <div className="grid grid-cols-3 items-center gap-4 mb-4">
-            <label className="text-sm text-slate-600 font-medium text-right">Dynamic Tag :</label>
+            <label className="text-[14px] font-bold text-[#24282e] text-right">Dynamic Tag :</label>
             <div className="col-span-2 flex flex-wrap gap-1.5">
               {DYNAMIC_TAGS.map(tag=>(
                 <button key={tag} onClick={()=>setBody(b=>b+tag)}

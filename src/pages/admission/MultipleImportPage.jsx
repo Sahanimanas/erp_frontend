@@ -129,7 +129,7 @@ export default function MultipleImportPage() {
 
           {/* File upload */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Select Excel / CSV File *</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Select Excel / CSV File *</label>
             <div
               className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors
                 ${file ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:border-indigo-300"}`}

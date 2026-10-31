@@ -27,7 +27,7 @@ function CreateForm({ onSave, onCancel }) {
 
   const F = ({label,req,children}) => (
     <div className="grid grid-cols-3 items-center gap-4 mb-4">
-      <label className="text-sm text-slate-600 font-medium text-right">{label}{req&&<span className="text-red-500 ml-0.5">*</span>}</label>
+      <label className="text-[14px] font-bold text-[#24282e] text-right">{label}{req&&<span className="text-red-500 ml-0.5">*</span>}</label>
       <div className="col-span-2">{children}</div>
     </div>
   );

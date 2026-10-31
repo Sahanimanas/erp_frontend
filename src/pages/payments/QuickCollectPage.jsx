@@ -259,7 +259,7 @@ export default function QuickCollectPage() {
               {/* Amount + allocation controls (always visible & editable) */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div className="md:col-span-1">
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Amount Received *</label>
+                  <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Amount Received *</label>
                   <div className="flex gap-2">
                     <Input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
                     <Button variant="secondary" size="sm" onClick={fillFull} title="Pay full due" disabled={totalDue <= 0}>Full</Button>

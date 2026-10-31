@@ -298,10 +298,26 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     if (tail !== -1) return 10000 + tail;               // bottom, in given order
     return 1000 + idx;                                  // middle, preserve original order
   };
+  // A child gated by a privilege section of its own (Dashboard v2) is shown only
+  // to users its roles and privilege let in, so the Dashboard flyout never
+  // lists a link that ends in 403. A section left with one page that is its own
+  // path (Dashboard, for a teacher) renders as a plain link, not a flyout.
+  const childVisible = (c) =>
+    !c.hidden &&
+    (!c.section ||
+      ((!c.roles?.length || c.roles.includes(userRole)) && canAccessSection(c.section, permissions, userRole)));
   const visibleNav = filteredNav
     .map((item, idx) => ({ item, w: weightFor(item, idx) }))
     .sort((a, b) => a.w - b.w)
-    .map((x) => x.item);
+    .map(({ item }) => {
+      if (!item.children) return item;
+      const kids = item.children.filter(childVisible);
+      if (kids.length === 1 && kids[0].path === item.path) {
+        const { children, ...leaf } = item;
+        return leaf;
+      }
+      return { ...item, children: kids };
+    });
 
   return (
     // Expanded width is content-driven (w-max): the sidebar grows to fit the

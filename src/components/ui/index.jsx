@@ -102,11 +102,11 @@ export function Card({ children, className = "", title, subtitle, action, noPadd
     >
       {(title || action) && (
         <div
-          className="flex items-center justify-between px-4 py-3"
-          style={{ borderBottom: "2px solid var(--erp-primary)" }}
+          className="mx-4 flex items-center justify-between py-4"
+          style={{ borderBottom: "1px solid var(--erp-border)" }}
         >
           <div>
-            {title && <h3 className="text-[15px] font-semibold" style={{ color: "var(--erp-text)" }}>{title}</h3>}
+            {title && <h3 className="text-[20px] font-normal" style={{ color: "var(--erp-text)" }}>{title}</h3>}
             {subtitle && <p className="text-[12px] mt-0.5" style={{ color: "var(--erp-muted)" }}>{subtitle}</p>}
           </div>
           {action && <div className="flex gap-2">{action}</div>}
@@ -204,15 +204,25 @@ export function PageHeader({ title, subtitle, icon, children }) {
  * native input attribute, so marking a field required also marks it visually —
  * no second prop to keep in sync.
  */
+// Classic form look across every module: bold label above, "*" attached to
+// it for required fields ("Name*"), then a tall square field.
 function FieldLabel({ label, required }) {
   if (!label) return null;
+  const text = String(label).replace(/\s*\*\s*$/, "");
+  const star = required || text !== String(label);
   return (
-    <label className="block text-[13px] mb-1" style={{ color: "var(--erp-text)" }}>
-      {label}
-      {required && <span style={{ color: "var(--erp-danger)" }}> *</span>}
+    <label className="block text-[14px] font-bold mb-1.5" style={{ color: "var(--erp-text)" }}>
+      {text}
+      {star && "*"}
     </label>
   );
 }
+
+/** "Name *" → "Enter Name", used when a field has no placeholder of its own. */
+const autoPlaceholder = (label, type) =>
+  label && !["date", "time", "datetime-local", "month", "week", "file", "color"].includes(type)
+    ? `Enter ${String(label).replace(/\s*\*\s*$/, "")}`
+    : undefined;
 
 const fieldStyle = (error) => ({
   borderRadius: "var(--erp-radius)",
@@ -222,7 +232,7 @@ const fieldStyle = (error) => ({
 });
 
 const FIELD_CLS =
-  "w-full px-3 py-2 text-[13.5px] transition-colors focus:outline-none " +
+  "w-full px-3.5 py-2 text-[15px] transition-colors focus:outline-none " +
   "focus:border-[var(--erp-primary)] placeholder-[var(--erp-muted)]";
 
 export function Input({ label, error, className = "", icon, ...props }) {
@@ -234,8 +244,9 @@ export function Input({ label, error, className = "", icon, ...props }) {
           <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--erp-muted)" }}>{icon}</span>
         )}
         <input
-          className={`${FIELD_CLS} ${icon ? "pl-9" : ""} ${className}`}
+          className={`${FIELD_CLS} h-[44px] ${icon ? "pl-9" : ""} ${className}`}
           style={fieldStyle(error)}
+          placeholder={autoPlaceholder(label, props.type)}
           {...props}
         />
       </div>
@@ -252,7 +263,7 @@ export function Select({ label, options = [], error, className = "", ...props })
     <div>
       <FieldLabel label={label} required={props.required} />
       <select
-        className={`${FIELD_CLS} ${className}`}
+        className={`${FIELD_CLS} h-[44px] ${className}`}
         style={fieldStyle(error)}
         {...props}
       >
@@ -274,8 +285,9 @@ export function Textarea({ label, error, className = "", rows = 3, ...props }) {
       <FieldLabel label={label} required={props.required} />
       <textarea
         rows={rows}
-        className={`${FIELD_CLS} resize-none ${className}`}
+        className={`${FIELD_CLS} resize-y ${className}`}
         style={fieldStyle(error)}
+        placeholder={autoPlaceholder(label)}
         {...props}
       />
       {error && <p className="text-[11px] mt-1" style={{ color: "var(--erp-danger)" }}>{error}</p>}
@@ -502,9 +514,9 @@ export function Modal({ open, onClose, title, children, size = "md" }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${sizes[size]} max-h-[90vh] overflow-hidden flex flex-col`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-[14px] font-bold text-slate-800">{title}</h2>
+      <div className={`relative bg-white shadow-2xl w-full ${sizes[size]} max-h-[90vh] overflow-hidden flex flex-col`} style={{ borderRadius: "var(--erp-radius)", border: "1px solid var(--erp-border)" }}>
+        <div className="mx-6 flex items-center justify-between py-4" style={{ borderBottom: "1px solid var(--erp-border)" }}>
+          <h2 className="text-[20px] font-normal" style={{ color: "var(--erp-text)" }}>{title}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-600 transition-colors">
             <X size={16} />
           </button>
@@ -521,13 +533,14 @@ export function Modal({ open, onClose, title, children, size = "md" }) {
 export function SearchInput({ value, onChange, placeholder = "Search...", className = "" }) {
   return (
     <div className={`relative ${className}`}>
-      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+      <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
       <input
         type="text"
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full pl-8 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 bg-white transition-all placeholder-slate-400"
+        className="w-full h-[44px] pl-10 pr-9 text-[15px] border bg-white focus:outline-none focus:border-[var(--erp-primary)]"
+        style={{ borderColor: "var(--erp-border)", borderRadius: "var(--erp-radius)" }}
       />
       {value && (
         <button onClick={() => onChange({ target: { value: "" } })} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600">
@@ -670,7 +683,8 @@ export function TableToolbar({ children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export function DateRangeFilter({ from, to, onChange, label = "Date" }) {
   return (
-    <div className="flex items-end gap-2">
+    // Wraps on a narrow screen instead of pushing past its container.
+    <div className="flex flex-wrap items-end gap-2">
       <div>
         <label className="block text-[11px] font-semibold text-slate-600 mb-1">{label} From</label>
         <input

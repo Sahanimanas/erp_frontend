@@ -44,7 +44,7 @@ function SubmitForm({ onSave, onCancel }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Title */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Title <span className="text-red-500">*</span></label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Title <span className="text-red-500">*</span></label>
           <input
             value={form.title}
             onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
@@ -55,7 +55,7 @@ function SubmitForm({ onSave, onCancel }) {
 
         {/* House */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">House <span className="text-red-500">*</span></label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">House <span className="text-red-500">*</span></label>
           <div className="relative">
             <select
               value={form.house}
@@ -72,7 +72,7 @@ function SubmitForm({ onSave, onCancel }) {
 
         {/* Points */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Points</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Points</label>
           <input
             type="number"
             value={form.points}
@@ -83,7 +83,7 @@ function SubmitForm({ onSave, onCancel }) {
 
         {/* Status */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Status</label>
           <div className="relative">
             <select
               value={form.status}
@@ -98,7 +98,7 @@ function SubmitForm({ onSave, onCancel }) {
 
         {/* Description */}
         <div className="lg:col-span-2">
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Description</label>
+          <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Description</label>
           <textarea
             value={form.description}
             onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
@@ -190,7 +190,7 @@ export default function HouseActivities() {
         <div className="px-5 py-4 border-b border-slate-50 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Status */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Status</label>
             <div className="relative">
               <select
                 value={filterStatus}
@@ -204,7 +204,7 @@ export default function HouseActivities() {
           </div>
           {/* House */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">House</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">House</label>
             <div className="relative">
               <select
                 value={filterHouse}

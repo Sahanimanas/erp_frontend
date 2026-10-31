@@ -19,20 +19,20 @@ export default function SendEmailPage() {
         <h3 className="text-sm font-semibold text-slate-600 mb-4">Select Ground</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Campaign Type <span className="text-red-500 normal-case">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Campaign Type <span className="text-red-500 normal-case">*</span></label>
             <select className={sel} value={campType} onChange={e=>setCampType(e.target.value)}>
               <option value="">Select</option>
               <option>SMS Campaign</option><option>Email Campaign</option><option>Both</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Send Type <span className="text-red-500 normal-case">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Send Type <span className="text-red-500 normal-case">*</span></label>
             <select className={sel} value={sendType} onChange={e=>setSendType(e.target.value)}>
               <option>Both</option><option>Sent</option><option>Scheduled</option><option>Failed</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Date <span className="text-red-500 normal-case">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Date <span className="text-red-500 normal-case">*</span></label>
             <div className="flex">
               <span className="flex items-center px-2.5 bg-slate-50 border border-r-0 border-slate-200 rounded-l-lg text-slate-400">📅</span>
               <input readOnly className="flex-1 border border-slate-200 rounded-r-lg px-3 py-2 text-sm bg-white focus:outline-none" value={date}/>

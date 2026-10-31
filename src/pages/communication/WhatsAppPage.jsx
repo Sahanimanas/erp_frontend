@@ -324,8 +324,9 @@ const TEMPLATE_EVENTS = [
   { value: "MANUAL", label: "Manual only", badge: "default" },
   { value: "STUDENT_CREATED", label: "Auto — new student created", badge: "info" },
   { value: "PAYMENT_RECEIVED", label: "Auto — payment received", badge: "success" },
+  { value: "MONTHLY_FEE_BILL", label: "Auto — monthly fee bill (Auto Fee Bill)", badge: "warning" },
 ];
-const PLACEHOLDERS = "{{name}} {{className}} {{rollNumber}} {{fatherName}} {{school}} {{phone}} — payment only: {{receiptNo}} {{total}} {{lines}} {{date}}";
+const PLACEHOLDERS = "{{name}} {{className}} {{rollNumber}} {{fatherName}} {{school}} {{phone}} — payment only: {{receiptNo}} {{total}} {{lines}} {{date}} — monthly fee bill: {{month}} {{parent}} {{students}} {{details}} {{previousDue}} {{currentDue}} {{total}} {{payBy}} {{contact}}";
 const BLANK_TPL = { name: "", event: "MANUAL", enabled: true, body: "" };
 
 function TemplatesPanel({ flash }) {

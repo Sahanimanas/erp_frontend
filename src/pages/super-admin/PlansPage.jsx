@@ -113,7 +113,7 @@ export default function PlansPage() {
             <Input label="Max Users" type="number" value={form.maxUsers} onChange={setF("maxUsers")} />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-2">Included Modules</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Included Modules</label>
             <div className="flex flex-wrap gap-2">
               {(modules ?? []).map((m) => {
                 const on = form.featureFlags.includes(m.key);

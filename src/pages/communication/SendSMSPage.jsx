@@ -20,7 +20,7 @@ function SmsTab() {
 
   const F = ({label,req,children,colSpan=1}) => (
     <div className={colSpan===2?"md:col-span-2":""}>
-      <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+      <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
         {label}{req&&<span className="text-red-500 normal-case ml-0.5">*</span>}
       </label>
       {children}
@@ -41,7 +41,7 @@ function SmsTab() {
         </F>
       </div>
       <div className="mb-2">
-        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
           Message <span className="text-red-500 normal-case">*</span>
         </label>
         <textarea
@@ -116,7 +116,7 @@ function EmailTab() {
 
   const F = ({label,req,children}) => (
     <div>
-      <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+      <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
         {label}{req&&<span className="text-red-500 normal-case ml-0.5">*</span>}
       </label>
       {children}
@@ -142,7 +142,7 @@ function EmailTab() {
         </F>
       </div>
       <div className="mb-4">
-        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Message <span className="text-red-500 normal-case">*</span></label>
+        <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Message <span className="text-red-500 normal-case">*</span></label>
         <div className="border border-slate-200 rounded-lg overflow-hidden">
           <div className="flex flex-wrap gap-0.5 p-2 bg-slate-50 border-b border-slate-200">
             {TOOLBAR.map((t,i)=><button key={i} type="button" className="px-1.5 py-1 text-xs hover:bg-slate-200 rounded font-medium text-slate-600 min-w-[24px]">{t}</button>)}

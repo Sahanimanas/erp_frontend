@@ -189,17 +189,26 @@ export default function SearchStudentPage() {
               </label>
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          {/* A wrapping row, not a fixed 4-column grid: the date range is two
+              inputs wide and overflowed its single grid cell, running under
+              the Search button. Each field now keeps its own width. */}
+          <div className="flex flex-wrap items-end gap-4">
             {mode === "code" && (
-              <Input2 label="Student Code / Name / Phone" value={code} onChange={(e) => setCode(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }} placeholder="Reg / Roll / Name / Phone" />
+              <div className="w-full sm:w-72">
+                <Input2 label="Student Code / Name / Phone" value={code} onChange={(e) => setCode(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }} placeholder="Reg / Roll / Name / Phone" />
+              </div>
             )}
             {mode === "class" && (
               <>
-                <Select label="Class" value={classId} onChange={(e) => { setClassId(e.target.value); setSectionId(""); }}
-                  options={[{ value: "", label: "All Classes" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
-                <Select label="Section" value={sectionId} onChange={(e) => setSectionId(e.target.value)}
-                  options={[{ value: "", label: classId ? "All Sections" : "Pick a class" }, ...sections.map((s) => ({ value: s.id, label: s.name }))]} />
+                <div className="w-full sm:w-56">
+                  <Select label="Class" value={classId} onChange={(e) => { setClassId(e.target.value); setSectionId(""); }}
+                    options={[{ value: "", label: "All Classes" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
+                </div>
+                <div className="w-full sm:w-56">
+                  <Select label="Section" value={sectionId} onChange={(e) => setSectionId(e.target.value)}
+                    options={[{ value: "", label: classId ? "All Sections" : "Pick a class" }, ...sections.map((s) => ({ value: s.id, label: s.name }))]} />
+                </div>
               </>
             )}
             <DateRangeFilter from={dateRange.from} to={dateRange.to} onChange={setDateRange} label="Admission" />
@@ -230,7 +239,7 @@ export default function SearchStudentPage() {
 function Input2({ label, ...props }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-slate-600 mb-1">{label}</label>
+      <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{label}</label>
       <input {...props} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" />
     </div>
   );

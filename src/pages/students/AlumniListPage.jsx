@@ -28,20 +28,20 @@ function ManageAlumni() {
         <h3 className="text-sm font-semibold text-slate-600 mb-4">Select Ground</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Passing Session <span className="text-red-500 normal-case">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Passing Session <span className="text-red-500 normal-case">*</span></label>
             <select className={sel} value={session} onChange={e=>setSession(e.target.value)}>
               {SESSIONS.map(s=><option key={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Class <span className="text-red-500 normal-case">*</span></label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Class <span className="text-red-500 normal-case">*</span></label>
             <select className={sel} value={cls} onChange={e=>{setCls(e.target.value);setSec("")}}>
               <option value="">Select</option>
               {CLASSES.map(c=><option key={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Section</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Section</label>
             <select className={sel} value={sec} onChange={e=>setSec(e.target.value)}>
               <option value="">Select Class First</option>
               {cls && SECTIONS.map(s=><option key={s}>{s}</option>)}

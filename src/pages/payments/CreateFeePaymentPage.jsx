@@ -119,7 +119,7 @@ export default function CreateFeePaymentPage() {
             <Input label="Fee Amount *" type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-2">Frequency *</label>
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Frequency *</label>
             <div className="flex flex-wrap gap-5">
               {["Monthly", "Session", "Other"].map((f) => (
                 <label key={f} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">

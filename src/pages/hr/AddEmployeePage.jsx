@@ -136,9 +136,9 @@ export default function AddEmployeePage() {
     } finally { setSaving(false); }
   };
 
-  const deptOptions = [{ value: "", label: "Select" }, ...departments.map((d) => ({ value: d.id, label: d.name }))];
-  const desigOptions = [{ value: "", label: "Select" }, ...designations.map((d) => ({ value: d.id, label: d.name }))];
-  const empOptions = [{ value: "", label: "None" }, ...employees.map((e) => ({ value: e.id, label: e.user ? `${e.user.firstName} ${e.user.lastName}` : e.employeeCode }))];
+  const deptOptions = [{ value: "", label: "Select..." }, ...departments.map((d) => ({ value: d.id, label: d.name }))];
+  const desigOptions = [{ value: "", label: "Select..." }, ...designations.map((d) => ({ value: d.id, label: d.name }))];
+  const empOptions = [{ value: "", label: "Select..." }, ...employees.map((e) => ({ value: e.id, label: e.user ? `${e.user.firstName} ${e.user.lastName}` : e.employeeCode }))];
 
   const savePdf = () => {
     const deptName = departments.find((d) => d.id === form.departmentId)?.name || "";
@@ -177,33 +177,37 @@ export default function AddEmployeePage() {
 
       <form onSubmit={submit} className="space-y-5">
         <Card title="Basic Details">
-          <div className="p-5 flex flex-col lg:flex-row gap-6">
+          <div className="p-5">
+          <div className="flex flex-col lg:flex-row gap-8">
           {/* Photo uploader */}
           <div className="flex flex-col items-center gap-3 shrink-0">
-            <div className="relative w-32 h-40 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
-              {form.photo ? (
-                <>
-                  <img src={form.photo} alt="Employee" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => setForm((f) => ({ ...f, photo: "" }))}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-slate-600 shadow hover:bg-white">
-                    <X size={13} />
-                  </button>
-                </>
-              ) : (
-                <div className="flex flex-col items-center gap-1 text-slate-400">
-                  <Camera size={26} />
-                  <span className="text-[10px]">{uploading ? "Uploading…" : "No photo"}</span>
-                </div>
-              )}
+            <div className="relative bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.18)]" style={{ border: "1px solid var(--erp-border)" }}>
+              <div className="relative w-52 h-52 overflow-hidden flex items-center justify-center bg-[#ececec]" style={{ border: "1px solid var(--erp-border)" }}>
+                {form.photo ? (
+                  <>
+                    <img src={form.photo} alt="Employee" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, photo: "" }))}
+                      className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-slate-600 shadow hover:bg-white" aria-label="Remove photo">
+                      <X size={13} />
+                    </button>
+                  </>
+                ) : (
+                  <svg viewBox="0 0 100 100" className="w-full h-full" aria-hidden="true">
+                    <circle cx="50" cy="38" r="20" fill="#a4a6a9" />
+                    <path d="M8 100 C 10 72 28 62 50 62 C 72 62 90 72 92 100 Z" fill="#a4a6a9" />
+                  </svg>
+                )}
+                {uploading && <span className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[11px] text-center py-1">Uploading…</span>}
+              </div>
             </div>
             <div className="flex items-center gap-3">
-              <label className={`text-[12px] font-medium ${uploading ? "text-slate-400 cursor-wait" : "text-indigo-600 hover:text-indigo-700 cursor-pointer"}`}>
-                {uploading ? "Uploading…" : form.photo ? "Change photo" : "Upload photo"}
+              <label className={`text-[12px] font-medium ${uploading ? "text-slate-400 cursor-wait" : "cursor-pointer"}`} style={uploading ? undefined : { color: "var(--erp-primary)" }}>
+                {form.photo ? "Change photo" : "Upload photo"}
                 <input type="file" accept="image/*" onChange={onPhoto} disabled={uploading} className="hidden" />
               </label>
               <span className="text-slate-300">·</span>
               <button type="button" onClick={() => setCameraOpen(true)} disabled={uploading}
-                className="inline-flex items-center gap-1 text-[12px] font-medium text-indigo-600 hover:text-indigo-700 disabled:text-slate-400 disabled:cursor-not-allowed">
+                className="inline-flex items-center gap-1 text-[12px] font-medium disabled:text-slate-400 disabled:cursor-not-allowed" style={{ color: "var(--erp-primary)" }}>
                 <Camera size={13} /> Use camera
               </button>
             </div>
@@ -212,44 +216,52 @@ export default function AddEmployeePage() {
 
           <CameraCapture open={cameraOpen} onClose={() => setCameraOpen(false)} onCapture={uploadPhoto} />
 
-          <div className="flex-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Input label="Name *" value={form.name} onChange={set("name")} placeholder="Full name" />
-            <Input label="Email *" type="email" value={form.email} onChange={set("email")} placeholder="Login email" />
-            <Input label="Phone" value={form.phone} onChange={set("phone")} placeholder="Mobile no." />
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 content-start">
+            <Input label="Name *" value={form.name} onChange={set("name")} />
+            <Input label="Phone" value={form.phone} onChange={set("phone")} />
+            <Input label="Email *" type="email" value={form.email} onChange={set("email")} />
             <Input label="City" value={form.city} onChange={set("city")} />
+            <Textarea label="Address" value={form.address} onChange={set("address")} placeholder="Enter Description" />
+            <Textarea label="Permanent Address" value={form.permanentAddress} onChange={set("permanentAddress")} placeholder="Enter Description" />
             <Input label="Joining Date" type="date" value={form.joiningDate} onChange={set("joiningDate")} />
-            <Input label="Employee Code" value={form.employeeCode} onChange={set("employeeCode")} placeholder="Auto if blank" />
-            <Select label="Department" value={form.departmentId} onChange={set("departmentId")} options={deptOptions} />
-            <Select label="Designation" value={form.designationId} onChange={set("designationId")} options={desigOptions} />
-            <Select label="Reporting To" value={form.reportingToId} onChange={set("reportingToId")} options={empOptions} />
+            <Input label="Employee Code" value={form.employeeCode} onChange={set("employeeCode")} placeholder="Enter Employee Code (auto if blank)" />
+          </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-4 mt-4">
+            <Select label="Select Department" value={form.departmentId} onChange={set("departmentId")} options={deptOptions} />
+            <Select label="Select Designation" value={form.designationId} onChange={set("designationId")} options={desigOptions} />
             <Input label="Father's Name" value={form.fatherName} onChange={set("fatherName")} />
             <Input label="Husband Name" value={form.husbandName} onChange={set("husbandName")} />
-            <Select label="Blood Group" value={form.bloodGroup} onChange={set("bloodGroup")} options={[{ value: "", label: "Select" }, ...BLOOD_GROUPS.map((b) => ({ value: b, label: b }))]} />
-            <Input label="RFID Card Number" value={form.rfidNumber} onChange={set("rfidNumber")} />
-            <Input label="Qualification" value={form.qualification} onChange={set("qualification")} />
+            <div className="sm:col-span-2"><Select label="Reporting To" value={form.reportingToId} onChange={set("reportingToId")} options={empOptions} /></div>
+            <Select label="Blood Group" value={form.bloodGroup} onChange={set("bloodGroup")} options={[{ value: "", label: "Select..." }, ...BLOOD_GROUPS.map((b) => ({ value: b, label: b }))]} />
+            <Input label="RFID Card Number" value={form.rfidNumber} onChange={set("rfidNumber")} placeholder="Enter RFID Number" />
+            <div className="sm:col-span-2"><Input label="Qualification" value={form.qualification} onChange={set("qualification")} /></div>
             <Select label="Access Role" value={form.role} onChange={set("role")} options={ROLES} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-            <Textarea label="Address" value={form.address} onChange={set("address")} />
-            <Textarea label="Permanent Address" value={form.permanentAddress} onChange={set("permanentAddress")} />
-          </div>
           </div>
           </div>
         </Card>
 
-        <Card title="Work Experience" action={<Button type="button" size="xs" icon={<Plus size={12} />} onClick={addExp}>Add Row</Button>}>
+        <Card title="Work Experience Information">
           <div className="p-5 space-y-3">
             {experiences.map((row, i) => (
-              <div key={i} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                <div className="sm:col-span-5"><Input label={i === 0 ? "Employer" : ""} value={row.employer} onChange={setExp(i, "employer")} placeholder="Previous employer" /></div>
-                <div className="sm:col-span-3"><Input label={i === 0 ? "Role" : ""} value={row.role} onChange={setExp(i, "role")} placeholder="Role" /></div>
-                <div className="sm:col-span-3"><Input label={i === 0 ? "Total Experience" : ""} value={row.totalExperience} onChange={setExp(i, "totalExperience")} placeholder="e.g. 5 years" /></div>
-                <div className="sm:col-span-1">
-                  <button type="button" onClick={() => removeExp(i)} disabled={experiences.length === 1}
-                    className="w-9 h-9 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center disabled:opacity-40">
-                    <Trash2 size={14} />
-                  </button>
+              <div key={i} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-3 items-end">
+                <Input label={i === 0 ? "Employer" : ""} value={row.employer} onChange={setExp(i, "employer")} placeholder="Previous Employer Name" />
+                <Input label={i === 0 ? "Role" : ""} value={row.role} onChange={setExp(i, "role")} placeholder="Enter Role" />
+                <Input label={i === 0 ? "Total Experience" : ""} value={row.totalExperience} onChange={setExp(i, "totalExperience")} placeholder="Enter Total Experience" />
+                <div className="flex gap-2">
+                  {i === experiences.length - 1 && (
+                    <button type="button" onClick={addExp} aria-label="Add another row"
+                      className="w-[44px] h-[44px] flex items-center justify-center text-white" style={{ background: "var(--erp-primary)", borderRadius: "var(--erp-radius)" }}>
+                      <Plus size={18} strokeWidth={3} />
+                    </button>
+                  )}
+                  {experiences.length > 1 && (
+                    <button type="button" onClick={() => removeExp(i)} aria-label="Remove this row"
+                      className="w-[44px] h-[44px] flex items-center justify-center text-white" style={{ background: "var(--erp-danger)", borderRadius: "var(--erp-radius)" }}>
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -261,7 +273,7 @@ export default function AddEmployeePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Login Email *" type="email" value={form.email} onChange={set("email")} placeholder="Used to sign in" />
             <div className="space-y-1">
-              <label className="block text-[11px] font-semibold text-slate-600">Password *</label>
+              <label className="block text-[14px] font-bold mb-1.5" style={{ color: "var(--erp-text)" }}>Password*</label>
               <div className="relative">
                 <input
                   type={showPwd ? "text" : "password"}

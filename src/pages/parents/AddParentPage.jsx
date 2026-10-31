@@ -40,7 +40,7 @@ export default function AddParentPage() {
         {/* Parents Details */}
         <Card>
           <div className="px-5 py-4 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-amber-600">👤 Parents Details</h3>
+            <h3 className="text-[20px] font-normal text-[#24282e]">Parents Details</h3>
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Name *" value={form.name} onChange={set("name")} icon={<span>👤</span>} required />
@@ -57,11 +57,11 @@ export default function AddParentPage() {
             <Input label="Mobile No *" type="tel" value={form.mobileNo} onChange={set("mobileNo")} icon={<span>📞</span>} required />
             <Input label="Email" type="email" value={form.email} onChange={set("email")} icon={<span>✉️</span>} />
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Address</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Address</label>
               <textarea className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none" rows={2} value={form.address} onChange={set("address")} />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Profile Picture</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Profile Picture</label>
               <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-200 hover:border-indigo-300 rounded-xl p-10 cursor-pointer transition-colors">
                 {photoPreview
                   ? <img src={photoPreview} alt="preview" className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100" />
@@ -75,25 +75,25 @@ export default function AddParentPage() {
         {/* Social Links */}
         <Card>
           <div className="px-5 py-4 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-amber-600">🌐 Social Links</h3>
+            <h3 className="text-[20px] font-normal text-[#24282e]">🌐 Social Links</h3>
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Facebook</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Facebook</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 font-bold text-sm">f</span>
                 <input className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" placeholder="eg: https://www.facebook.com/username" value={form.facebook} onChange={set("facebook")} />
               </div>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Twitter</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Twitter</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-sm">𝕏</span>
                 <input className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" placeholder="eg: https://www.twitter.com/username" value={form.twitter} onChange={set("twitter")} />
               </div>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Linkedin</label>
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">Linkedin</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-700 font-bold text-sm">in</span>
                 <input className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400" placeholder="eg: https://www.linkedin.com/username" value={form.linkedin} onChange={set("linkedin")} />

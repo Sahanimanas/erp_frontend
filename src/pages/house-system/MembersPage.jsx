@@ -34,7 +34,7 @@ const classOptions = ["1","2","3","4","5","6","7","8","9","10"];
 function Sel({ label, value, onChange, options, disabled = false }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-slate-500 mb-1">{label}</label>
+      <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">{label}</label>
       <div className="relative">
         <select
           value={value}

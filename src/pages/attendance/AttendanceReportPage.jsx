@@ -202,7 +202,7 @@ export default function AttendanceReportPage() {
       <Card>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1.5">
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
               Class
             </label>
             <Select
@@ -213,7 +213,7 @@ export default function AttendanceReportPage() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1.5">
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
               Section
             </label>
             <Select
@@ -224,14 +224,14 @@ export default function AttendanceReportPage() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1.5">
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
               Month
             </label>
             <Select value={month} onChange={(e) => setMonth(e.target.value)} options={MONTH_OPT} />
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1.5">
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
               Year
             </label>
             <Select value={year} onChange={(e) => setYear(e.target.value)} options={YEAR_OPT} />

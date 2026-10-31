@@ -150,7 +150,7 @@ export default function Student360Page() {
             onSubmit={(e) => { e.preventDefault(); setQuery(term.trim()); }}
           >
             <div className="space-y-1">
-              <label className="block text-[11px] font-semibold text-slate-600">
+              <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
                 {mode === "parent" ? "Parent / guardian name" : "Search"}
               </label>
               <div className="relative">

@@ -33,7 +33,7 @@ export default function IssuePage() {
             <Edit2 size={14}/> Add Book Category
           </h3>
           <div className="mb-4">
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+            <label className="block text-[14px] font-bold text-[#24282e] mb-1.5">
               Category Name <span className="text-red-500 normal-case">*</span>
             </label>
             <input className={inp} value={name} onChange={e=>setName(e.target.value)}
