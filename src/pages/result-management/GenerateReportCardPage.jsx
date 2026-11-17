@@ -1,7 +1,9 @@
 /**
  * Result Management → Generate Report Card
  * Aggregates an exam's marks + non-subjects + remark into a stored report card
- * per student (Class-Wise or a single student). View / Publish read these.
+ * per student (Class-Wise or a single student), then lists the cards just made
+ * in the printed design: a single student's card opens on screen at once.
+ * View / Publish read the same cards.
  */
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -11,8 +13,9 @@ import { FileBadge, Sparkles, CheckCircle2 } from "lucide-react";
 import { useGetSessionsQuery } from "../../redux/api/academicApi";
 import { useGetClassesQuery, useGetSectionsQuery } from "../../redux/api/attendanceApi";
 import { useGetExamsQuery } from "../../redux/api/examMgmtApi";
-import { useGenerateReportCardsMutation, useGetExamPublishStatusQuery } from "../../redux/api/resultMgmtApi";
+import { useGenerateReportCardsMutation, useGetExamPublishStatusQuery, useListReportCardsQuery } from "../../redux/api/resultMgmtApi";
 import { sessionOptions, classOptions, sectionOptions, examOptions, StudentSearchBar, emptyStudentFilter } from "./_rmShared";
+import ReportCardList from "./_reportCardList";
 
 export default function GenerateReportCardPage() {
   usePageTitle("Generate Report Card");
@@ -37,14 +40,19 @@ export default function GenerateReportCardPage() {
 
   const examName = exams.find((e) => e.id === examId)?.name || "";
 
-  useEffect(() => { setSf(emptyStudentFilter); }, [sectionId, examId, mode]);
+  useEffect(() => { setSf(emptyStudentFilter); setDone(null); }, [sectionId, examId, mode]);
+
+  // The cards this run made, read back in full for the list and the preview.
+  const { data: allCards = [], isFetching: loadingCards } = useListReportCardsQuery(
+    { sectionId: done?.sectionId, academicYearId: done?.academicYearId, term: done?.term }, { skip: !done });
+  const madeCards = done?.cardIds ? allCards.filter((c) => done.cardIds.includes(c.id)) : allCards;
 
   const submit = async () => {
     if (!sectionId || !examId) return toast.error("Select section and exam term");
     if (mode === "student" && !sf.id) return toast.error("Select a student");
     try {
       const res = await generate({ academicYearId, sectionId, examId, term: examName, studentId: mode === "student" ? sf.id : undefined }).unwrap();
-      setDone(res);
+      setDone({ ...res, sectionId, academicYearId, term: examName, single: mode === "student" });
       toast.success(res.message || "Generated");
     } catch (e) { toast.error(e?.data?.error || "Failed to generate"); }
   };
@@ -83,13 +91,17 @@ export default function GenerateReportCardPage() {
       {isLoading ? (
         <Card><div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8" />)}</div></Card>
       ) : done ? (
-        <Card>
-          <div className="py-8 text-center">
-            <CheckCircle2 size={44} className="mx-auto text-emerald-500" />
-            <p className="mt-3 text-slate-700 font-medium">Report Card Generated Successfully ({done.generated} card{done.generated === 1 ? "" : "s"}).</p>
-            <p className="text-[13px] text-slate-500">To view, go to Result Management → View Report Card.</p>
+        <>
+          <div className="flex items-center gap-2 px-1 text-[13px] text-emerald-700">
+            <CheckCircle2 size={18} className="text-emerald-500" />
+            Report Card Generated Successfully ({done.generated} card{done.generated === 1 ? "" : "s"}). View or print them below.
           </div>
-        </Card>
+          {loadingCards && !madeCards.length ? (
+            <Card><div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8" />)}</div></Card>
+          ) : (
+            <ReportCardList cards={madeCards} openId={done.single ? done.cardIds?.[0] : null} />
+          )}
+        </>
       ) : null}
     </div>
   );

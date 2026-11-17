@@ -8,9 +8,9 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { usePageTitle } from "../../hooks";
 import { PageHeader, Card, Button, Input, Select, DataTable } from "../../components/ui";
-import { School, Trash2 } from "lucide-react";
+import { School, Trash2, ListPlus } from "lucide-react";
 import { useCmGetSessionsQuery, useCmGetClassesQuery, useCmSaveClassMutation, useCmDeleteClassMutation, useCmGetDepartmentsQuery } from "../../redux/api/classMgmtApi";
-import { sortClasses } from "./_cmShared";
+import { sortClasses, useAddStandardClasses } from "./_cmShared";
 
 const EMPTY = { name: "", academicYearId: "", departmentId: "", classType: "Yearly", classSequence: "", noOfSessions: 1, classCode: "", sections: "", description: "", enabled: true };
 
@@ -22,6 +22,7 @@ export default function AddClassPage() {
   const { data: classes = [], isFetching } = useCmGetClassesQuery();
   const [save, { isLoading: saving }] = useCmSaveClassMutation();
   const [del] = useCmDeleteClassMutation();
+  const [addStandard, { isLoading: addingStandard }] = useAddStandardClasses();
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
@@ -78,7 +79,9 @@ export default function AddClassPage() {
           </div>
         </div>
       </Card>
-      <Card noPadding title="All Class List">
+      <Card noPadding title="All Class List"
+        action={<Button size="sm" variant="secondary" icon={<ListPlus size={14} />} loading={addingStandard}
+          onClick={() => addStandard(form.academicYearId, sessions.find((s) => s.id === form.academicYearId)?.name)}>Add Nursery – Class 12</Button>}>
         <DataTable columns={COLUMNS} data={sortClasses(classes)} loading={isFetching} emptyText="No classes yet." />
       </Card>
     </div>

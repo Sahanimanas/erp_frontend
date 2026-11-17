@@ -14,6 +14,7 @@ import { UserPlus, Save, Camera, X, Plus, Trash2, Upload, FileText, FileDown, Sw
 import { useCreateStudentMutation, useUpdateStudentMutation, useGetStudentQuery } from "../../redux/api/studentsApi";
 import { useGetClassesQuery } from "../../redux/api/attendanceApi";
 import { useGetSessionsQuery } from "../../redux/api/academicApi";
+import { sortClasses, useAddStandardClasses } from "../class-management/_cmShared";
 // Routes come from Transport Management — the one place they're created, along
 // with the monthly fee shown against each option below.
 import { useGetTransportRoutesQuery } from "../../redux/api/transportApi";
@@ -104,7 +105,9 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
   const [docs, setDocs] = useState([]); // { file, name, status }
   const [uploading, setUploading] = useState(false);
 
-  const { data: classes = [] } = useGetClassesQuery();
+  const { data: classes = [], isLoading: classesLoading } = useGetClassesQuery();
+  // A school with no classes yet can create Nursery – Class 12 from right here.
+  const [addStandardClasses, { isLoading: addingClasses }] = useAddStandardClasses();
   // Transport routes (with monthly fee) feed the route dropdown; the chosen
   // route's fee × selected months is billed through the fee ledger.
   const { data: allRoutes = [] } = useGetTransportRoutesQuery();
@@ -375,7 +378,7 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
         ] },
         { heading: "Admission Information", rows: [
           ["Fee Plan", form.feePlan], ["Class", className], ["Section", form.sectionName], ["Admission No", form.admissionNumber],
-          ["Joining Date", form.admissionDate], ["Registration No", form.registrationNo], ["Roll Number", form.rollNumber],
+          ["Admission Date", form.admissionDate], ["Registration No", form.registrationNo], ["Roll Number", form.rollNumber],
         ] },
         { heading: "Hostel & Transport", rows: [
           ["Hostel Required", form.hostelAllotted ? "Yes" : "No"], ["Hostel Name", form.hostelName], ["Hostel Room", form.hostelRoomNo],
@@ -513,15 +516,21 @@ export default function AddStudentPage({ title = "Add Student", subtitle = "Admi
           <Select label="Fee Plan *" value={form.feePlan} onChange={set("feePlan")}
             options={FEE_PLANS.map((p) => ({ value: p, label: p }))} />
           <Select id="student-classId" label="Class *" value={form.classId} onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value, sectionName: "" }))}
-            options={[{ value: "", label: "Select..." }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} />
+            options={[{ value: "", label: "Select..." }, ...sortClasses(classes).map((c) => ({ value: c.id, label: c.name }))]} />
           <Select id="student-sectionName" label="Section *" value={form.sectionName} onChange={set("sectionName")}
             options={[{ value: "", label: "Select Section" }, ...SECTIONS_AZ.map((s) => ({ value: s, label: s }))]} />
           <Input label="Admission No" value={form.admissionNumber} onChange={set("admissionNumber")} placeholder="Enter Admission No" />
-          <Input label="Joining Date" type="date" value={form.admissionDate} onChange={set("admissionDate")} />
+          <Input label="Admission Date" type="date" value={form.admissionDate} onChange={set("admissionDate")} />
           <Input label="Registration No" value={form.registrationNo} onChange={set("registrationNo")} placeholder="Registration No" />
           <Input id="student-rollNumber" label="Roll Number *" value={form.rollNumber} onChange={set("rollNumber")} placeholder="Class Roll No" />
           <Input label="Login Password" value={form.password} onChange={set("password")} />
         </div>
+        {!isView && !classesLoading && classes.length === 0 && (
+          <div className="px-5 pb-5 -mt-1 flex flex-wrap items-center gap-3 text-[13px] text-slate-600">
+            No classes yet.
+            <Button type="button" size="sm" variant="secondary" loading={addingClasses} onClick={() => addStandardClasses()}>Add Nursery – Class 12</Button>
+          </div>
+        )}
       </Card>
 
       {/* ── Hostel Information ────────────────────────────────────────────── */}

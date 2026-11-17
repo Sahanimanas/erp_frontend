@@ -11,7 +11,8 @@
 import { useEffect, useRef, useState } from "react";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const img = (u) => (/^https?:\/\//i.test(String(u || "")) ? esc(u) : "");
+// A hosted image, or one saved inline as a base64 data URL; anything else is dropped.
+const img = (u) => (/^(https?:\/\/|data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,)/i.test(String(u || "")) ? esc(u) : "");
 /** "2026-10-05" → "05/10/2026" */
 export const dmy = (s) => (/^\d{4}-\d{2}-\d{2}$/.test(s || "") ? s.split("-").reverse().join("/") : s || "");
 const up = (s) => esc(String(s ?? "").toUpperCase());
