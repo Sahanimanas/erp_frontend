@@ -48,6 +48,12 @@ export const classMgmtApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/class-management/classes/${id}`, method: "DELETE" }),
       invalidatesTags: ["Academic"],
     }),
+    /** Nursery, LKG, UKG and Class 1–12 (section A each); existing classes are skipped. */
+    cmAddStandardClasses: build.mutation({
+      query: (academicYearId) => ({ url: "/class-management/classes/standard", method: "POST", body: academicYearId ? { academicYearId } : {} }),
+      transformResponse: unwrap,
+      invalidatesTags: ["Academic"],
+    }),
 
     // ── Class details (per year) ────────────────────────────────────────────
     cmGetClassDetails: build.query({
@@ -131,6 +137,7 @@ export const {
   useCmGetClassesQuery,
   useCmSaveClassMutation,
   useCmDeleteClassMutation,
+  useCmAddStandardClassesMutation,
   useCmGetClassDetailsQuery,
   useCmSaveClassDetailsMutation,
   useCmGetSubjectsQuery,
