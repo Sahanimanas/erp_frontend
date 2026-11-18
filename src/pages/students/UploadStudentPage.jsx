@@ -33,7 +33,7 @@ const COLUMNS = [
 
 const SAMPLE_ROWS = [
   {
-    firstName: "John", lastName: "Doe", rollNumber: "R001", gender: "Male", dateOfBirth: "2012-04-01",
+    firstName: "John", lastName: "Doe", rollNumber: "01", gender: "Male", dateOfBirth: "2012-04-01",
     phone: "9876500001", email: "", section: "A", admissionNumber: "ADM2001", registrationNo: "REG2001",
     feePlan: "REGULAR", bloodGroup: "O+", category: "General", caste: "", religion: "Hindu",
     motherTongue: "Hindi", aadharNumber: "111122223333", penNumber: "PEN001", apaarNo: "APAAR001",
@@ -45,7 +45,7 @@ const SAMPLE_ROWS = [
     transportAllotted: "Yes", transportRoute: "Route 5", busNo: "MH12-AB-1234",
   },
   {
-    firstName: "Jane", lastName: "Roe", rollNumber: "R002", gender: "Female", dateOfBirth: "2012-08-15",
+    firstName: "Jane", lastName: "Roe", rollNumber: "02", gender: "Female", dateOfBirth: "2012-08-15",
     phone: "9876500002", email: "", section: "A", admissionNumber: "ADM2002", registrationNo: "REG2002",
     feePlan: "REGULAR", bloodGroup: "A+", category: "OBC", caste: "", religion: "Hindu",
     motherTongue: "Marathi", aadharNumber: "222233334444", penNumber: "PEN002", apaarNo: "APAAR002",
@@ -169,7 +169,7 @@ export default function UploadStudentPage() {
             {rows.length > 0 && <Badge variant="info">{rows.length} rows parsed</Badge>}
           </div>
           <Button icon={<Upload size={14} />} loading={isLoading} disabled={!rows.length || parsing} onClick={upload}>Upload</Button>
-          <p className="text-[11px] text-slate-400">Download the sample to see every supported column. <b>firstName</b>, <b>rollNumber</b>, <b>gender</b>, <b>dateOfBirth</b> (YYYY-MM-DD) and <b>section</b> are required per row; the rest are optional. Hostel/Transport accept Yes/No.</p>
+          <p className="text-[11px] text-slate-400">Download the sample to see every supported column. <b>firstName</b>, <b>gender</b>, <b>dateOfBirth</b> (YYYY-MM-DD) and <b>section</b> are required per row; the rest are optional. A blank <b>rollNumber</b> gets the next number in the class (01, 02 …). Hostel/Transport accept Yes/No.</p>
         </div>
       </Card>
 

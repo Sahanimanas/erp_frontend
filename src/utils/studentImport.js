@@ -66,13 +66,12 @@ export function aliasStudentRow(raw) {
   }
   // Some sheets put the SECTION letter in the "Roll No" column and the real
   // unique id in "Student Id". If roll looks like a section letter and a unique
-  // id exists, treat the letter as the section and the id as the roll number.
+  // id exists, treat the letter as the section; the id stays the registration
+  // no. and the server gives the next class roll number (01, 02 …).
   if (out.registrationNo && /^[A-Za-z]{1,3}$/.test(String(out.rollNumber || ""))) {
     out.section = String(out.rollNumber);
-    out.rollNumber = out.registrationNo;
+    delete out.rollNumber;
   }
-  // Fall back to the unique id as roll number when none was provided.
-  if (!out.rollNumber && out.registrationNo) out.rollNumber = out.registrationNo;
   return out;
 }
 
@@ -87,14 +86,14 @@ export async function parseStudentsFile(file) {
 
 const SAMPLE_ROWS = [
   {
-    firstName: "John", lastName: "Doe", rollNumber: "R001", gender: "Male", dateOfBirth: "2012-04-01",
+    firstName: "John", lastName: "Doe", rollNumber: "01", gender: "Male", dateOfBirth: "2012-04-01",
     phone: "9876500001", email: "", section: "A", admissionNumber: "ADM2001", registrationNo: "REG2001",
     feePlan: "REGULAR", bloodGroup: "O+", category: "General", religion: "Hindu",
     fatherName: "Robert Doe", motherName: "Mary Doe", city: "Pune", pincode: "411001",
     hostelAllotted: "No", transportAllotted: "Yes", transportRoute: "Route 5", busNo: "MH12-AB-1234",
   },
   {
-    firstName: "Jane", lastName: "Roe", rollNumber: "R002", gender: "Female", dateOfBirth: "2012-08-15",
+    firstName: "Jane", lastName: "Roe", rollNumber: "02", gender: "Female", dateOfBirth: "2012-08-15",
     phone: "9876500002", email: "", section: "A", admissionNumber: "ADM2002", registrationNo: "REG2002",
     feePlan: "REGULAR", bloodGroup: "A+", category: "OBC", religion: "Hindu",
     fatherName: "Sam Roe", motherName: "Lisa Roe", city: "Pune", pincode: "411002",

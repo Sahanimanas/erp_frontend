@@ -26,7 +26,7 @@ const instructions = [
 ];
 const notes = [
   { label: "Headers are flexible", text: "— Student Name, Roll No, Father Name, Contact No, Class, Section are matched automatically." },
-  { label: "Roll number optional", text: "— a unique Student Id / Registration No is used as the roll number when present." },
+  { label: "Roll number optional", text: "— a student without one gets the next number in their class (01, 02, 03 …). Every class keeps its own numbers." },
   { label: "", text: "Imported students show up immediately in Student Details, Online Admission List, fees-by-class and the dashboard — and admin can edit them." },
 ];
 
