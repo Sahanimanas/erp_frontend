@@ -372,10 +372,13 @@ function Ring({ pct }) {
     <div className="relative w-24 h-24 flex-shrink-0">
       <svg viewBox="0 0 36 36" className="w-24 h-24 -rotate-90">
         <circle cx="18" cy="18" r="15.5" fill="none" stroke="#eef2f7" strokeWidth="3.5" />
-        <circle
-          cx="18" cy="18" r="15.5" fill="none" strokeWidth="3.5" strokeLinecap="round"
-          stroke={stroke} strokeDasharray={`${(Math.min(100, pct) / 100) * 97.4} 97.4`}
-        />
+        {/* A round cap on a zero-length arc still paints a dot, so 0% draws no arc. */}
+        {pct > 0 && (
+          <circle
+            cx="18" cy="18" r="15.5" fill="none" strokeWidth="3.5" strokeLinecap="round"
+            stroke={stroke} strokeDasharray={`${(Math.min(100, pct) / 100) * 97.4} 97.4`}
+          />
+        )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-lg font-bold text-slate-800 leading-none">{pct}%</span>
@@ -395,10 +398,13 @@ function JumpCard({ title, subtitle, onJump, className = "", children }) {
     <button
       type="button"
       onClick={onJump}
-      className={`text-left w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400
+      className={`text-left w-full h-full flex flex-col rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400
                  group transition-shadow hover:shadow-md ${className}`}
     >
+      {/* A button centres its content, so the card has to fill it — otherwise a
+          short card floats mid-row while its neighbours start at the top. */}
       <Card
+        className="flex-1 w-full"
         title={title}
         subtitle={subtitle}
         action={
